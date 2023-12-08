@@ -1,0 +1,8 @@
+github.com/conduitio/conduit-commons v0.0.0-20231205181721-bef91d55116c h1:iggz0i/MMCHo7FINL01hDUgRhDCLrcSMzIqaiaRCNmg=
+github.com/conduitio/conduit-commons v0.0.0-20231205181721-bef91d55116c/go.mod h1:d4Q4/ezToUpMs8d4hk5z3XkcIV0BTrEpEHFecdP0kLs=
+github.com/goccy/go-json v0.10.2 h1:CrxCmQqYDkv1z7lO7Wbh2HN93uovUHgrECaO5ZrCXAU=
+github.com/goccy/go-json v0.10.2/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
+github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
+github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+github.com/matryer/is v1.4.1 h1:55ehd8zaGABKLXQUe2awZ99BD/PTc2ls+KV/dXphgEQ=
+github.com/matryer/is v1.4.1/go.mod h1:8I/i5uYgLzgsgEloJE1U6xx5HkBQpAZvepWuujKwMRU=
