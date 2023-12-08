@@ -14,7 +14,7 @@
 
 //go:generate mockgen -destination=mock/plugin.go -package=mock -mock_names=ProcessorPlugin=ProcessorPlugin . ProcessorPlugin
 
-package processor
+package sdk
 
 import (
 	"context"
