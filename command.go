@@ -14,6 +14,6 @@
 
 package sdk
 
-func Serve(p ProcessorPlugin) {
-
+type Command struct {
+	Name string `json:"name"`
 }
