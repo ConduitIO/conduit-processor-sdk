@@ -16,6 +16,7 @@ package serve
 
 import (
 	"fmt"
+
 	"github.com/conduitio/conduit-processor-sdk"
 	"github.com/conduitio/conduit-processor-sdk/internal"
 	"github.com/goccy/go-json"

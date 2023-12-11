@@ -19,6 +19,3 @@ install-tools:
 .PHONY: generate
 generate:
 	go generate ./...
-
-test:
-	go test $(GOTEST_FLAGS) -race ./...
