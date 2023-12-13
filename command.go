@@ -149,7 +149,7 @@ func (c *ProcessCmd) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	if _, ok := m["records"]; !ok {
+	if r, ok := m["records"]; !ok || r == nil {
 		// no records to parse
 		return nil
 	}
