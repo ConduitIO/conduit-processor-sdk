@@ -36,7 +36,7 @@ func Serve(p sdk.ProcessorPlugin) {
 
 			bytes, err := json.Marshal(spec)
 			if err != nil {
-				fmt.Printf("failed serializing specification: %w", err)
+				fmt.Printf("failed serializing specification: %v", err)
 			}
 			ptr, cleanup := internal.Write(bytes)
 

@@ -1,5 +1,7 @@
 run:
   timeout: 3m
+  build-tags:
+    - lint
 
 linters-settings:
   gofmt:
