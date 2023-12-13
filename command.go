@@ -149,10 +149,6 @@ func (c *ProcessCmd) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	if m["name"] != c.Name() {
-		return fmt.Errorf("expected name in input JSON to be %v but was %v", c.Name(), m["name"])
-	}
-
 	if r, ok := m["records"]; !ok || r == nil {
 		// no records to parse
 		return nil
@@ -206,11 +202,9 @@ func (c *ProcessCmd) Name() string {
 }
 
 func (c *ProcessCmd) Execute(ctx context.Context, plugin ProcessorPlugin) CommandResponse {
-	bytes, err := json.Marshal(plugin.Process(ctx, c.Records))
-	fmt.Printf("ProcessCmd: bytes: %v\n", string(bytes))
-	fmt.Printf("ProcessCmd: bytes: %v\n", err)
-
-	return NewCommandResponse(bytes, err)
+	return NewCommandResponse(
+		json.Marshal(plugin.Process(ctx, c.Records)),
+	)
 }
 
 func (c *ProcessCmd) deserializeRecord(recJSON interface{}) (opencdc.Record, error) {
