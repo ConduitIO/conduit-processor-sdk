@@ -46,7 +46,7 @@ func NextCommand() (sdk.Command, error) {
 	fmt.Println("getting next command")
 	resp := _nextCommand(ptr, defaultCommandSize)
 	if resp > ErrorCodeStart { // error codes
-		//todo if more memory is needed, allocate it
+		// todo if more memory is needed, allocate it
 		fmt.Printf("got error code: %v\n", resp)
 		return sdk.Command{}, fmt.Errorf("failed getting next command from host, error code: %v", resp)
 	}
