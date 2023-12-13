@@ -7,6 +7,7 @@ toolchain go1.21.5
 require (
 	github.com/conduitio/conduit-commons v0.0.0-20231205181721-bef91d55116c
 	github.com/golangci/golangci-lint v1.55.2
+	github.com/matryer/is v1.4.1
 	mvdan.cc/gofumpt v0.5.0
 )
 

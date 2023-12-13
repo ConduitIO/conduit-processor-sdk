@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	sdk "github.com/conduitio/conduit-processor-sdk"
-	"github.com/goccy/go-json"
 )
 
 // Imports `nextCommand` from the host, which retrieves
@@ -53,17 +52,23 @@ func NextCommand() (sdk.Command, error) {
 
 	fmt.Println("getting next command")
 	bytesWritten := _nextCommand(ptr, size)
+
+	fmt.Printf("command bytes written: %v", bytesWritten)
 	if bytesWritten < 5 { // error codes
 		fmt.Printf("got error code: %v\n", bytesWritten)
-		return sdk.Command{}, fmt.Errorf("failed getting next command from host, error code: %v", bytesWritten)
+		return nil, fmt.Errorf("failed getting next command from host, error code: %v", bytesWritten)
 	}
 
-	var cmd sdk.Command
-	err := json.Unmarshal(ptrToByteArray(ptr, size), &cmd)
+	bytes := ptrToByteArray(ptr, size)
+	fmt.Printf("next command bytes: %v", string(bytes))
+
+	cmd, err := sdk.UnmarshalCommand(bytes)
 	if err != nil {
-		return sdk.Command{}, fmt.Errorf("failed unmarshalling")
+		fmt.Printf("failed unmarshalling command: %w\n", err)
+		return nil, fmt.Errorf("failed unmarshalling: %w", err)
 	}
 
+	fmt.Println("command unmarshaled")
 	return cmd, nil
 }
 

@@ -15,11 +15,12 @@
 package serve
 
 import (
+	"context"
 	"fmt"
+	"github.com/goccy/go-json"
 
 	"github.com/conduitio/conduit-processor-sdk"
 	"github.com/conduitio/conduit-processor-sdk/internal"
-	"github.com/goccy/go-json"
 )
 
 func Serve(p sdk.ProcessorPlugin) {
@@ -30,20 +31,16 @@ func Serve(p sdk.ProcessorPlugin) {
 			return
 		}
 
-		if cmd.Name == "specify" {
-			fmt.Println("getting specification")
-			spec := p.Specification()
-
-			bytes, err := json.Marshal(spec)
-			if err != nil {
-				fmt.Printf("failed serializing specification: %w", err)
-			}
-			ptr, cleanup := internal.Write(bytes)
-
-			internal.Reply(ptr, len(bytes))
-			cleanup()
-		} else {
-			fmt.Printf("got unknown command: %v\n", cmd.Name)
+		fmt.Printf("executing command %v with processor %v\n", cmd, p)
+		resp := cmd.Execute(context.Background(), p)
+		bytes, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Printf("failed marshalling response to command: %w\n", err)
 		}
+
+		fmt.Printf("writing reply, %v bytes\n", len(bytes))
+		ptr, cleanup := internal.Write(bytes)
+		internal.Reply(ptr, len(bytes))
+		cleanup()
 	}
 }
