@@ -46,15 +46,13 @@ func NextCommand() (sdk.Command, error) {
 	resp := _nextCommand(ptr, defaultCommandSize)
 	if resp > ErrorCodeStart { // error codes
 		// todo if more memory is needed, allocate it
-		fmt.Printf("got error code: %v\n", resp)
 		return nil, fmt.Errorf("failed getting next command from host, error code: %v", resp)
 	}
 
 	// parse the command
 	cmd, err := sdk.UnmarshalCommand(ptrToByteArray(ptr, resp))
 	if err != nil {
-		fmt.Printf("failed unmarshalling command: %v\n", err)
-		return nil, fmt.Errorf("failed unmarshalling: %w", err)
+		return nil, fmt.Errorf("failed unmarshalling command: %w", err)
 	}
 
 	return cmd, nil
