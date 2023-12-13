@@ -149,6 +149,10 @@ func (c *ProcessCmd) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
+	if m["name"] != c.Name() {
+		return fmt.Errorf("expected name in input JSON to be %v but was %v", c.Name(), m["name"])
+	}
+
 	if r, ok := m["records"]; !ok || r == nil {
 		// no records to parse
 		return nil
@@ -160,45 +164,14 @@ func (c *ProcessCmd) UnmarshalJSON(bytes []byte) error {
 		return errors.New("records is not an array")
 	}
 
+	// manually parse the records, to make sure
+	// that raw data fields get correctly deserialized
+	// from Base64-encoded strings.
 	for _, recJSON := range recordsJSON {
-		rm, ok := recJSON.(map[string]interface{})
-		if !ok {
-			return errors.New("record not a map")
-		}
-
-		key, err := c.getData(rm["key"])
+		rec, err := c.deserializeRecord(recJSON)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed deserializing record: %w", err)
 		}
-		delete(rm, "key")
-
-		payloadMap, ok := rm["payload"].(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("payload not a map")
-		}
-
-		before, err := c.getData(payloadMap["before"])
-		if err != nil {
-			return fmt.Errorf("payload before: %w", err)
-		}
-		after, err := c.getData(payloadMap["after"])
-		if err != nil {
-			return fmt.Errorf("payload before: %w", err)
-		}
-		delete(rm, "payload")
-
-		bytes, err := json.Marshal(rm)
-		if err != nil {
-			return err
-		}
-
-		var rec opencdc.Record
-		err = json.Unmarshal(bytes, &rec)
-		if err != nil {
-			return err
-		}
-		rec.Key = key
-		rec.Payload = opencdc.Change{Before: before, After: after}
 		records = append(records, rec)
 	}
 
@@ -206,10 +179,15 @@ func (c *ProcessCmd) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
+// getData converts an interface{} into opencdc.Data.
 func (c *ProcessCmd) getData(val interface{}) (opencdc.Data, error) {
 	switch v := val.(type) {
 	case nil:
 		return nil, nil
+	case opencdc.RawData:
+		return v, nil
+	case opencdc.StructuredData:
+		return v, nil
 	case string:
 		str, err := base64.StdEncoding.DecodeString(v)
 		if err != nil {
@@ -233,6 +211,49 @@ func (c *ProcessCmd) Execute(ctx context.Context, plugin ProcessorPlugin) Comman
 	fmt.Printf("ProcessCmd: bytes: %v\n", err)
 
 	return NewCommandResponse(bytes, err)
+}
+
+func (c *ProcessCmd) deserializeRecord(recJSON interface{}) (opencdc.Record, error) {
+	rm, ok := recJSON.(map[string]interface{})
+	if !ok {
+		return opencdc.Record{}, errors.New("record not a map")
+	}
+
+	key, err := c.getData(rm["key"])
+	if err != nil {
+		return opencdc.Record{}, fmt.Errorf("failed deserializing key: %w", err)
+	}
+	delete(rm, "key")
+
+	payloadMap, ok := rm["payload"].(map[string]interface{})
+	if !ok {
+		return opencdc.Record{}, fmt.Errorf("payload not a map")
+	}
+
+	before, err := c.getData(payloadMap["before"])
+	if err != nil {
+		return opencdc.Record{}, fmt.Errorf("payload before: %w", err)
+	}
+	after, err := c.getData(payloadMap["after"])
+	if err != nil {
+		return opencdc.Record{}, fmt.Errorf("payload before: %w", err)
+	}
+	delete(rm, "payload")
+
+	bytes, err := json.Marshal(rm)
+	if err != nil {
+		return opencdc.Record{}, err
+	}
+
+	var rec opencdc.Record
+	err = json.Unmarshal(bytes, &rec)
+	if err != nil {
+		return opencdc.Record{}, err
+	}
+	rec.Key = key
+	rec.Payload = opencdc.Change{Before: before, After: after}
+
+	return rec, nil
 }
 
 type TeardownCmd struct{}
