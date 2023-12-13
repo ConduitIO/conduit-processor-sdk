@@ -36,6 +36,9 @@ var (
 // NextCommand retrieves the next command from Conduit
 func NextCommand() (sdk.Command, error) {
 	// allocate some memory for Conduit to write the command
+	// we're allocating some memory in advance, so that
+	// we don't need to introduce another call just to
+	// get the amount of memory which is needed.
 	ptr, cleanup := allocate(defaultCommandSize)
 	defer cleanup()
 
@@ -43,6 +46,7 @@ func NextCommand() (sdk.Command, error) {
 	fmt.Println("getting next command")
 	resp := _nextCommand(ptr, defaultCommandSize)
 	if resp > ErrorCodeStart { // error codes
+		//todo if more memory is needed, allocate it
 		fmt.Printf("got error code: %v\n", resp)
 		return sdk.Command{}, fmt.Errorf("failed getting next command from host, error code: %v", resp)
 	}
