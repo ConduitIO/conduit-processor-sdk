@@ -38,10 +38,7 @@ func Serve(p sdk.ProcessorPlugin) {
 			if err != nil {
 				fmt.Printf("failed serializing specification: %v", err)
 			}
-			ptr, cleanup := internal.Write(bytes)
-
-			internal.Reply(ptr, len(bytes))
-			cleanup()
+			internal.Reply(bytes)
 		} else {
 			fmt.Printf("got unknown command: %v\n", cmd.Name)
 		}

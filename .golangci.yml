@@ -1,7 +1,7 @@
 run:
   timeout: 3m
   build-tags:
-    - lint
+    - '!wasm'
 
 linters-settings:
   gofmt:

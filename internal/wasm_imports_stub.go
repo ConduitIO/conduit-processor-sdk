@@ -12,13 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !runtime
+// The functions in this file are stubs of the functions defined
+// in wasm_imports.go.
+// They exist to make it possible to test, lint
+// or generally run the code in a non-WASM environment.
 
 package internal
 
 func _nextCommand(_, _ uint32) uint32 {
-	return 0
+	panic("stub")
 }
 
 func _reply(_, _ uint32) {
+	panic("stub")
 }

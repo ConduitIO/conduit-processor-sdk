@@ -16,25 +16,40 @@ package internal
 
 import (
 	"fmt"
+	"math"
 
 	sdk "github.com/conduitio/conduit-processor-sdk"
 	"github.com/goccy/go-json"
 )
 
+var (
+	defaultCommandSize = uint32(1024)
+
+	// ErrorCodeStart is the smallest error code
+	// which the host (i.e. Conduit) can send.
+	// The imported function _nextCommand return an uint32 value
+	// that is either the number of bytes actually written or an error code.
+	// Because of that, we're reserving a range of error code.
+	ErrorCodeStart = math.MaxUint32 - uint32(100)
+)
+
+// NextCommand retrieves the next command from Conduit
 func NextCommand() (sdk.Command, error) {
-	size := uint32(1024)
-	ptr, cleanup := allocate(size)
+	// allocate some memory for Conduit to write the command
+	ptr, cleanup := allocate(defaultCommandSize)
 	defer cleanup()
 
+	// request Conduit to write the command to the given allocation
 	fmt.Println("getting next command")
-	bytesWritten := _nextCommand(ptr, size)
-	if bytesWritten < 5 { // error codes
-		fmt.Printf("got error code: %v\n", bytesWritten)
-		return sdk.Command{}, fmt.Errorf("failed getting next command from host, error code: %v", bytesWritten)
+	resp := _nextCommand(ptr, defaultCommandSize)
+	if resp > ErrorCodeStart { // error codes
+		fmt.Printf("got error code: %v\n", resp)
+		return sdk.Command{}, fmt.Errorf("failed getting next command from host, error code: %v", resp)
 	}
 
+	// parse the command
 	var cmd sdk.Command
-	err := json.Unmarshal(ptrToByteArray(ptr, size), &cmd)
+	err := json.Unmarshal(ptrToByteArray(ptr, resp), &cmd)
 	if err != nil {
 		return sdk.Command{}, fmt.Errorf("failed unmarshalling")
 	}
@@ -42,7 +57,9 @@ func NextCommand() (sdk.Command, error) {
 	return cmd, nil
 }
 
-func Reply(ptr uint32, size int) {
+func Reply(bytes []byte) {
 	fmt.Println("calling reply")
-	_reply(ptr, uint32(size))
+	ptr, cleanup := Write(bytes)
+	defer cleanup()
+	_reply(ptr, uint32(len(bytes)))
 }
