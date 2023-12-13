@@ -68,7 +68,7 @@ func NextCommand() (sdk.Command, error) {
 		return nil, fmt.Errorf("failed unmarshalling: %w", err)
 	}
 
-	fmt.Println("command unmarshaled")
+	fmt.Println("command unmarshalled")
 	return cmd, nil
 }
 

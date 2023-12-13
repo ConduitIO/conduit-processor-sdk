@@ -17,8 +17,6 @@ package serve
 import (
 	"context"
 	"fmt"
-	"github.com/goccy/go-json"
-
 	"github.com/conduitio/conduit-processor-sdk"
 	"github.com/conduitio/conduit-processor-sdk/internal"
 )
@@ -33,9 +31,9 @@ func Serve(p sdk.ProcessorPlugin) {
 
 		fmt.Printf("executing command %v with processor %v\n", cmd, p)
 		resp := cmd.Execute(context.Background(), p)
-		bytes, err := json.Marshal(resp)
+		bytes, err := resp.MarshalJSON()
 		if err != nil {
-			fmt.Printf("failed marshalling response to command: %w\n", err)
+			fmt.Printf("failed marshalling response to command: %v\n", err)
 		}
 
 		fmt.Printf("writing reply, %v bytes\n", len(bytes))

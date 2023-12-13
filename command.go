@@ -16,6 +16,8 @@ package sdk
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/goccy/go-json"
@@ -52,6 +54,10 @@ type Command interface {
 type CommandResponse struct {
 	Bytes []byte `json:"bytes"`
 	Error string `json:"error"`
+}
+
+func (c CommandResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c)
 }
 
 func NewCommandResponse(bytes []byte, err error) CommandResponse {
@@ -134,7 +140,83 @@ func (c *OpenCmd) Execute(ctx context.Context, plugin ProcessorPlugin) CommandRe
 }
 
 type ProcessCmd struct {
-	Records []opencdc.Record
+	Records []opencdc.Record `json:"records"`
+}
+
+func (c *ProcessCmd) UnmarshalJSON(bytes []byte) error {
+	m := make(map[string]interface{})
+	err := json.Unmarshal(bytes, &m)
+	if err != nil {
+		return err
+	}
+
+	var records []opencdc.Record
+	recordsJSON, ok := m["records"].([]interface{})
+	if !ok {
+		return errors.New("records is not an array")
+	}
+
+	for _, recJSON := range recordsJSON {
+		rm, ok := recJSON.(map[string]interface{})
+		if !ok {
+			return errors.New("record not a map")
+		}
+
+		key, err := c.getData(rm["key"])
+		if err != nil {
+			return err
+		}
+		delete(rm, "key")
+
+		payloadMap, ok := rm["payload"].(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("payload not a map")
+		}
+
+		before, err := c.getData(payloadMap["before"])
+		if err != nil {
+			return fmt.Errorf("payload before: %w", err)
+		}
+		after, err := c.getData(payloadMap["after"])
+		if err != nil {
+			return fmt.Errorf("payload before: %w", err)
+		}
+		delete(rm, "payload")
+
+		bytes, err := json.Marshal(rm)
+		if err != nil {
+			return err
+		}
+
+		var rec opencdc.Record
+		err = json.Unmarshal(bytes, &rec)
+		if err != nil {
+			return err
+		}
+		rec.Key = key
+		rec.Payload = opencdc.Change{Before: before, After: after}
+		records = append(records, rec)
+	}
+
+	c.Records = records
+	return nil
+}
+
+func (c *ProcessCmd) getData(val interface{}) (opencdc.Data, error) {
+	switch v := val.(type) {
+	case nil:
+		return nil, nil
+	case string:
+		str, err := base64.StdEncoding.DecodeString(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing key: %w", err)
+		}
+		return opencdc.RawData(str), nil
+	case map[string]interface{}:
+		return opencdc.StructuredData(v), nil
+	default:
+		return nil, fmt.Errorf("unknown type: %T", v)
+	}
 }
 
 func (c *ProcessCmd) Name() string {
@@ -142,7 +224,11 @@ func (c *ProcessCmd) Name() string {
 }
 
 func (c *ProcessCmd) Execute(ctx context.Context, plugin ProcessorPlugin) CommandResponse {
-	return NewCommandResponse(json.Marshal(plugin.Process(ctx, c.Records)))
+	bytes, err := json.Marshal(plugin.Process(ctx, c.Records))
+	fmt.Printf("ProcessCmd: bytes: %v\n", string(bytes))
+	fmt.Printf("ProcessCmd: bytes: %v\n", err)
+
+	return NewCommandResponse(bytes, err)
 }
 
 type TeardownCmd struct {

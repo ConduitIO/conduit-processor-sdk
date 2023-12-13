@@ -15,7 +15,7 @@
 package sdk
 
 import (
-	"fmt"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/goccy/go-json"
 	"testing"
 
@@ -88,8 +88,29 @@ func TestCommand_Unmarshal(t *testing.T) {
 }
 
 func TestName(t *testing.T) {
-	bytes := []byte(" {\"name\":\"specify\",\"command\":\"e30=\"}")
+	is := is.New(t)
+
+	input := &ProcessCmd{
+		Records: []opencdc.Record{
+			{
+				Position:  opencdc.Position("test-post"),
+				Operation: opencdc.OperationCreate,
+				Metadata: opencdc.Metadata{
+					"meta1": "v1",
+				},
+				Key: opencdc.RawData("test-key"),
+				Payload: opencdc.Change{
+					After: opencdc.StructuredData{
+						"key1": "value1",
+					},
+				},
+			},
+		},
+	}
+	bytes, err := MarshalCommand(input)
+	is.NoErr(err)
+
 	command, err := UnmarshalCommand(bytes)
 	is.New(t).NoErr(err)
-	fmt.Println(command)
+	is.Equal(input, command)
 }
