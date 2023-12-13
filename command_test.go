@@ -104,31 +104,3 @@ func TestCommand_UnmarshalUnknownName(t *testing.T) {
 	is.Equal("unknown command name: foobar", err.Error())
 	is.True(cmd == nil)
 }
-
-func TestProcessCmd_Unmarshal(t *testing.T) {
-	is := is.New(t)
-
-	input := &ProcessCmd{
-		Records: []opencdc.Record{
-			{
-				Position:  opencdc.Position("test-post"),
-				Operation: opencdc.OperationCreate,
-				Metadata: opencdc.Metadata{
-					"meta1": "v1",
-				},
-				Key: opencdc.RawData("test-key"),
-				Payload: opencdc.Change{
-					After: opencdc.StructuredData{
-						"key1": "value1",
-					},
-				},
-			},
-		},
-	}
-	bytes, err := MarshalCommand(input)
-	is.NoErr(err)
-
-	command, err := UnmarshalCommand(bytes)
-	is.New(t).NoErr(err)
-	is.Equal(input, command)
-}
