@@ -24,8 +24,6 @@ import (
 
 // ProcessorPlugin receives records, manipulates them and returns back the processed
 // records.
-//
-//nolint:revive // This interface will be moved into the SDK
 type ProcessorPlugin interface {
 	// Specification contains the metadata of this processor like name, version,
 	// description and a list of parameters expected in the configuration.

@@ -16,63 +16,53 @@ package internal
 
 import (
 	"fmt"
+	"math"
 
 	sdk "github.com/conduitio/conduit-processor-sdk"
 )
 
-// Imports `nextCommand` from the host, which retrieves
-// the next command for a processor.
-//
-// The arguments are a pointer to the address where
-// the command should be written and the size of
-// the allocated memory.
-//
-// The return value should be the number of bytes written,
-// or an error code.
-//
-//go:wasmimport env nextCommand
-func _nextCommand(ptr, size uint32) uint32
+var (
+	defaultCommandSize = uint32(1024)
 
-// Imports `reply` from the host, which informs
-// the host about the reply for the previous command.
-//
-// The arguments are a pointer to the address where
-// the reply will be written and the size of
-// the allocated memory.
-//
-// The return values is an error code.
-//
-//go:wasmimport env reply
-func _reply(ptr, size uint32) uint32
+	// ErrorCodeStart is the smallest error code
+	// which the host (i.e. Conduit) can send.
+	// The imported function _nextCommand return an uint32 value
+	// that is either the number of bytes actually written or an error code.
+	// Because of that, we're reserving a range of error code.
+	ErrorCodeStart = math.MaxUint32 - uint32(100)
+)
 
+// NextCommand retrieves the next command from Conduit
 func NextCommand() (sdk.Command, error) {
-	size := uint32(1024)
-	ptr, cleanup := allocate(size)
+	// allocate some memory for Conduit to write the command
+	// we're allocating some memory in advance, so that
+	// we don't need to introduce another call just to
+	// get the amount of memory which is needed.
+	ptr, cleanup := allocate(defaultCommandSize)
 	defer cleanup()
 
+	// request Conduit to write the command to the given allocation
 	fmt.Println("getting next command")
-	bytesWritten := _nextCommand(ptr, size)
-
-	fmt.Printf("command bytes written: %v", bytesWritten)
-	if bytesWritten < 5 { // error codes
-		fmt.Printf("got error code: %v\n", bytesWritten)
-		return nil, fmt.Errorf("failed getting next command from host, error code: %v", bytesWritten)
+	resp := _nextCommand(ptr, defaultCommandSize)
+	if resp > ErrorCodeStart { // error codes
+		// todo if more memory is needed, allocate it
+		fmt.Printf("got error code: %v\n", resp)
+		return nil, fmt.Errorf("failed getting next command from host, error code: %v", resp)
 	}
 
-	bytes := ptrToByteArray(ptr, size)
-	fmt.Printf("next command bytes: %v", string(bytes))
-
-	cmd, err := sdk.UnmarshalCommand(bytes)
+	// parse the command
+	cmd, err := sdk.UnmarshalCommand(ptrToByteArray(ptr, resp))
 	if err != nil {
-		fmt.Printf("failed unmarshalling command: %w\n", err)
+		fmt.Printf("failed unmarshalling command: %v\n", err)
 		return nil, fmt.Errorf("failed unmarshalling: %w", err)
 	}
 
-	fmt.Println("command unmarshalled")
 	return cmd, nil
 }
 
-func Reply(ptr uint32, size int) {
+func Reply(bytes []byte) {
 	fmt.Println("calling reply")
-	_reply(ptr, uint32(size))
+	ptr, cleanup := Write(bytes)
+	defer cleanup()
+	_reply(ptr, uint32(len(bytes)))
 }

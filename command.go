@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+
 	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/goccy/go-json"
 )
@@ -105,14 +106,13 @@ func MarshalCommand(command Command) ([]byte, error) {
 	})
 }
 
-type SpecifyCmd struct {
-}
+type SpecifyCmd struct{}
 
 func (c *SpecifyCmd) Name() string {
 	return "specify"
 }
 
-func (c *SpecifyCmd) Execute(ctx context.Context, plugin ProcessorPlugin) CommandResponse {
+func (c *SpecifyCmd) Execute(_ context.Context, plugin ProcessorPlugin) CommandResponse {
 	return NewCommandResponse(json.Marshal(plugin.Specification()))
 }
 
@@ -128,8 +128,7 @@ func (c *ConfigureCmd) Execute(ctx context.Context, plugin ProcessorPlugin) Comm
 	return NewCommandResponse(nil, plugin.Configure(ctx, c.ConfigMap))
 }
 
-type OpenCmd struct {
-}
+type OpenCmd struct{}
 
 func (c *OpenCmd) Name() string {
 	return "open"
@@ -148,6 +147,11 @@ func (c *ProcessCmd) UnmarshalJSON(bytes []byte) error {
 	err := json.Unmarshal(bytes, &m)
 	if err != nil {
 		return err
+	}
+
+	if _, ok := m["records"]; !ok {
+		// no records to parse
+		return nil
 	}
 
 	var records []opencdc.Record
@@ -231,8 +235,7 @@ func (c *ProcessCmd) Execute(ctx context.Context, plugin ProcessorPlugin) Comman
 	return NewCommandResponse(bytes, err)
 }
 
-type TeardownCmd struct {
-}
+type TeardownCmd struct{}
 
 func (c *TeardownCmd) Name() string {
 	return "teardown"

@@ -17,19 +17,24 @@ package serve
 import (
 	"context"
 	"fmt"
-	"github.com/conduitio/conduit-processor-sdk"
+
+	sdk "github.com/conduitio/conduit-processor-sdk"
 	"github.com/conduitio/conduit-processor-sdk/internal"
 )
 
+// Serve is the 'entry point' for a processor. It runs a
+// 'get a command, send a reply' loop through which it
+// communicates with Conduit.
+//
+// A processor plugin needs to call this function in its main() function.
 func Serve(p sdk.ProcessorPlugin) {
 	for {
 		cmd, err := internal.NextCommand()
 		if err != nil {
-			fmt.Printf("failed retrieving next command: %v", cmd)
+			fmt.Printf("failed retrieving next command: %v", err)
 			return
 		}
 
-		fmt.Printf("executing command %v with processor %v\n", cmd, p)
 		resp := cmd.Execute(context.Background(), p)
 		bytes, err := resp.MarshalJSON()
 		if err != nil {
@@ -37,8 +42,6 @@ func Serve(p sdk.ProcessorPlugin) {
 		}
 
 		fmt.Printf("writing reply, %v bytes\n", len(bytes))
-		ptr, cleanup := internal.Write(bytes)
-		internal.Reply(ptr, len(bytes))
-		cleanup()
+		internal.Reply(bytes)
 	}
 }

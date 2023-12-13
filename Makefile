@@ -1,6 +1,6 @@
 .PHONY: test
 test:
-	go test $(GOTEST_FLAGS) -race ./...
+	go test $(GOTEST_FLAGS) -race ./... -tags !wasm
 
 .PHONY: lint
 lint:

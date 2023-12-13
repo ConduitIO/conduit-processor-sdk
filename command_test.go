@@ -15,10 +15,10 @@
 package sdk
 
 import (
-	"github.com/conduitio/conduit-commons/opencdc"
-	"github.com/goccy/go-json"
 	"testing"
 
+	"github.com/conduitio/conduit-commons/opencdc"
+	"github.com/goccy/go-json"
 	"github.com/matryer/is"
 )
 
@@ -26,9 +26,8 @@ func TestCommand_Marshal_Unmarshal(t *testing.T) {
 	is := is.New(t)
 
 	testCases := []struct {
-		name    string
-		input   Command
-		wantErr error
+		name  string
+		input Command
 	}{
 		{
 			name:  "specify",
@@ -47,8 +46,28 @@ func TestCommand_Marshal_Unmarshal(t *testing.T) {
 			input: &OpenCmd{},
 		},
 		{
-			name:  "process",
+			name:  "process with no records",
 			input: &ProcessCmd{},
+		},
+		{
+			name: "process with records",
+			input: &ProcessCmd{
+				Records: []opencdc.Record{
+					{
+						Position:  opencdc.Position("test-post"),
+						Operation: opencdc.OperationCreate,
+						Metadata: opencdc.Metadata{
+							"meta1": "v1",
+						},
+						Key: opencdc.RawData("test-key"),
+						Payload: opencdc.Change{
+							After: opencdc.StructuredData{
+								"key1": "value1",
+							},
+						},
+					},
+				},
+			},
 		},
 		{
 			name:  "teardown",
@@ -66,7 +85,6 @@ func TestCommand_Marshal_Unmarshal(t *testing.T) {
 			is.Equal(tt.input, cmd)
 		})
 	}
-
 }
 
 func TestCommand_UnmarshalUnknownName(t *testing.T) {
