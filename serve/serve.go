@@ -17,6 +17,7 @@ package serve
 import (
 	"context"
 	"fmt"
+	"os"
 
 	sdk "github.com/conduitio/conduit-processor-sdk"
 	"github.com/conduitio/conduit-processor-sdk/internal"
@@ -32,16 +33,14 @@ func Serve(p sdk.ProcessorPlugin) {
 		cmd, err := internal.NextCommand()
 		if err != nil {
 			fmt.Printf("failed retrieving next command: %v", err)
-			return
+			os.Exit(1)
 		}
 
 		resp := cmd.Execute(context.Background(), p)
-		bytes, err := resp.MarshalJSON()
+		err = internal.Reply(resp)
 		if err != nil {
-			fmt.Printf("failed marshalling response to command: %v\n", err)
+			fmt.Printf("failed writing reply: %v\n", err)
+			os.Exit(1)
 		}
-
-		fmt.Printf("writing reply, %v bytes\n", len(bytes))
-		internal.Reply(bytes)
 	}
 }

@@ -60,9 +60,15 @@ func NextCommand() (sdk.Command, error) {
 	return cmd, nil
 }
 
-func Reply(bytes []byte) {
-	fmt.Println("calling reply")
+func Reply(resp sdk.CommandResponse) error {
+	bytes, err := resp.MarshalJSON()
+	if err != nil {
+		return fmt.Errorf("failed writing reply: %w", err)
+	}
+
 	ptr, cleanup := Write(bytes)
 	defer cleanup()
 	_reply(ptr, uint32(len(bytes)))
+
+	return nil
 }
