@@ -69,7 +69,7 @@ func TestCommand_Marshal_Unmarshal(t *testing.T) {
 
 }
 
-func TestCommand_Unmarshal(t *testing.T) {
+func TestCommand_UnmarshalUnknownName(t *testing.T) {
 	is := is.New(t)
 
 	cmdBytes, err := json.Marshal(OpenCmd{})
@@ -87,7 +87,7 @@ func TestCommand_Unmarshal(t *testing.T) {
 	is.True(cmd == nil)
 }
 
-func TestName(t *testing.T) {
+func TestProcessCmd_Unmarshal(t *testing.T) {
 	is := is.New(t)
 
 	input := &ProcessCmd{
