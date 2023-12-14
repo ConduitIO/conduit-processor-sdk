@@ -32,14 +32,14 @@ func Serve(p sdk.ProcessorPlugin) {
 	for {
 		cmd, err := internal.NextCommand()
 		if err != nil {
-			fmt.Printf("failed retrieving next command: %v", err)
+			_, _ = fmt.Fprintf(os.Stderr, "failed retrieving next command: %v", err)
 			os.Exit(1)
 		}
 
 		resp := cmd.Execute(context.Background(), p)
 		err = internal.Reply(resp)
 		if err != nil {
-			fmt.Printf("failed writing reply: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "failed writing reply: %v\n", err)
 			os.Exit(1)
 		}
 	}
