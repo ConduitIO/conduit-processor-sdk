@@ -47,6 +47,7 @@ func NextCommand() (sdk.Command, error) {
 	resp := _nextCommand(ptr, defaultCommandSize)
 	if resp > ErrorCodeStart { // error codes
 		// todo if more memory is needed, allocate it
+		// https://github.com/ConduitIO/conduit-processor-sdk/issues/6
 		fmt.Printf("got error code: %v\n", resp)
 		return sdk.Command{}, fmt.Errorf("failed getting next command from host, error code: %v", resp)
 	}
