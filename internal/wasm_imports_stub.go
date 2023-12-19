@@ -17,6 +17,8 @@
 // They exist to make it possible to test, lint
 // or generally run the code in a non-WASM environment.
 
+//go:build !wasm
+
 package internal
 
 func _nextCommand(_, _ uint32) uint32 {
