@@ -25,11 +25,10 @@ import (
 var (
 	defaultCommandSize = uint32(1024)
 
-	// ErrorCodeStart is the smallest error code
-	// which the host (i.e. Conduit) can send.
-	// The imported function _nextCommand return an uint32 value
+	// ErrorCodeStart is the smallest error code which the host (i.e. Conduit) can send.
+	// The imported function _nextCommand returns an uint32 value
 	// that is either the number of bytes actually written or an error code.
-	// Because of that, we're reserving a range of error code.
+	// Because of that, we're reserving a range of error codes.
 	ErrorCodeStart = math.MaxUint32 - uint32(100)
 )
 
@@ -63,7 +62,6 @@ func NextCommand() (sdk.Command, error) {
 }
 
 func Reply(bytes []byte) {
-	fmt.Println("calling reply")
 	ptr, cleanup := Write(bytes)
 	defer cleanup()
 	_reply(ptr, uint32(len(bytes)))
