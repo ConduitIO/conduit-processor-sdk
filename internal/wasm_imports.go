@@ -19,12 +19,11 @@ package internal
 // Imports `nextCommand` from the host, which retrieves
 // the next command for a processor.
 //
-// The arguments are a pointer to the address where
-// the command should be written and the size of
-// the allocated memory.
+// The arguments are:
+// (1) a pointer to the address where the command should be written
+// (2) the size of allocated memory.
 //
-// The return value should be the number of bytes written,
-// or an error code.
+// The return value can be 0 (for a successful reply) or an error code.
 //
 //go:wasmimport env nextCommand
 func _nextCommand(ptr, size uint32) uint32
@@ -32,11 +31,11 @@ func _nextCommand(ptr, size uint32) uint32
 // Imports `reply` from the host, which informs
 // the host about the reply for the previous command.
 //
-// The arguments are a pointer to the address where
-// the reply will be written and the size of
-// the allocated memory.
+// The arguments are:
+// (1) a pointer to the address where the reply should be written
+// (2) the size of allocated memory.
 //
-// The return values is an error code.
+// The return value can be 0 (for a successful reply) or an error code.
 //
 //go:wasmimport env reply
 func _reply(ptr, size uint32)
