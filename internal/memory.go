@@ -19,7 +19,7 @@ import (
 	"unsafe"
 )
 
-var allocs = make(map[uintptr][]byte)
+var allocations = make(map[uintptr][]byte)
 
 func allocate(size uint32) (uint32, func()) {
 	fmt.Printf("allocating %v bytes", size)
@@ -32,8 +32,8 @@ func free(ptr unsafe.Pointer) {
 		return
 	}
 
-	if _, ok := allocs[uintptr(ptr)]; ok {
-		delete(allocs, uintptr(ptr))
+	if _, ok := allocations[uintptr(ptr)]; ok {
+		delete(allocations, uintptr(ptr))
 	} else {
 		panic("free: invalid pointer")
 	}
@@ -46,7 +46,7 @@ func ptrToByteArray(ptr uint32, size uint32) []byte {
 func Write(bytes []byte) (uint32, func()) {
 	fmt.Printf("writing %v bytes to memory\n", len(bytes))
 	ptr := unsafe.Pointer(&bytes[0])
-	allocs[uintptr(ptr)] = bytes
+	allocations[uintptr(ptr)] = bytes
 
 	return uint32(uintptr(ptr)), func() {
 		free(ptr)
