@@ -15,6 +15,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
@@ -31,11 +32,16 @@ var (
 	ErrorCodeStart = math.MaxUint32 - uint32(100)
 )
 
+var (
+	ErrCannotUnmarshalCommand = errors.New("cannot unmarshal command")
+	ErrNextCommand            = errors.New("failed getting next command")
+)
+
 type Command struct {
 	Name string `json:"name"`
 }
 
-// NextCommand retrieves the next command from Conduit
+// NextCommand retrieves the next command from Conduit.
 func NextCommand() (Command, error) {
 	// allocate some memory for Conduit to write the command
 	// we're allocating some memory in advance, so that
@@ -51,14 +57,14 @@ func NextCommand() (Command, error) {
 		// todo if more memory is needed, allocate it
 		// https://github.com/ConduitIO/conduit-processor-sdk/issues/6
 		fmt.Printf("got error code: %v\n", resp)
-		return Command{}, fmt.Errorf("failed getting next command from host, error code: %v", resp)
+		return Command{}, fmt.Errorf("error code %v: %w", resp, ErrNextCommand)
 	}
 
 	// parse the command
 	var cmd Command
 	err := json.Unmarshal(ptrToByteArray(ptr, resp), &cmd)
 	if err != nil {
-		return Command{}, fmt.Errorf("failed unmarshalling")
+		return Command{}, ErrCannotUnmarshalCommand
 	}
 
 	return cmd, nil
