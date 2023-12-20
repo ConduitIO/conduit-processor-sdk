@@ -1,13 +1,7 @@
 run:
-  timeout: 3m
-  build-tags:
-    - '!wasm'
+  timeout: 5m
 
 linters-settings:
-  gofmt:
-    simplify: false
-  govet:
-    check-shadowing: false # TODO enable
   nolintlint:
     allow-unused: false # report any unused nolint directives
     require-explanation: true # require an explanation for nolint directives
@@ -21,97 +15,111 @@ linters-settings:
     values:
       regexp:
         copyright-year: 20[2-9]\d
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .WithStack(
+      - (context.Context).Err()
 
 issues:
   exclude-rules:
-    - path: '(.+)acceptance_testing\.go'
-      linters:
-        - stylecheck
-      text: "ST1003: should not use underscores in Go names"
-    # Exclude some linters from running on tests files.
     - path: _test\.go
       linters:
         - dogsled
         - gosec
+        - gocognit
+        - errcheck
+        - forcetypeassert
+        - funlen
+        - goerr113
 
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
   enable:
-    # We plan to enable all of the linters which are commented out.
-    # However, we want to enable them one by one (so we don't have to fix many issues at once).
+    - asasalint
+    - asciicheck
+    - bidichk
     - bodyclose
+    - containedctx
+    - contextcheck
+    - decorder
     # - depguard
     - dogsled
+    - dupl
+    - dupword
     - durationcheck
     - errcheck
+    - errchkjson
     - errname
-    # - errorlint
-    # - exhaustive
-    # - exhaustivestruct
+    - errorlint
+    - execinquery
+    - exhaustive
     - exportloopref
     # - forbidigo
-    # - forcetypeassert
-    # - funlen
-    # - gochecknoinits
+    - forcetypeassert
+    - funlen
+    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gocognit
     - goconst
     - gocritic
-    - gocyclo
-    # - cyclop # not interested in package complexities at the moment
-    # - godot
+    - godot
+    - goerr113
     - gofmt
-    # - gofumpt
+    - gofumpt
     - goheader
     - goimports
-    - revive
-    # - gomnd
     - gomoddirectives
-    - gomodguard
     - goprintffuncname
     - gosec
     - gosimple
+    - gosmopolitan
     - govet
-    # - ifshort
+    - grouper
+    - importas
     - ineffassign
-    # - importas
-    # - lll
-    # - misspell
+    - interfacebloat
+    # - ireturn # Doesn't have correct support for generic types https://github.com/butuzov/ireturn/issues/37
+    - loggercheck
+    - maintidx
     - makezero
-    # - nakedret
-    # - nilerr
-    # - nilnil
-    # - nlreturn
+    - mirror
+    - misspell
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
     - noctx
     - nolintlint
-    # - paralleltest
+    - nosprintfhostport
+    - prealloc
     - predeclared
+    - promlinter
+    - reassign
+    - revive
     - rowserrcheck
+    - sqlclosecheck
     - staticcheck
     - stylecheck
-    - sqlclosecheck
-    # - tagliatelle
-    # - tenv
-    # - thelper
-    # - tparallel
-    - typecheck
+    - tenv
+    - testableexamples
+    - thelper
     - unconvert
-    # - unparam
+    - unparam
     - unused
+    - usestdlibvars
     - wastedassign
     - whitespace
-  # - wrapcheck
-  # - wsl
-
-  # don't enable:
-  # - asciicheck
-  # - dupl
-  # - gochecknoglobals
-  # - gocognit
-  # - godox
-  # - goerr113
-  # - maligned
-  # - nestif
-  # - prealloc
-  # - testpackage
-  # - wsl
+    - wrapcheck
+    - zerologlint
