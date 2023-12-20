@@ -14,5 +14,37 @@
 
 package sdk
 
-func run(p Processor) {
+import (
+	"fmt"
+
+	"github.com/conduitio/conduit-processor-sdk/internal"
+	"github.com/goccy/go-json"
+)
+
+// Run is the 'entry point' for a processor. It runs a
+// 'get a command, send a reply' loop through which it
+// communicates with Conduit.
+//
+// A processor plugin needs to call this function in its main() function.
+func Run(p Processor) {
+	for {
+		cmd, err := internal.NextCommand()
+		if err != nil {
+			fmt.Printf("failed retrieving next command: %v", cmd)
+			return
+		}
+
+		if cmd.Name == "specify" {
+			fmt.Println("getting specification")
+			spec := p.Specification()
+
+			bytes, err := json.Marshal(spec)
+			if err != nil {
+				fmt.Printf("failed serializing specification: %v", err)
+			}
+			internal.Reply(bytes)
+		} else {
+			fmt.Printf("got unknown command: %v\n", cmd.Name)
+		}
+	}
 }

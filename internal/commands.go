@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"math"
 
-	sdk "github.com/conduitio/conduit-processor-sdk"
 	"github.com/goccy/go-json"
 )
 
@@ -32,8 +31,12 @@ var (
 	ErrorCodeStart = math.MaxUint32 - uint32(100)
 )
 
+type Command struct {
+	Name string `json:"name"`
+}
+
 // NextCommand retrieves the next command from Conduit
-func NextCommand() (sdk.Command, error) {
+func NextCommand() (Command, error) {
 	// allocate some memory for Conduit to write the command
 	// we're allocating some memory in advance, so that
 	// we don't need to introduce another call just to
@@ -48,14 +51,14 @@ func NextCommand() (sdk.Command, error) {
 		// todo if more memory is needed, allocate it
 		// https://github.com/ConduitIO/conduit-processor-sdk/issues/6
 		fmt.Printf("got error code: %v\n", resp)
-		return sdk.Command{}, fmt.Errorf("failed getting next command from host, error code: %v", resp)
+		return Command{}, fmt.Errorf("failed getting next command from host, error code: %v", resp)
 	}
 
 	// parse the command
-	var cmd sdk.Command
+	var cmd Command
 	err := json.Unmarshal(ptrToByteArray(ptr, resp), &cmd)
 	if err != nil {
-		return sdk.Command{}, fmt.Errorf("failed unmarshalling")
+		return Command{}, fmt.Errorf("failed unmarshalling")
 	}
 
 	return cmd, nil
