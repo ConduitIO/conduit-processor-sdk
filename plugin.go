@@ -74,7 +74,7 @@ type Specification struct {
 	Version string
 	// Author declares the entity that created or maintains this plugin.
 	Author string
-	// Parameters describe how to configure the plugins Destination or Source.
+	// Parameters describe how to configure the plugin.
 	Parameters map[string]Parameter
 }
 
