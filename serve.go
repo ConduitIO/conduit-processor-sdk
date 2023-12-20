@@ -14,6 +14,6 @@
 
 package sdk
 
-func Serve(p ProcessorPlugin) {
+func Serve(p Processor) {
 
 }

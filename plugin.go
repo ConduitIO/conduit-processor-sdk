@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -destination=mock/plugin.go -package=mock -mock_names=ProcessorPlugin=ProcessorPlugin . ProcessorPlugin
+//go:generate mockgen -destination=mock/plugin.go -package=mock -mock_names=Processor=Processor . Processor
 
 package sdk
 
@@ -22,11 +22,9 @@ import (
 	"github.com/conduitio/conduit-commons/opencdc"
 )
 
-// ProcessorPlugin receives records, manipulates them and returns back the processed
+// Processor receives records, manipulates them and returns back the processed
 // records.
-//
-//nolint:revive // This interface will be moved into the SDK
-type ProcessorPlugin interface {
+type Processor interface {
 	// Specification contains the metadata of this processor like name, version,
 	// description and a list of parameters expected in the configuration.
 	Specification() Specification
