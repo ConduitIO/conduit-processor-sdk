@@ -12,12 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build tools
+package sdk
 
-package main
-
-import (
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "go.uber.org/mock/mockgen"
-	_ "mvdan.cc/gofumpt"
-)
+func run(p Processor) {
+}
