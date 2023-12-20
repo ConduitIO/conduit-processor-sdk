@@ -22,12 +22,12 @@ import (
 	"github.com/goccy/go-json"
 )
 
-// Serve is the 'entry point' for a processor. It runs a
+// Run is the 'entry point' for a processor. It runs a
 // 'get a command, send a reply' loop through which it
 // communicates with Conduit.
 //
 // A processor plugin needs to call this function in its main() function.
-func Serve(p sdk.ProcessorPlugin) {
+func Run(p sdk.ProcessorPlugin) {
 	for {
 		cmd, err := internal.NextCommand()
 		if err != nil {
