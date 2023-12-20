@@ -14,6 +14,6 @@
 
 package sdk
 
-func Serve(p Processor) {
+func run(p Processor) {
 
 }
