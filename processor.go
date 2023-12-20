@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -destination=mock/plugin.go -package=mock -mock_names=Processor=Processor . Processor
+//go:generate mockgen -destination=mock/processor.go -package=mock -mock_names=Processor=Processor . Processor
 
 package sdk
 
@@ -56,13 +56,13 @@ type Processor interface {
 	Teardown(context.Context) error
 }
 
-// Specification is returned by a plugin when Specify is called.
-// It contains information about the configuration parameters for plugins
+// Specification is returned by a processor when Specify is called.
+// It contains information about the configuration parameters for processors
 // and allows them to describe their parameters.
 type Specification struct {
-	// Name is the name of the plugin.
+	// Name is the name of the processor.
 	Name string
-	// Summary is a brief description of the plugin and what it does.
+	// Summary is a brief description of the processor and what it does.
 	Summary string
 	// Description is a more long form area appropriate for README-like text
 	// that the author can provide for documentation about the specified
@@ -70,13 +70,13 @@ type Specification struct {
 	Description string
 	// Version string. Should be a semver prepended with `v`, e.g. `v1.54.3`.
 	Version string
-	// Author declares the entity that created or maintains this plugin.
+	// Author declares the entity that created or maintains this processor.
 	Author string
-	// Parameters describe how to configure the plugin.
+	// Parameters describe how to configure the processor.
 	Parameters map[string]Parameter
 }
 
-// Parameter is a helper struct for defining plugin Specifications.
+// Parameter defines a single parameter within a processor's configuration.
 type Parameter struct {
 	// Default is the default value of the parameter, if any.
 	Default string
