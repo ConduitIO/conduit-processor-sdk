@@ -25,6 +25,7 @@ type Command interface {
 }
 
 type CommandResponse interface {
+	Error() error
 	isCommandResponse()
 }
 
@@ -38,6 +39,10 @@ func (c *SpecifyCmd) Execute(_ context.Context, plugin Processor) CommandRespons
 type SpecifyResponse struct {
 	Specification Specification
 	Err           error
+}
+
+func (r *SpecifyResponse) Error() error {
+	return r.Err
 }
 
 func (r *SpecifyResponse) isCommandResponse() {}
@@ -56,6 +61,10 @@ type ConfigureResponse struct {
 	Err error
 }
 
+func (r *ConfigureResponse) Error() error {
+	return r.Err
+}
+
 func (r *ConfigureResponse) isCommandResponse() {}
 
 type OpenCmd struct{}
@@ -66,6 +75,10 @@ func (c *OpenCmd) Execute(ctx context.Context, p Processor) CommandResponse {
 
 type OpenResponse struct {
 	Err error
+}
+
+func (r *OpenResponse) Error() error {
+	return r.Err
 }
 
 func (r *OpenResponse) isCommandResponse() {}
@@ -82,6 +95,10 @@ type ProcessResponse struct {
 	Records []ProcessedRecord
 }
 
+func (r *ProcessResponse) Error() error {
+	return nil
+}
+
 func (r *ProcessResponse) isCommandResponse() {}
 
 type TeardownCmd struct{}
@@ -94,6 +111,10 @@ func (c *TeardownCmd) Execute(ctx context.Context, p Processor) CommandResponse 
 
 type TeardownResponse struct {
 	Err error
+}
+
+func (r *TeardownResponse) Error() error {
+	return r.Err
 }
 
 func (r *TeardownResponse) isCommandResponse() {}
