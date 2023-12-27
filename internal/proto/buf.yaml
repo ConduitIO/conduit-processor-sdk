@@ -1,0 +1,14 @@
+version: v1
+name: buf.build/conduitio/conduit-processor-sdk
+deps:
+  - buf.build/haris/conduit-commons:v0.1.3
+lint:
+  service_suffix: Plugin
+  use:
+    - DEFAULT
+  except:
+    - RPC_REQUEST_STANDARD_NAME
+    - RPC_RESPONSE_STANDARD_NAME
+breaking:
+  use:
+    - FILE

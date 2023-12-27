@@ -12,37 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package wasm
 
 import (
-	"errors"
 	"fmt"
-	"math"
 
-	"github.com/goccy/go-json"
+	sdk "github.com/conduitio/conduit-processor-sdk"
+	"github.com/conduitio/conduit-processor-sdk/internal/proto"
 )
 
-var (
-	defaultCommandSize = uint32(1024)
-
-	// ErrorCodeStart is the smallest error code which the host (i.e. Conduit) can send.
-	// The imported function _nextCommand returns an uint32 value
-	// that is either the number of bytes actually written or an error code.
-	// Because of that, we're reserving a range of error codes.
-	ErrorCodeStart = math.MaxUint32 - uint32(100)
-)
-
-var (
-	ErrCannotUnmarshalCommand = errors.New("cannot unmarshal command")
-	ErrNextCommand            = errors.New("failed getting next command")
-)
-
-type Command struct {
-	Name string `json:"name"`
-}
+var defaultCommandSize = uint32(1024)
 
 // NextCommand retrieves the next command from Conduit.
-func NextCommand() (Command, error) {
+func NextCommand() (sdk.Command, error) {
 	// allocate some memory for Conduit to write the command
 	// we're allocating some memory in advance, so that
 	// we don't need to introduce another call just to
@@ -53,25 +35,31 @@ func NextCommand() (Command, error) {
 	// request Conduit to write the command to the given allocation
 	fmt.Println("getting next command")
 	resp := _nextCommand(ptr, defaultCommandSize)
-	if resp > ErrorCodeStart { // error codes
+	if resp > sdk.ErrorCodeStart { // error codes
 		// todo if more memory is needed, allocate it
 		// https://github.com/ConduitIO/conduit-processor-sdk/issues/6
 		fmt.Printf("got error code: %v\n", resp)
-		return Command{}, fmt.Errorf("error code %v: %w", resp, ErrNextCommand)
+		return nil, fmt.Errorf("error code %v: %w", resp, sdk.ErrNextCommand)
 	}
 
 	// parse the command
-	var cmd Command
-	err := json.Unmarshal(ptrToByteArray(ptr, resp), &cmd)
+	cmd, err := proto.UnmarshalCommand(ptrToByteArray(ptr, resp))
 	if err != nil {
-		return Command{}, ErrCannotUnmarshalCommand
+		return nil, fmt.Errorf("failed unmarshalling command: %w", err)
 	}
 
 	return cmd, nil
 }
 
-func Reply(bytes []byte) {
+func Reply(resp sdk.CommandResponse) error {
+	bytes, err := proto.MarshalCommandResponse(resp)
+	if err != nil {
+		return fmt.Errorf("failed marshalling CommandResponse to bytes: %w", err)
+	}
+
 	ptr, cleanup := Write(bytes)
 	defer cleanup()
 	_reply(ptr, uint32(len(bytes)))
+
+	return nil
 }

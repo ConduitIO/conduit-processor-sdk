@@ -12,13 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build tools
-
-package main
+package sdk
 
 import (
-	_ "github.com/bufbuild/buf/cmd/buf"
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "go.uber.org/mock/mockgen"
-	_ "mvdan.cc/gofumpt"
+	"errors"
+	"math"
 )
+
+var (
+	// ErrorCodeStart is the smallest error code which the host (i.e. Conduit) can send.
+	// The imported function _nextCommand returns an uint32 value
+	// that is either the number of bytes actually written or an error code.
+	// Because of that, we're reserving a range of error codes.
+	ErrorCodeStart = ErrMemoryOutOfRange
+
+	ErrCodeInsufficientSize     = math.MaxUint32 - uint32(1)
+	ErrCodeFailedGettingCommand = math.MaxUint32 - uint32(2)
+	ErrMemoryOutOfRange         = math.MaxUint32 - uint32(3)
+)
+
+var ErrNextCommand = errors.New("failed getting next command")
