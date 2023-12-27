@@ -14,7 +14,7 @@
 
 //go:build wasm
 
-package internal
+package wasm
 
 // Imports `nextCommand` from the host, which retrieves
 // the next command for a processor.

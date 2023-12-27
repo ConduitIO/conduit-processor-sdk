@@ -27,7 +27,7 @@ import (
 type Processor interface {
 	// Specification contains the metadata of this processor like name, version,
 	// description and a list of parameters expected in the configuration.
-	Specification() Specification
+	Specification() (Specification, error)
 
 	// Configure is the first function to be called in a processor. It provides the
 	// processor with the configuration that needs to be validated and stored.

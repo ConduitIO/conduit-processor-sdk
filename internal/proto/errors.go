@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build tools
+package proto
 
-package main
+import "errors"
 
-import (
-	_ "github.com/bufbuild/buf/cmd/buf"
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "go.uber.org/mock/mockgen"
-	_ "mvdan.cc/gofumpt"
+var (
+	ErrNilCommand  = errors.New("command is nil")
+	ErrUnknownType = errors.New("unknown type")
 )

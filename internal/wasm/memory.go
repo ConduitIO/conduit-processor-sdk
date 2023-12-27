@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package wasm
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ import (
 var allocations = make(map[uintptr][]byte)
 
 func allocate(size uint32) (uint32, func()) {
-	fmt.Printf("allocating %v bytes", size)
+	fmt.Printf("allocating %v bytes\n", size)
 
 	return Write(make([]byte, size))
 }
@@ -32,6 +32,7 @@ func free(ptr unsafe.Pointer) {
 		return
 	}
 
+	fmt.Printf("freeing up memory at %v\n", ptr)
 	if _, ok := allocations[uintptr(ptr)]; ok {
 		delete(allocations, uintptr(ptr))
 	} else {
