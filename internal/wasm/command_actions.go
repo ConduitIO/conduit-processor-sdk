@@ -39,6 +39,10 @@ func NextCommand() (sdk.Command, error) {
 		// todo if more memory is needed, allocate it
 		// https://github.com/ConduitIO/conduit-processor-sdk/issues/6
 		fmt.Printf("got error code: %v\n", resp)
+
+		if resp == sdk.ErrCodeNoMoreCommands {
+			return nil, fmt.Errorf("error code %v: %w", resp, sdk.ErrNoMoreCommands)
+		}
 		return nil, fmt.Errorf("error code %v: %w", resp, sdk.ErrNextCommand)
 	}
 
