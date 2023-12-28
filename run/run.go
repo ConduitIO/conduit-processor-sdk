@@ -16,6 +16,7 @@ package run
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -33,7 +34,11 @@ func Run(p sdk.Processor) {
 		cmd, err := wasm.NextCommand()
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "failed retrieving next command: %v", err)
-			os.Exit(1)
+			exitCode := 1
+			if errors.Is(err, sdk.ErrNoMoreCommands) {
+				exitCode = 0
+			}
+			os.Exit(exitCode)
 		}
 
 		resp := cmd.Execute(context.Background(), p)
