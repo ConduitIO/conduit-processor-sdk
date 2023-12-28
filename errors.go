@@ -24,11 +24,11 @@ var (
 	// The imported function _nextCommand returns an uint32 value
 	// that is either the number of bytes actually written or an error code.
 	// Because of that, we're reserving a range of error codes.
-	ErrorCodeStart = ErrMemoryOutOfRange
+	ErrorCodeStart = ErrCodeNoMoreCommands
 
 	ErrCodeInsufficientSize     = math.MaxUint32 - uint32(1)
 	ErrCodeFailedGettingCommand = math.MaxUint32 - uint32(2)
-	ErrMemoryOutOfRange         = math.MaxUint32 - uint32(3)
+	ErrCodeMemoryOutOfRange     = math.MaxUint32 - uint32(3)
 	ErrCodeNoMoreCommands       = math.MaxUint32 - uint32(4)
 )
 
