@@ -29,6 +29,7 @@ var (
 	ErrCodeInsufficientSize     = math.MaxUint32 - uint32(1)
 	ErrCodeFailedGettingCommand = math.MaxUint32 - uint32(2)
 	ErrMemoryOutOfRange         = math.MaxUint32 - uint32(3)
+	ErrCodeNoMoreCommands       = math.MaxUint32 - uint32(4)
 )
 
 var (
