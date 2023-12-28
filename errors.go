@@ -31,4 +31,7 @@ var (
 	ErrMemoryOutOfRange         = math.MaxUint32 - uint32(3)
 )
 
-var ErrNextCommand = errors.New("failed getting next command")
+var (
+	ErrNextCommand    = errors.New("failed getting next command")
+	ErrNoMoreCommands = errors.New("no more commands")
+)
