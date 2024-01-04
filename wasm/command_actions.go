@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	sdk "github.com/conduitio/conduit-processor-sdk"
+	"github.com/conduitio/conduit-processor-sdk/internal"
 	"github.com/conduitio/conduit-processor-sdk/proto"
 )
 
@@ -29,7 +30,7 @@ func NextCommand() (sdk.Command, error) {
 	// we're allocating some memory in advance, so that
 	// we don't need to introduce another call just to
 	// get the amount of memory which is needed.
-	ptr, cleanup := allocate(defaultCommandSize)
+	ptr, cleanup := internal.Allocate(defaultCommandSize)
 	defer cleanup()
 
 	// request Conduit to write the command to the given allocation
@@ -47,7 +48,7 @@ func NextCommand() (sdk.Command, error) {
 	}
 
 	// parse the command
-	cmd, err := proto.UnmarshalCommand(ptrToByteArray(ptr, resp))
+	cmd, err := proto.UnmarshalCommand(internal.PtrToByteArray(ptr, resp))
 	if err != nil {
 		return nil, fmt.Errorf("failed unmarshalling command: %w", err)
 	}
@@ -61,7 +62,7 @@ func Reply(resp sdk.CommandResponse) error {
 		return fmt.Errorf("failed marshalling CommandResponse to bytes: %w", err)
 	}
 
-	ptr, cleanup := Write(bytes)
+	ptr, cleanup := internal.Write(bytes)
 	defer cleanup()
 	_reply(ptr, uint32(len(bytes)))
 

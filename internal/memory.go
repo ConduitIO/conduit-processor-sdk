@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wasm
+package internal
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 
 var allocations = make(map[uintptr][]byte)
 
-func allocate(size uint32) (uint32, func()) {
+func Allocate(size uint32) (uint32, func()) {
 	fmt.Printf("allocating %v bytes\n", size)
 
 	return Write(make([]byte, size))
@@ -40,7 +40,7 @@ func free(ptr unsafe.Pointer) {
 	}
 }
 
-func ptrToByteArray(ptr uint32, size uint32) []byte {
+func PtrToByteArray(ptr uint32, size uint32) []byte {
 	return unsafe.Slice((*byte)(unsafe.Pointer(uintptr(ptr))), size)
 }
 

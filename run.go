@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package run
+package sdk
 
 import (
 	"context"
@@ -20,8 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	sdk "github.com/conduitio/conduit-processor-sdk"
-	"github.com/conduitio/conduit-processor-sdk/internal/wasm"
+	"github.com/conduitio/conduit-processor-sdk/wasm"
 )
 
 // Run is the 'entry point' for a processor. It runs a
@@ -29,13 +28,13 @@ import (
 // communicates with Conduit.
 //
 // A processor plugin needs to call this function in its main() function.
-func Run(p sdk.Processor) {
+func Run(p Processor) {
 	for {
 		cmd, err := wasm.NextCommand()
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "failed retrieving next command: %v", err)
 			exitCode := 1
-			if errors.Is(err, sdk.ErrNoMoreCommands) {
+			if errors.Is(err, ErrNoMoreCommands) {
 				exitCode = 0
 			}
 			os.Exit(exitCode)
