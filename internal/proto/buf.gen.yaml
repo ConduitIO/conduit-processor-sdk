@@ -4,7 +4,7 @@ managed:
   go_package_prefix:
     default: "github.com/conduitio/conduit-processor-sdk/internal/proto"
     except:
-      - buf.build/haris/conduit-commons
+      - buf.build/conduitio/conduit-commons
 plugins:
   - plugin: buf.build/protocolbuffers/go:v1.31.0
     out: .
