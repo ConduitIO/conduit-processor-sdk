@@ -1,3 +1,6 @@
+.PHONY: default
+default: fmt lint test
+
 .PHONY: test
 test:
 	go test $(GOTEST_FLAGS) -race ./... -tags !wasm
@@ -19,3 +22,7 @@ install-tools:
 .PHONY: generate
 generate:
 	go generate ./...
+
+.PHONY: proto-generate
+proto-generate:
+	cd internal/proto && buf generate

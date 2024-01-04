@@ -12,13 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build tools
-
-package main
+package serde
 
 import (
-	_ "github.com/bufbuild/buf/cmd/buf"
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "go.uber.org/mock/mockgen"
-	_ "mvdan.cc/gofumpt"
+	sdk "github.com/conduitio/conduit-processor-sdk"
+	proto2 "github.com/conduitio/conduit-processor-sdk/proto"
 )
+
+func MarshalCommand(resp sdk.Command) ([]byte, error) {
+	//nolint:wrapcheck // a wrapper function to be used in Conduit
+	return proto2.MarshalCommand(resp)
+}
+
+func UnmarshalCommandResponse(bytes []byte) (sdk.CommandResponse, error) {
+	//nolint:wrapcheck // a wrapper function to be used in Conduit
+	return proto2.UnmarshalCommandResponse(bytes)
+}

@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sdk
+package run
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"os"
 
-	"github.com/conduitio/conduit-processor-sdk/internal"
-	"github.com/goccy/go-json"
+	sdk "github.com/conduitio/conduit-processor-sdk"
+	"github.com/conduitio/conduit-processor-sdk/internal/wasm"
 )
 
 // Run is the 'entry point' for a processor. It runs a
@@ -26,25 +29,23 @@ import (
 // communicates with Conduit.
 //
 // A processor plugin needs to call this function in its main() function.
-func Run(p Processor) {
+func Run(p sdk.Processor) {
 	for {
-		cmd, err := internal.NextCommand()
+		cmd, err := wasm.NextCommand()
 		if err != nil {
-			fmt.Printf("failed retrieving next command: %v", cmd)
-			return
+			_, _ = fmt.Fprintf(os.Stderr, "failed retrieving next command: %v", err)
+			exitCode := 1
+			if errors.Is(err, sdk.ErrNoMoreCommands) {
+				exitCode = 0
+			}
+			os.Exit(exitCode)
 		}
 
-		if cmd.Name == "specify" {
-			fmt.Println("getting specification")
-			spec := p.Specification()
-
-			bytes, err := json.Marshal(spec)
-			if err != nil {
-				fmt.Printf("failed serializing specification: %v", err)
-			}
-			internal.Reply(bytes)
-		} else {
-			fmt.Printf("got unknown command: %v\n", cmd.Name)
+		resp := cmd.Execute(context.Background(), p)
+		err = wasm.Reply(resp)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "failed writing reply: %v\n", err)
+			os.Exit(1)
 		}
 	}
 }

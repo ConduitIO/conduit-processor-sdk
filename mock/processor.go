@@ -84,11 +84,12 @@ func (mr *ProcessorMockRecorder) Process(arg0, arg1 any) *gomock.Call {
 }
 
 // Specification mocks base method.
-func (m *Processor) Specification() sdk.Specification {
+func (m *Processor) Specification() (sdk.Specification, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Specification")
 	ret0, _ := ret[0].(sdk.Specification)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Specification indicates an expected call of Specification.
