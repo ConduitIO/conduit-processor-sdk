@@ -16,15 +16,15 @@ package serde
 
 import (
 	sdk "github.com/conduitio/conduit-processor-sdk"
-	"github.com/conduitio/conduit-processor-sdk/internal/proto"
+	proto2 "github.com/conduitio/conduit-processor-sdk/proto"
 )
 
 func MarshalCommand(resp sdk.Command) ([]byte, error) {
 	//nolint:wrapcheck // a wrapper function to be used in Conduit
-	return proto.MarshalCommand(resp)
+	return proto2.MarshalCommand(resp)
 }
 
 func UnmarshalCommandResponse(bytes []byte) (sdk.CommandResponse, error) {
 	//nolint:wrapcheck // a wrapper function to be used in Conduit
-	return proto.UnmarshalCommandResponse(bytes)
+	return proto2.UnmarshalCommandResponse(bytes)
 }

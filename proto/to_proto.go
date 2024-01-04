@@ -20,27 +20,27 @@ import (
 	"github.com/conduitio/conduit-commons/opencdc"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
 	sdk "github.com/conduitio/conduit-processor-sdk"
-	procproto "github.com/conduitio/conduit-processor-sdk/internal/proto/processor/v1"
+	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"google.golang.org/protobuf/proto"
 )
 
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	var validationTypes [1]struct{}
-	_ = validationTypes[int(sdk.ValidationTypeRequired)-int(procproto.Specify_Parameter_Validation_TYPE_REQUIRED)]
-	_ = validationTypes[int(sdk.ValidationTypeRegex)-int(procproto.Specify_Parameter_Validation_TYPE_REGEX)]
-	_ = validationTypes[int(sdk.ValidationTypeInclusion)-int(procproto.Specify_Parameter_Validation_TYPE_INCLUSION)]
-	_ = validationTypes[int(sdk.ValidationTypeExclusion)-int(procproto.Specify_Parameter_Validation_TYPE_EXCLUSION)]
-	_ = validationTypes[int(sdk.ValidationTypeLessThan)-int(procproto.Specify_Parameter_Validation_TYPE_LESS_THAN)]
-	_ = validationTypes[int(sdk.ValidationTypeGreaterThan)-int(procproto.Specify_Parameter_Validation_TYPE_GREATER_THAN)]
+	_ = validationTypes[int(sdk.ValidationTypeRequired)-int(processorv1.Specify_Parameter_Validation_TYPE_REQUIRED)]
+	_ = validationTypes[int(sdk.ValidationTypeRegex)-int(processorv1.Specify_Parameter_Validation_TYPE_REGEX)]
+	_ = validationTypes[int(sdk.ValidationTypeInclusion)-int(processorv1.Specify_Parameter_Validation_TYPE_INCLUSION)]
+	_ = validationTypes[int(sdk.ValidationTypeExclusion)-int(processorv1.Specify_Parameter_Validation_TYPE_EXCLUSION)]
+	_ = validationTypes[int(sdk.ValidationTypeLessThan)-int(processorv1.Specify_Parameter_Validation_TYPE_LESS_THAN)]
+	_ = validationTypes[int(sdk.ValidationTypeGreaterThan)-int(processorv1.Specify_Parameter_Validation_TYPE_GREATER_THAN)]
 
 	var paramTypes [1]struct{}
-	_ = paramTypes[int(sdk.ParameterTypeInt)-int(procproto.Specify_Parameter_TYPE_INT)]
-	_ = paramTypes[int(sdk.ParameterTypeFloat)-int(procproto.Specify_Parameter_TYPE_FLOAT)]
-	_ = paramTypes[int(sdk.ParameterTypeBool)-int(procproto.Specify_Parameter_TYPE_BOOL)]
-	_ = paramTypes[int(sdk.ParameterTypeString)-int(procproto.Specify_Parameter_TYPE_STRING)]
-	_ = paramTypes[int(sdk.ParameterTypeDuration)-int(procproto.Specify_Parameter_TYPE_DURATION)]
-	_ = paramTypes[int(sdk.ParameterTypeFile)-int(procproto.Specify_Parameter_TYPE_FILE)]
+	_ = paramTypes[int(sdk.ParameterTypeInt)-int(processorv1.Specify_Parameter_TYPE_INT)]
+	_ = paramTypes[int(sdk.ParameterTypeFloat)-int(processorv1.Specify_Parameter_TYPE_FLOAT)]
+	_ = paramTypes[int(sdk.ParameterTypeBool)-int(processorv1.Specify_Parameter_TYPE_BOOL)]
+	_ = paramTypes[int(sdk.ParameterTypeString)-int(processorv1.Specify_Parameter_TYPE_STRING)]
+	_ = paramTypes[int(sdk.ParameterTypeDuration)-int(processorv1.Specify_Parameter_TYPE_DURATION)]
+	_ = paramTypes[int(sdk.ParameterTypeFile)-int(processorv1.Specify_Parameter_TYPE_FILE)]
 }
 
 func MarshalCommand(cmd sdk.Command) ([]byte, error) {
@@ -57,30 +57,30 @@ func MarshalCommand(cmd sdk.Command) ([]byte, error) {
 	return bytes, nil
 }
 
-func protoCommand(cmd sdk.Command) (*procproto.Command, error) {
+func protoCommand(cmd sdk.Command) (*processorv1.Command, error) {
 	if cmd == nil {
 		return nil, ErrNilCommand
 	}
 
 	switch v := cmd.(type) {
 	case *sdk.SpecifyCmd:
-		return &procproto.Command{
-			Command: &procproto.Command_SpecifyCmd{
-				SpecifyCmd: &procproto.Specify_Command{},
+		return &processorv1.Command{
+			Command: &processorv1.Command_SpecifyCmd{
+				SpecifyCmd: &processorv1.Specify_Command{},
 			},
 		}, nil
 	case *sdk.ConfigureCmd:
-		return &procproto.Command{
-			Command: &procproto.Command_ConfigureCmd{
-				ConfigureCmd: &procproto.Configure_Command{
+		return &processorv1.Command{
+			Command: &processorv1.Command_ConfigureCmd{
+				ConfigureCmd: &processorv1.Configure_Command{
 					Parameters: v.ConfigMap,
 				},
 			},
 		}, nil
 	case *sdk.OpenCmd:
-		return &procproto.Command{
-			Command: &procproto.Command_OpenCmd{
-				OpenCmd: &procproto.Open_Command{},
+		return &processorv1.Command{
+			Command: &processorv1.Command_OpenCmd{
+				OpenCmd: &processorv1.Open_Command{},
 			},
 		}, nil
 	case *sdk.ProcessCmd:
@@ -88,17 +88,17 @@ func protoCommand(cmd sdk.Command) (*procproto.Command, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &procproto.Command{
-			Command: &procproto.Command_ProcessCmd{
-				ProcessCmd: &procproto.Process_Command{
+		return &processorv1.Command{
+			Command: &processorv1.Command_ProcessCmd{
+				ProcessCmd: &processorv1.Process_Command{
 					Records: recs,
 				},
 			},
 		}, nil
 	case *sdk.TeardownCmd:
-		return &procproto.Command{
-			Command: &procproto.Command_TeardownCmd{
-				TeardownCmd: &procproto.Teardown_Command{},
+		return &processorv1.Command{
+			Command: &processorv1.Command_TeardownCmd{
+				TeardownCmd: &processorv1.Teardown_Command{},
 			},
 		}, nil
 	default:
@@ -111,11 +111,11 @@ func MarshalCommandResponse(resp sdk.CommandResponse) ([]byte, error) {
 		return nil, ErrNilCommand
 	}
 
-	protoResp := &procproto.CommandResponse{}
+	protoResp := &processorv1.CommandResponse{}
 	switch v := resp.(type) {
 	case *sdk.SpecifyResponse:
-		protoResp.Response = &procproto.CommandResponse_SpecifyResp{
-			SpecifyResp: &procproto.Specify_Response{
+		protoResp.Response = &processorv1.CommandResponse_SpecifyResp{
+			SpecifyResp: &processorv1.Specify_Response{
 				Name:        v.Specification.Name,
 				Summary:     v.Specification.Summary,
 				Description: v.Specification.Description,
@@ -126,14 +126,14 @@ func MarshalCommandResponse(resp sdk.CommandResponse) ([]byte, error) {
 			},
 		}
 	case *sdk.ConfigureResponse:
-		protoResp.Response = &procproto.CommandResponse_ConfigureResp{
-			ConfigureResp: &procproto.Configure_Response{
+		protoResp.Response = &processorv1.CommandResponse_ConfigureResp{
+			ConfigureResp: &processorv1.Configure_Response{
 				Err: errorToString(v.Err),
 			},
 		}
 	case *sdk.OpenResponse:
-		protoResp.Response = &procproto.CommandResponse_OpenResp{
-			OpenResp: &procproto.Open_Response{
+		protoResp.Response = &processorv1.CommandResponse_OpenResp{
+			OpenResp: &processorv1.Open_Response{
 				Err: errorToString(v.Err),
 			},
 		}
@@ -142,14 +142,14 @@ func MarshalCommandResponse(resp sdk.CommandResponse) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		protoResp.Response = &procproto.CommandResponse_ProcessResp{
-			ProcessResp: &procproto.Process_Response{
+		protoResp.Response = &processorv1.CommandResponse_ProcessResp{
+			ProcessResp: &processorv1.Process_Response{
 				Records: recs,
 			},
 		}
 	case *sdk.TeardownResponse:
-		protoResp.Response = &procproto.CommandResponse_TeardownResp{
-			TeardownResp: &procproto.Teardown_Response{
+		protoResp.Response = &processorv1.CommandResponse_TeardownResp{
+			TeardownResp: &processorv1.Teardown_Response{
 				Err: errorToString(v.Err),
 			},
 		}
@@ -173,13 +173,13 @@ func errorToString(err error) string {
 	return err.Error()
 }
 
-func protoSpecificationParams(in map[string]sdk.Parameter) map[string]*procproto.Specify_Parameter {
-	out := make(map[string]*procproto.Specify_Parameter, len(in))
+func protoSpecificationParams(in map[string]sdk.Parameter) map[string]*processorv1.Specify_Parameter {
+	out := make(map[string]*processorv1.Specify_Parameter, len(in))
 	for name, param := range in {
-		out[name] = &procproto.Specify_Parameter{
+		out[name] = &processorv1.Specify_Parameter{
 			Default:     param.Default,
 			Description: param.Description,
-			Type:        procproto.Specify_Parameter_Type(param.Type),
+			Type:        processorv1.Specify_Parameter_Type(param.Type),
 			Validations: protoSpecValidations(param.Validations),
 		}
 	}
@@ -187,15 +187,15 @@ func protoSpecificationParams(in map[string]sdk.Parameter) map[string]*procproto
 	return out
 }
 
-func protoSpecValidations(in []sdk.Validation) []*procproto.Specify_Parameter_Validation {
+func protoSpecValidations(in []sdk.Validation) []*processorv1.Specify_Parameter_Validation {
 	if in == nil {
 		return nil
 	}
 
-	out := make([]*procproto.Specify_Parameter_Validation, len(in))
+	out := make([]*processorv1.Specify_Parameter_Validation, len(in))
 	for i, v := range in {
-		out[i] = &procproto.Specify_Parameter_Validation{
-			Type:  procproto.Specify_Parameter_Validation_Type(v.Type),
+		out[i] = &processorv1.Specify_Parameter_Validation{
+			Type:  processorv1.Specify_Parameter_Validation_Type(v.Type),
 			Value: v.Value,
 		}
 	}
@@ -203,14 +203,14 @@ func protoSpecValidations(in []sdk.Validation) []*procproto.Specify_Parameter_Va
 	return out
 }
 
-func protoProcessedRecords(in []sdk.ProcessedRecord) ([]*procproto.Process_ProcessedRecord, error) {
+func protoProcessedRecords(in []sdk.ProcessedRecord) ([]*processorv1.Process_ProcessedRecord, error) {
 	if in == nil {
 		return nil, nil
 	}
 
-	out := make([]*procproto.Process_ProcessedRecord, len(in))
+	out := make([]*processorv1.Process_ProcessedRecord, len(in))
 	for i, rec := range in {
-		outRec := &procproto.Process_ProcessedRecord{}
+		outRec := &processorv1.Process_ProcessedRecord{}
 		// todo handle nil
 		switch v := rec.(type) {
 		case sdk.SingleRecord:
@@ -219,14 +219,14 @@ func protoProcessedRecords(in []sdk.ProcessedRecord) ([]*procproto.Process_Proce
 			if err != nil {
 				return nil, fmt.Errorf("failed converting record %v to proto: %w", i, err)
 			}
-			outRec.Record = &procproto.Process_ProcessedRecord_SingleRecord{
+			outRec.Record = &processorv1.Process_ProcessedRecord_SingleRecord{
 				SingleRecord: protoRec,
 			}
 		case sdk.FilterRecord:
-			outRec.Record = &procproto.Process_ProcessedRecord_FilterRecord{}
+			outRec.Record = &processorv1.Process_ProcessedRecord_FilterRecord{}
 		case sdk.ErrorRecord:
-			outRec.Record = &procproto.Process_ProcessedRecord_ErrorRecord{
-				ErrorRecord: &procproto.Process_ErrorRecord{
+			outRec.Record = &processorv1.Process_ProcessedRecord_ErrorRecord{
+				ErrorRecord: &processorv1.Process_ErrorRecord{
 					// todo check if v.Err is nil by mistake
 					Err: v.Err.Error(),
 				},
