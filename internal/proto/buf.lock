@@ -2,7 +2,7 @@
 version: v1
 deps:
   - remote: buf.build
-    owner: haris
+    owner: conduitio
     repository: conduit-commons
-    commit: f9ca4999fb9445959d78b9f627bf8d19
-    digest: shake256:93c24c6a3816c3812533c16ad455b3e948ee7581692652fbc88d1b5c87e15453733d93b5c644576b081bb0db96f01a43365bf6811c5736aaccfeea74c1911a0a
+    commit: de2e1a18c9e042119dedd69b852efc21
+    digest: shake256:1275ac9a7d437cc6b48bd6ff2e9edc59f0450a8f9ab6050f49fb9949e231b7f4d91debfd42b09fc29d9e4aed1b9904266a46a46f7a5676218b53aafb7efe211d
