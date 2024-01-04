@@ -8,7 +8,7 @@ require (
 	github.com/conduitio/conduit-commons v0.0.0-20231205181721-bef91d55116c
 	github.com/goccy/go-json v0.10.2
 	github.com/golangci/golangci-lint v1.55.2
-	go.uber.org/mock v0.3.0
+	go.uber.org/mock v0.4.0
 	mvdan.cc/gofumpt v0.5.0
 )
 
