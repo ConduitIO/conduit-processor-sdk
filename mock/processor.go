@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock/processor.go -package=mock -mock_names=Processor=Processor . Processor
 //
+
 // Package mock is a generated GoMock package.
 package mock
 
