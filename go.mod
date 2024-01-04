@@ -6,7 +6,7 @@ toolchain go1.21.5
 
 require (
 	github.com/bufbuild/buf v1.28.1
-	github.com/conduitio/conduit-commons v0.0.0-20231222154604-f6dfae573b45
+	github.com/conduitio/conduit-commons v0.0.0-20240103200651-5a5746611a8e
 	github.com/golangci/golangci-lint v1.55.2
 	github.com/matryer/is v1.4.1
 	go.uber.org/mock v0.4.0
