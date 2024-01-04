@@ -21,7 +21,7 @@ import (
 	"github.com/conduitio/conduit-commons/opencdc"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
 	sdk "github.com/conduitio/conduit-processor-sdk"
-	processorv1 "github.com/conduitio/conduit-processor-sdk/internal/proto/processor/v1"
+	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"google.golang.org/protobuf/proto"
 )
 

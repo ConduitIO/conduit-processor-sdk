@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	sdk "github.com/conduitio/conduit-processor-sdk"
-	"github.com/conduitio/conduit-processor-sdk/internal/proto"
+	"github.com/conduitio/conduit-processor-sdk/proto"
 )
 
 var defaultCommandSize = uint32(1024)
