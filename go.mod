@@ -6,6 +6,7 @@ toolchain go1.21.5
 
 require (
 	github.com/conduitio/conduit-commons v0.0.0-20231205181721-bef91d55116c
+	github.com/goccy/go-json v0.10.2
 	github.com/golangci/golangci-lint v1.55.2
 	go.uber.org/mock v0.4.0
 	mvdan.cc/gofumpt v0.5.0
@@ -65,7 +66,6 @@ require (
 	github.com/go-toolsmith/typep v1.1.0 // indirect
 	github.com/go-xmlfmt/xmlfmt v1.1.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golangci/check v0.0.0-20180506172741-cfe4005ccda2 // indirect
