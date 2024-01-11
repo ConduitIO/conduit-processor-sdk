@@ -1,4 +1,4 @@
-// Copyright © 2023 Meroxa, Inc.
+// Copyright © 2024 Meroxa, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build tools
+package sdk
 
-package main
+import "errors"
 
-import (
-	_ "github.com/bufbuild/buf/cmd/buf"
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "go.uber.org/mock/mockgen"
-	_ "mvdan.cc/gofumpt"
-)
+// ErrUnimplemented is returned in functions of plugins that don't implement
+// a certain method.
+var ErrUnimplemented = errors.New("the processor plugin does not implement this action, please check the source code of the processor and make sure all required processor methods are implemented")

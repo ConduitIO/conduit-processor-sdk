@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -destination=mock/processor.go -package=mock -mock_names=Processor=Processor . Processor
-
 package sdk
 
 import (
@@ -27,7 +25,7 @@ import (
 type Processor interface {
 	// Specification contains the metadata of this processor like name, version,
 	// description and a list of parameters expected in the configuration.
-	Specification() Specification
+	Specification() (Specification, error)
 
 	// Configure is the first function to be called in a processor. It provides the
 	// processor with the configuration that needs to be validated and stored.
@@ -54,6 +52,8 @@ type Processor interface {
 	// there will be no more calls to any other function. After Teardown returns,
 	// the processor will be discarded.
 	Teardown(context.Context) error
+
+	mustEmbedUnimplementedProcessor()
 }
 
 // Specification is returned by a processor when Specify is called.
@@ -132,8 +132,8 @@ func (FilterRecord) isProcessedRecord() {}
 
 // ErrorRecord is a record that failed to be processed and will be nacked.
 type ErrorRecord struct {
-	// Err is the error cause.
-	Err error
+	// Error is the error cause.
+	Error error
 }
 
 func (e ErrorRecord) isProcessedRecord() {}
