@@ -24,7 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const defaultCommandSize = 1
+const defaultCommandSize = 1024 // 1kB
 
 var (
 	buffer = make([]byte, defaultCommandSize)

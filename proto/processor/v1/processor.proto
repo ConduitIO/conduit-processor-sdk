@@ -132,7 +132,9 @@ message Process {
   }
 
   message FilterRecord {}
-  message ErrorRecord {}
+  message ErrorRecord {
+    ErrorResponse error = 1;
+  }
 }
 
 message Teardown {

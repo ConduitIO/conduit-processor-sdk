@@ -130,8 +130,8 @@ func (FilterRecord) isProcessedRecord() {}
 
 // ErrorRecord is a record that failed to be processed and will be nacked.
 type ErrorRecord struct {
-	// Err is the error cause.
-	Err error
+	// Error is the error cause.
+	Error error
 }
 
 func (e ErrorRecord) isProcessedRecord() {}
