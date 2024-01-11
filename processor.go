@@ -52,6 +52,8 @@ type Processor interface {
 	// there will be no more calls to any other function. After Teardown returns,
 	// the processor will be discarded.
 	Teardown(context.Context) error
+
+	mustEmbedUnimplementedProcessor()
 }
 
 // Specification is returned by a processor when Specify is called.

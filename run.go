@@ -165,6 +165,24 @@ func (e commandExecutor) executeTeardown(ctx context.Context, p Processor, _ *pr
 // protoConverter converts between the SDK and protobuf types.
 type protoConverter struct{}
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	var cTypes [1]struct{}
+	_ = cTypes[int(ValidationTypeRequired)-int(processorv1.Specify_Parameter_Validation_TYPE_REQUIRED)]
+	_ = cTypes[int(ValidationTypeRegex)-int(processorv1.Specify_Parameter_Validation_TYPE_REGEX)]
+	_ = cTypes[int(ValidationTypeInclusion)-int(processorv1.Specify_Parameter_Validation_TYPE_INCLUSION)]
+	_ = cTypes[int(ValidationTypeExclusion)-int(processorv1.Specify_Parameter_Validation_TYPE_EXCLUSION)]
+	_ = cTypes[int(ValidationTypeLessThan)-int(processorv1.Specify_Parameter_Validation_TYPE_LESS_THAN)]
+	_ = cTypes[int(ValidationTypeGreaterThan)-int(processorv1.Specify_Parameter_Validation_TYPE_GREATER_THAN)]
+
+	_ = cTypes[int(ParameterTypeInt)-int(processorv1.Specify_Parameter_TYPE_INT)]
+	_ = cTypes[int(ParameterTypeFloat)-int(processorv1.Specify_Parameter_TYPE_FLOAT)]
+	_ = cTypes[int(ParameterTypeBool)-int(processorv1.Specify_Parameter_TYPE_BOOL)]
+	_ = cTypes[int(ParameterTypeString)-int(processorv1.Specify_Parameter_TYPE_STRING)]
+	_ = cTypes[int(ParameterTypeDuration)-int(processorv1.Specify_Parameter_TYPE_DURATION)]
+	_ = cTypes[int(ParameterTypeFile)-int(processorv1.Specify_Parameter_TYPE_FILE)]
+}
+
 func (c protoConverter) specifyResponse(in Specification) *processorv1.Specify_Response {
 	return &processorv1.Specify_Response{
 		Name:        in.Name,
