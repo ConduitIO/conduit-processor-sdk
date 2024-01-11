@@ -33,7 +33,21 @@ import (
 // occurs, it will be printed to stderr and the process will exit with a non-zero
 // exit code. Otherwise, it will exit with a zero exit code.
 //
-// A processor plugin needs to call this function in its main function.
+// A processor plugin needs to call this function in its main function. The
+// entrypoint file should look like this:
+//
+//	 //go:build wasm
+//
+//		package main
+//
+//		import (
+//			sdk "github.com/conduitio/conduit-processor-sdk"
+//		)
+//
+//		func main() {
+//			processor := NewMyProcessor()
+//			sdk.Run(processor)
+//		}
 func Run(p Processor) {
 	ctx := context.Background()
 	var cmd processorv1.CommandRequest
@@ -307,13 +321,13 @@ func (c protoConverter) errorRecord(in ErrorRecord) (*processorv1.Process_Proces
 	}, nil
 }
 
-func (c protoConverter) errorResponse(err error) *processorv1.ErrorResponse {
+func (c protoConverter) errorResponse(err error) *processorv1.Error {
 	var wasmErr *wasm.Error
 	var code uint32
 	if errors.As(err, &wasmErr) {
 		code = wasmErr.ErrCode
 	}
-	return &processorv1.ErrorResponse{
+	return &processorv1.Error{
 		Code:    code,
 		Message: err.Error(),
 	}

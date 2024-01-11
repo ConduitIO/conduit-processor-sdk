@@ -15,7 +15,7 @@ message CommandRequest {
 }
 message CommandResponse {
   oneof response {
-    ErrorResponse error = 1;
+    Error error = 1;
 
     Specify.Response specify = 2;
     Configure.Response configure = 3;
@@ -133,7 +133,7 @@ message Process {
 
   message FilterRecord {}
   message ErrorRecord {
-    ErrorResponse error = 1;
+    Error error = 1;
   }
 }
 
@@ -142,7 +142,7 @@ message Teardown {
   message Response {}
 }
 
-message ErrorResponse {
+message Error {
   uint32 code = 1;
   string message = 2;
 }
