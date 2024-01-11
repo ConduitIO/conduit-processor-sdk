@@ -40,6 +40,7 @@ var (
 	ErrNoMoreCommands         = NewError(ErrorCodeNoMoreCommands, "no more commands")
 )
 
+// Error is an error sent to or received from the host (i.e. Conduit).
 type Error struct {
 	ErrCode uint32
 	Message string

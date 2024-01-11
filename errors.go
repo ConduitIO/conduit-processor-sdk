@@ -16,8 +16,6 @@ package sdk
 
 import "errors"
 
-var (
-	// ErrUnimplemented is returned in functions of plugins that don't implement
-	// a certain method.
-	ErrUnimplemented = errors.New("the processor plugin does not implement this action, please check the source code of the processor and make sure all required processor methods are implemented")
-)
+// ErrUnimplemented is returned in functions of plugins that don't implement
+// a certain method.
+var ErrUnimplemented = errors.New("the processor plugin does not implement this action, please check the source code of the processor and make sure all required processor methods are implemented")
