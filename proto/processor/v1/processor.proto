@@ -4,27 +4,29 @@ package processor.v1;
 
 import "opencdc/v1/opencdc.proto";
 
-message Command {
-  oneof command {
-    Specify.Command specify_cmd = 1;
-    Configure.Command configure_cmd = 2;
-    Open.Command open_cmd = 3;
-    Process.Command process_cmd = 4;
-    Teardown.Command teardown_cmd = 5;
+message CommandRequest {
+  oneof request {
+    Specify.Request specify = 1;
+    Configure.Request configure = 2;
+    Open.Request open = 3;
+    Process.Request process = 4;
+    Teardown.Request teardown = 5;
   }
 }
 message CommandResponse {
   oneof response {
-    Specify.Response specify_resp = 1;
-    Configure.Response configure_resp = 2;
-    Open.Response open_resp = 3;
-    Process.Response process_resp = 4;
-    Teardown.Response teardown_resp = 5;
+    ErrorResponse error = 1;
+
+    Specify.Response specify = 2;
+    Configure.Response configure = 3;
+    Open.Response open = 4;
+    Process.Response process = 5;
+    Teardown.Response teardown = 6;
   }
 }
 
 message Specify {
-  message Command {}
+  message Request {}
   message Response {
     // Name is the name of the plugin.
     string name = 1;
@@ -41,9 +43,8 @@ message Specify {
     // Author declares the entity that created or maintains this plugin.
     string author = 5;
     // A map that describes parameters available for configuring the
-    // destination plugin.
+    // processor plugin.
     map<string, Parameter> parameters = 6;
-    string err = 7;
   }
 
   // Parameter describes a single config parameter.
@@ -102,29 +103,26 @@ message Specify {
 }
 
 message Configure {
-  message Command {
+  message Request {
     map<string, string> parameters = 1;
   }
 
-  message Response {
-    string err = 1;
-  }
+  message Response {}
 }
 
 message Open {
-  message Command {}
-  message Response {
-    string err = 1;
-  }
+  message Request {}
+  message Response {}
 }
 
 message Process {
-  message Command {
+  message Request {
     repeated opencdc.v1.Record records = 1;
   }
   message Response {
     repeated ProcessedRecord records = 1;
   }
+
   message ProcessedRecord {
     oneof record {
       opencdc.v1.Record single_record = 1;
@@ -132,15 +130,17 @@ message Process {
       ErrorRecord error_record = 3;
     }
   }
+
   message FilterRecord {}
-  message ErrorRecord {
-    string err = 1;
-  }
+  message ErrorRecord {}
 }
 
 message Teardown {
-  message Command {}
-  message Response {
-    string err = 1;
-  }
+  message Request {}
+  message Response {}
+}
+
+message ErrorResponse {
+  uint32 code = 1;
+  string message = 2;
 }

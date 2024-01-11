@@ -1,4 +1,4 @@
-// Copyright © 2023 Meroxa, Inc.
+// Copyright © 2024 Meroxa, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The functions in this file are stubs of the functions defined
-// in imports.go.
-// They exist to make it possible to test, lint
-// or generally run the code in a non-WASM environment.
-
-//go:build !wasm
-
+// Package wasm provides the functionality for communicating with Conduit as a
+// standalone plugin. Do not use this package directly.
 package wasm
-
-func _nextCommand(_, _ uint32) uint32 {
-	panic("stub")
-}
-
-func _reply(_, _ uint32) {
-	panic("stub")
-}

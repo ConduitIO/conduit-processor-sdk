@@ -6,7 +6,7 @@ managed:
     except:
       - buf.build/conduitio/conduit-commons
 plugins:
-  - plugin: buf.build/protocolbuffers/go:v1.31.0
+  - plugin: buf.build/protocolbuffers/go:v1.32.0
     out: .
     opt:
       - paths=source_relative
