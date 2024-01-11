@@ -25,4 +25,4 @@ generate:
 
 .PHONY: proto-generate
 proto-generate:
-	cd internal/proto && buf generate
+	cd proto && buf generate
