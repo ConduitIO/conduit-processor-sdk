@@ -37,7 +37,7 @@ func NextCommand(cmdReq *processorv1.CommandRequest) error {
 	for i := 0; i < 2; i++ {
 		// request Conduit to write the command to the given buffer
 		ptr := unsafe.Pointer(&buffer[0])
-		cmdSize := _nextCommand(uint32(uintptr(ptr)), uint32(cap(buffer)))
+		cmdSize := _commandRequest(ptr, uint32(cap(buffer)))
 
 		switch {
 		case cmdSize >= ErrorCodeStart: // error codes
@@ -49,7 +49,7 @@ func NextCommand(cmdReq *processorv1.CommandRequest) error {
 
 		// parse the command
 		if err := proto.Unmarshal(buffer[:cmdSize], cmdReq); err != nil {
-			return fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", len(buffer), err)
+			return fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 		}
 		return nil
 	}
@@ -64,7 +64,10 @@ func Reply(resp *processorv1.CommandResponse) error {
 	}
 
 	ptr := unsafe.Pointer(&buffer[0])
-	_reply(uint32(uintptr(ptr)), uint32(len(buffer)))
+	errCode := _commandResponse(ptr, uint32(len(buffer)))
+	if errCode != 0 {
+		return NewErrorFromCode(errCode)
+	}
 
 	return nil
 }

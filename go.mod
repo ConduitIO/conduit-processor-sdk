@@ -8,6 +8,7 @@ require (
 	github.com/bufbuild/buf v1.28.1
 	github.com/conduitio/conduit-commons v0.0.0-20240103200651-5a5746611a8e
 	github.com/golangci/golangci-lint v1.55.2
+	github.com/rs/zerolog v1.31.0
 	go.uber.org/mock v0.4.0
 	google.golang.org/protobuf v1.32.0
 	mvdan.cc/gofumpt v0.5.0
@@ -141,7 +142,7 @@ require (
 	github.com/maratori/testpackage v1.1.1 // indirect
 	github.com/matoous/godox v0.0.0-20230222163458-006bad1f9d26 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mbilski/exhaustivestruct v1.2.0 // indirect

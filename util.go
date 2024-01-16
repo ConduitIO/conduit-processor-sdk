@@ -12,6 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package wasm provides the functionality for communicating with Conduit as a
-// standalone plugin. DO NOT use this package directly.
-package wasm
+package sdk
+
+import (
+	"context"
+
+	"github.com/conduitio/conduit-processor-sdk/internal"
+	"github.com/rs/zerolog"
+)
+
+func Logger(ctx context.Context) *zerolog.Logger {
+	// TODO if there is no util return a default logger
+	return internal.UtilFromContext(ctx).Logger(ctx)
+}

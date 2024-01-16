@@ -16,7 +16,9 @@
 
 package wasm
 
-// Imports `nextCommand` from the host, which retrieves
+import "unsafe"
+
+// Imports `command_request` from the host, which retrieves
 // the next command for a processor.
 //
 // The arguments are:
@@ -25,17 +27,15 @@ package wasm
 //
 // The return value can be 0 (for a successful reply) or an error code.
 //
-//go:wasmimport env nextCommand
-func _nextCommand(ptr, size uint32) uint32
+//go:wasmimport conduit command_request
+func _commandRequest(ptr unsafe.Pointer, size uint32) uint32
 
-// Imports `reply` from the host, which informs
-// the host about the reply for the previous command.
+// Imports `command_response` from the host, which informs
+// the host about the response for the previous command.
 //
 // The arguments are:
-// (1) a pointer to the address where the reply should be written
+// (1) a pointer to the address where the reply was written
 // (2) the size of allocated memory.
 //
-// The return value can be 0 (for a successful reply) or an error code.
-//
-//go:wasmimport env reply
-func _reply(ptr, size uint32)
+//go:wasmimport conduit command_response
+func _commandResponse(ptr unsafe.Pointer, size uint32) uint32

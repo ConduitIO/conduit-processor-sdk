@@ -15,6 +15,7 @@
 package wasm
 
 import (
+	"errors"
 	"math"
 )
 
@@ -80,4 +81,12 @@ func NewErrorFromCode(code uint32) *Error {
 	default:
 		return NewError(code, "unknown error code")
 	}
+}
+
+func CodeFromError(err error) uint32 {
+	var wasmErr *Error
+	if errors.As(err, &wasmErr) {
+		return wasmErr.ErrCode
+	}
+	return 0
 }
