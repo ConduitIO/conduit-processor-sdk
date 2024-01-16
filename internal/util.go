@@ -37,7 +37,7 @@ func ContextWithUtil(ctx context.Context, util Util) context.Context {
 func UtilFromContext(ctx context.Context) Util {
 	util := ctx.Value(utilCtxKey{})
 	if util != nil {
-		return util.(Util)
+		return util.(Util) //nolint:forcetypeassert // we know it's a Util, we set it
 	}
 	return nil
 }
