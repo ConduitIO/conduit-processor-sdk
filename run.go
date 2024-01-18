@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/conduitio/conduit-processor-sdk/internal"
-
 	"github.com/conduitio/conduit-commons/opencdc"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
+	"github.com/conduitio/conduit-processor-sdk/internal"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"github.com/conduitio/conduit-processor-sdk/wasm"
+	"github.com/rs/zerolog"
 )
 
 // Run is the entry-point for a standalone processor. It handles all communication
@@ -67,14 +67,17 @@ func Run(p Processor) {
 			wasm.NewUtil(env.logLevel),
 		)
 
-		cmd      processorv1.CommandRequest
-		executor commandExecutor
+		cmd processorv1.CommandRequest
 	)
 
 	logger := Logger(ctx)
+	executor := commandExecutor{
+		protoconv: protoConverter{},
+		logger:    logger,
+	}
 
 	for {
-		logger.Trace().Msg("next command")
+		logger.Trace().Msg("retrieving next command")
 		cmd.Reset()
 		err := wasm.NextCommand(&cmd)
 		if err != nil {
@@ -115,35 +118,34 @@ func checkMagicCookie() {
 // commandExecutor executes commands received from Conduit.
 type commandExecutor struct {
 	protoconv protoConverter
+	logger    *zerolog.Logger
 }
 
 // Execute executes the given command request. It returns a command response
 // that will be sent back to Conduit.
 func (e commandExecutor) Execute(ctx context.Context, p Processor, cmdReq *processorv1.CommandRequest) *processorv1.CommandResponse {
+	e.logger.Trace().Type("command", cmdReq.GetRequest()).Msg("executing command")
+
 	var resp *processorv1.CommandResponse
 	var err error
 
 	switch req := cmdReq.GetRequest().(type) {
 	case *processorv1.CommandRequest_Specify:
-		Logger(ctx).Trace().Msg("executing specify")
 		resp, err = e.executeSpecify(ctx, p, req.Specify)
 	case *processorv1.CommandRequest_Configure:
-		Logger(ctx).Trace().Msg("executing configure")
 		resp, err = e.executeConfigure(ctx, p, req.Configure)
 	case *processorv1.CommandRequest_Open:
-		Logger(ctx).Trace().Msg("executing open")
 		resp, err = e.executeOpen(ctx, p, req.Open)
 	case *processorv1.CommandRequest_Process:
-		Logger(ctx).Trace().Msg("executing process")
 		resp, err = e.executeProcess(ctx, p, req.Process)
 	case *processorv1.CommandRequest_Teardown:
-		Logger(ctx).Trace().Msg("executing teardown")
 		resp, err = e.executeTeardown(ctx, p, req.Teardown)
 	default:
 		err = wasm.ErrUnknownCommandRequest
 	}
 
 	if err != nil {
+		e.logger.Trace().Err(err).Msg("command returned an error")
 		resp = &processorv1.CommandResponse{
 			Response: &processorv1.CommandResponse_Error{
 				Error: e.protoconv.error(err),
