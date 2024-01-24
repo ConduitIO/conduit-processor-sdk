@@ -24,8 +24,10 @@ import (
 
 	"github.com/conduitio/conduit-commons/opencdc"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
+	"github.com/conduitio/conduit-processor-sdk/internal"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"github.com/conduitio/conduit-processor-sdk/wasm"
+	"github.com/rs/zerolog"
 )
 
 // Run is the entry-point for a standalone processor. It handles all communication
@@ -36,25 +38,46 @@ import (
 // A processor plugin needs to call this function in its main function. The
 // entrypoint file should look like this:
 //
-//	 //go:build wasm
+//	//go:build wasm
 //
-//		package main
+//	package main
 //
-//		import (
-//			sdk "github.com/conduitio/conduit-processor-sdk"
-//		)
+//	import (
+//		sdk "github.com/conduitio/conduit-processor-sdk"
+//	)
 //
-//		func main() {
-//			processor := NewMyProcessor()
-//			sdk.Run(processor)
-//		}
+//	func main() {
+//		processor := NewMyProcessor()
+//		sdk.Run(processor)
+//	}
 func Run(p Processor) {
-	ctx := context.Background()
-	var cmd processorv1.CommandRequest
+	checkMagicCookie()
 
-	var executor commandExecutor
+	var (
+		env = struct {
+			processorID string
+			logLevel    string
+		}{
+			processorID: os.Getenv("CONDUIT_PROCESSOR_ID"),
+			logLevel:    os.Getenv("CONDUIT_LOG_LEVEL"),
+		}
+
+		ctx = internal.ContextWithUtil(
+			context.Background(),
+			wasm.NewUtil(env.logLevel),
+		)
+
+		cmd processorv1.CommandRequest
+	)
+
+	logger := Logger(ctx)
+	executor := commandExecutor{
+		protoconv: protoConverter{},
+		logger:    logger,
+	}
 
 	for {
+		logger.Trace().Msg("retrieving next command")
 		cmd.Reset()
 		err := wasm.NextCommand(&cmd)
 		if err != nil {
@@ -74,14 +97,35 @@ func Run(p Processor) {
 	}
 }
 
+func checkMagicCookie() {
+	const (
+		// magicCookieKey and value are used as a very basic verification
+		// that a plugin is intended to be launched. This is not a security
+		// measure, just a UX feature. If the magic cookie doesn't match,
+		// we show human-friendly output.
+		magicCookieKey   = "CONDUIT_MAGIC_COOKIE"
+		magicCookieValue = "3stnegqd0x02axggy0vrc4izjeq2zik6g7somyb3ye4vy5iivvjm5s1edppl5oja"
+	)
+	if os.Getenv(magicCookieKey) != magicCookieValue {
+		_, _ = fmt.Fprintf(os.Stderr,
+			"This binary is a plugin. These are not meant to be executed directly.\n"+
+				"Please execute the program that consumes these plugins, which will\n"+
+				"load any plugins automatically\n")
+		os.Exit(1)
+	}
+}
+
 // commandExecutor executes commands received from Conduit.
 type commandExecutor struct {
 	protoconv protoConverter
+	logger    *zerolog.Logger
 }
 
 // Execute executes the given command request. It returns a command response
 // that will be sent back to Conduit.
 func (e commandExecutor) Execute(ctx context.Context, p Processor, cmdReq *processorv1.CommandRequest) *processorv1.CommandResponse {
+	e.logger.Trace().Type("command", cmdReq.GetRequest()).Msg("executing command")
+
 	var resp *processorv1.CommandResponse
 	var err error
 
@@ -101,9 +145,10 @@ func (e commandExecutor) Execute(ctx context.Context, p Processor, cmdReq *proce
 	}
 
 	if err != nil {
+		e.logger.Trace().Err(err).Msg("command returned an error")
 		resp = &processorv1.CommandResponse{
 			Response: &processorv1.CommandResponse_Error{
-				Error: e.protoconv.errorResponse(err),
+				Error: e.protoconv.error(err),
 			},
 		}
 	}
@@ -291,14 +336,14 @@ func (c protoConverter) processedRecord(in ProcessedRecord) (*processorv1.Proces
 }
 
 func (c protoConverter) singleRecord(in SingleRecord) (*processorv1.Process_ProcessedRecord, error) {
-	opencdcRecord := &opencdcv1.Record{}
-	err := opencdc.Record(in).ToProto(opencdcRecord)
+	protoRecord := &opencdcv1.Record{}
+	err := opencdc.Record(in).ToProto(protoRecord)
 	if err != nil {
 		return nil, err
 	}
 	return &processorv1.Process_ProcessedRecord{
 		Record: &processorv1.Process_ProcessedRecord_SingleRecord{
-			SingleRecord: opencdcRecord,
+			SingleRecord: protoRecord,
 		},
 	}, nil
 }
@@ -315,13 +360,13 @@ func (c protoConverter) errorRecord(in ErrorRecord) (*processorv1.Process_Proces
 	return &processorv1.Process_ProcessedRecord{
 		Record: &processorv1.Process_ProcessedRecord_ErrorRecord{
 			ErrorRecord: &processorv1.Process_ErrorRecord{
-				Error: c.errorResponse(in.Error),
+				Error: c.error(in.Error),
 			},
 		},
 	}, nil
 }
 
-func (c protoConverter) errorResponse(err error) *processorv1.Error {
+func (c protoConverter) error(err error) *processorv1.Error {
 	var wasmErr *wasm.Error
 	var code uint32
 	if errors.As(err, &wasmErr) {

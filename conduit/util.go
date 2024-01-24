@@ -12,6 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package wasm provides the functionality for communicating with Conduit as a
-// standalone plugin. DO NOT use this package directly.
-package wasm
+// Package conduit provides the functionality for Conduit to set up and run
+// built-in processors. DO NOT use this package directly.
+package conduit
+
+import (
+	"context"
+
+	"github.com/conduitio/conduit-processor-sdk/internal"
+)
+
+// ContextWithUtil allows Conduit to set the Util interface for built-in
+// processors. DO NOT use this function in your processor.
+func ContextWithUtil(ctx context.Context, util internal.Util) context.Context {
+	return internal.ContextWithUtil(ctx, util)
+}
