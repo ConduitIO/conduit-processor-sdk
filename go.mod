@@ -11,7 +11,7 @@ require (
 	github.com/rs/zerolog v1.31.0
 	go.uber.org/mock v0.4.0
 	google.golang.org/protobuf v1.32.0
-	mvdan.cc/gofumpt v0.5.0
+	mvdan.cc/gofumpt v0.6.0
 )
 
 require (
