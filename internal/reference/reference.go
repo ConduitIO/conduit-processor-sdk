@@ -28,68 +28,6 @@ type Reference interface {
 	walk(field string) (Reference, error)
 }
 
-// type simpleReference struct {
-// 	val reflect.Value
-// }
-//
-// func (r simpleReference) Get() any {
-// 	return r.val.Interface()
-// }
-//
-// func (r simpleReference) Set(val string) error {
-// 	switch r.val.Kind() {
-// 	case reflect.String:
-// 		r.val.SetString(val)
-// 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-// 		i, err := strconv.ParseInt(val, 10, r.val.Type().Bits())
-// 		if err != nil {
-// 			return err
-// 		}
-// 		r.val.SetInt(i)
-// 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-// 		i, err := strconv.ParseUint(val, 10, r.val.Type().Bits())
-// 		if err != nil {
-// 			return err
-// 		}
-// 		r.val.SetUint(i)
-// 	case reflect.Float32, reflect.Float64:
-// 		f, err := strconv.ParseFloat(val, r.val.Type().Bits())
-// 		if err != nil {
-// 			return err
-// 		}
-// 		r.val.SetFloat(f)
-// 	case reflect.Bool:
-// 		b, err := strconv.ParseBool(val)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		r.val.SetBool(b)
-// 	case reflect.Slice:
-// 		if r.val.Type().Elem().Kind() == reflect.Uint8 {
-// 			r.val.SetBytes([]byte(val))
-// 			return nil
-// 		}
-// 		fallthrough
-// 	default:
-// 		return fmt.Errorf("unsupported type %s", r.val.Type())
-// 	}
-// 	return nil
-// }
-//
-// type mapValueReference struct {
-// 	mapVal reflect.Value
-// 	key    string
-// }
-//
-// func (r mapValueReference) Get() any {
-// 	return r.mapVal.MapIndex(reflect.ValueOf(r.key)).Interface()
-// }
-//
-// func (r mapValueReference) Set(val string) error {
-// 	r.mapVal.SetMapIndex(reflect.ValueOf(r.key), reflect.ValueOf(val))
-// 	return nil
-// }
-
 // ReferenceResolver is a type that knows how to resolve a reference to a field
 // in a record. It is used to specify the target of a processor's output.
 type ReferenceResolver struct {
@@ -147,116 +85,6 @@ func (rr ReferenceResolver) Resolve(rec *opencdc.Record) (Reference, error) {
 	return ref, nil
 }
 
-// type referenceWalker interface {
-// 	walk(val reflect.Value) (reflect.Value, error)
-// }
-//
-// // chainedReferenceWalker is a referenceWalker that chains multiple
-// // referenceWalkers together.
-// type chainedReferenceWalker []referenceWalker
-//
-// func (rw chainedReferenceWalker) walk(val reflect.Value) (reflect.Value, error) {
-// 	var err error
-// 	for _, w := range rw {
-// 		val, err = w.walk(val)
-// 		if err != nil {
-// 			return reflect.Value{}, err
-// 		}
-// 	}
-// 	return val, nil
-// }
-//
-// type fieldReferenceWalker struct {
-// 	field string
-// }
-//
-// func (rw fieldReferenceWalker) walk(val reflect.Value) (reflect.Value, error) {
-// 	switch val.Kind() {
-// 	case reflect.Struct:
-// 		fieldVal := val.FieldByName(rw.field)
-// 		if !fieldVal.IsValid() {
-// 			return reflect.Value{}, fmt.Errorf("field %q does not exist in struct %s", rw.field, val.Type())
-// 		}
-// 		if (fieldVal.Kind() == reflect.Map || fieldVal.Kind() == reflect.Slice) &&
-// 			fieldVal.IsNil() {
-// 			// create empty value as a placeholder
-// 			switch fieldVal.Kind() {
-// 			case reflect.Map:
-// 				fieldVal.Set(reflect.MakeMap(fieldVal.Type()))
-// 			case reflect.Slice:
-// 				fieldVal.Set(reflect.MakeSlice(fieldVal.Type(), 0, 0))
-// 			}
-// 		}
-// 		return fieldVal, nil
-// 	case reflect.Map:
-// 		v := val.MapIndex(reflect.ValueOf(rw.field))
-// 		if !v.IsValid() {
-// 			// create new element in map as a placeholder
-// 			// TODO if the field is nested, create a map[string]interface{} instead of a string
-// 			v = reflect.New(reflect.TypeOf("")).Elem()
-// 			val.SetMapIndex(reflect.ValueOf(rw.field), v)
-// 		}
-// 		return v, nil
-// 	default:
-// 		return reflect.Value{}, fmt.Errorf("unexpected value kind, got %s", val.Kind())
-// 	}
-// }
-
-// type structFieldWalker struct {
-// 	field string
-// }
-//
-// func (w structFieldWalker) walk(ref Reference) (Reference, error) {
-// 	var val reflect.Value
-// 	switch ref := ref.(type) {
-// 	case simpleReference:
-// 		val = ref.val
-// 	case mapValueReference:
-// 		val = ref.mapVal.MapIndex(reflect.ValueOf(ref.key))
-// 		if !val.IsValid() {
-// 			return nil, fmt.Errorf("can't walk map value for key %s, the value does not exist", ref.key)
-// 		}
-// 	default:
-// 		return nil, fmt.Errorf("unexpected Reference type, got %T", ref)
-// 	}
-//
-// 	if val.Kind() != reflect.Struct {
-// 		return nil, fmt.Errorf("expected struct, got %s", val.Kind())
-// 	}
-//
-// 	fieldVal := val.FieldByName(w.field)
-// 	if !fieldVal.IsValid() {
-// 		return nil, fmt.Errorf("field %q does not exist in struct %s", w.field, val.Type())
-// 	}
-//
-// 	return simpleReference{val: fieldVal}, nil
-// }
-//
-// type mapValueWalker struct {
-// 	key string
-// }
-//
-// func (w mapValueWalker) walk(ref Reference) (Reference, error) {
-// 	var val reflect.Value
-// 	switch ref := ref.(type) {
-// 	case simpleReference:
-// 		val = ref.val
-// 	case mapValueReference:
-// 		val = ref.mapVal.MapIndex(reflect.ValueOf(ref.key))
-// 		if !val.IsValid() {
-// 			// TODO create placeholder map[string]interface{}
-// 		}
-// 	default:
-// 		return nil, fmt.Errorf("unexpected Reference type, got %T", ref)
-// 	}
-//
-// 	if val.Kind() != reflect.Map {
-// 		return nil, fmt.Errorf("expected map, got %s", val.Kind())
-// 	}
-//
-// 	return mapValueReference{mapVal: val, key: w.key}, nil
-// }
-
 type recordReference struct {
 	rec *opencdc.Record
 }
@@ -267,7 +95,7 @@ func (r recordReference) Get() any {
 
 func (r recordReference) Set(val string) error {
 	// TODO
-	return errors.New("unimplemented")
+	return errors.New("not implemented")
 }
 
 func (r recordReference) walk(field string) (Reference, error) {
@@ -335,10 +163,15 @@ func (r metadataReference) Get() any {
 
 func (r metadataReference) Set(val string) error {
 	// TODO
-	return nil
+	return errors.New("not implemented")
 }
 
 func (r metadataReference) walk(field string) (Reference, error) {
+	if r.rec.Metadata == nil {
+		// create new metadata map so we can set the field
+		r.rec.Metadata = make(map[string]string)
+	}
+
 	return metadataFieldReference{rec: r.rec, field: field}, nil
 }
 
@@ -374,11 +207,19 @@ func (r keyReference) Set(val string) error {
 }
 
 func (r keyReference) walk(field string) (Reference, error) {
-	data, ok := r.rec.Key.(opencdc.StructuredData)
-	if !ok {
+	switch r.rec.Key.(type) {
+	case opencdc.StructuredData:
+		// all good
+	case nil:
+		// create new structured data
+		r.rec.Key = opencdc.StructuredData{}
+	default:
 		return nil, errors.New("key does not contain structured data, can't address a field inside key")
 	}
-	return dataFieldReference{data: data, field: field}, nil
+	return dataFieldReference{
+		data:  r.rec.Key.(opencdc.StructuredData),
+		field: field,
+	}, nil
 }
 
 type payloadReference struct {
@@ -419,11 +260,19 @@ func (r payloadBeforeReference) Set(val string) error {
 }
 
 func (r payloadBeforeReference) walk(field string) (Reference, error) {
-	data, ok := r.rec.Payload.Before.(opencdc.StructuredData)
-	if !ok {
+	switch r.rec.Payload.Before.(type) {
+	case opencdc.StructuredData:
+		// all good
+	case nil:
+		// create new structured data
+		r.rec.Payload.Before = opencdc.StructuredData{}
+	default:
 		return nil, errors.New("payload before does not contain structured data, can't address a field inside payload before")
 	}
-	return dataFieldReference{data: data, field: field}, nil
+	return dataFieldReference{
+		data:  r.rec.Payload.Before.(opencdc.StructuredData),
+		field: field,
+	}, nil
 }
 
 type payloadAfterReference struct {
@@ -440,11 +289,19 @@ func (r payloadAfterReference) Set(val string) error {
 }
 
 func (r payloadAfterReference) walk(field string) (Reference, error) {
-	data, ok := r.rec.Payload.After.(opencdc.StructuredData)
-	if !ok {
+	switch r.rec.Payload.After.(type) {
+	case opencdc.StructuredData:
+		// all good
+	case nil:
+		// create new structured data
+		r.rec.Payload.After = opencdc.StructuredData{}
+	default:
 		return nil, errors.New("payload after does not contain structured data, can't address a field inside payload after")
 	}
-	return dataFieldReference{data: data, field: field}, nil
+	return dataFieldReference{
+		data:  r.rec.Payload.After.(opencdc.StructuredData),
+		field: field,
+	}, nil
 }
 
 type dataFieldReference struct {
@@ -462,9 +319,13 @@ func (r dataFieldReference) Set(val string) error {
 }
 
 func (r dataFieldReference) walk(field string) (Reference, error) {
+	if r.data[r.field] == nil {
+		// create new structured data for field, so we can set the field
+		r.data[r.field] = make(map[string]any)
+	}
+
 	data, ok := r.data[r.field].(map[string]any)
 	if !ok {
-		// TODO create value if it doesn't exist instead of returning an error
 		return nil, fmt.Errorf("data field %[1]s does not contain structured data, can't address a field inside %[1]s", r.field)
 	}
 	return dataFieldReference{data: data, field: field}, nil

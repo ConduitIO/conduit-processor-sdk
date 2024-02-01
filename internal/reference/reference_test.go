@@ -21,7 +21,7 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestReference_Get(t *testing.T) {
+func TestReference_Get_RawData(t *testing.T) {
 	rec := opencdc.Record{
 		Position:  opencdc.Position("foo"),
 		Operation: opencdc.OperationCreate,
@@ -62,11 +62,95 @@ func TestReference_Get(t *testing.T) {
 	}
 }
 
+func TestReference_Get_StructuredData(t *testing.T) {
+	rec := opencdc.Record{
+		Key: opencdc.StructuredData{
+			"foo1": "baz",
+			"nested1": map[string]any{
+				"bar1": "qux",
+			},
+		},
+		Payload: opencdc.Change{
+			Before: opencdc.StructuredData{
+				"foo2": "baz",
+				"nested2": map[string]any{
+					"bar2": "qux",
+				},
+			},
+			After: opencdc.StructuredData{
+				"foo3": "baz",
+				"nested3": map[string]any{
+					"bar3": "qux",
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		reference string
+		want      any
+	}{
+		{".Key.foo1", rec.Key.(opencdc.StructuredData)["foo1"]},
+		{".Key.nested1.bar1", rec.Key.(opencdc.StructuredData)["nested1"].(map[string]any)["bar1"]},
+		{".Payload.Before.foo2", rec.Payload.Before.(opencdc.StructuredData)["foo2"]},
+		{".Payload.Before.nested2.bar2", rec.Payload.Before.(opencdc.StructuredData)["nested2"].(map[string]any)["bar2"]},
+		{".Payload.After.foo3", rec.Payload.After.(opencdc.StructuredData)["foo3"]},
+		{".Payload.After.nested3.bar3", rec.Payload.After.(opencdc.StructuredData)["nested3"].(map[string]any)["bar3"]},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.reference, func(t *testing.T) {
+			is := is.New(t)
+			resolver, err := NewReferenceResolver(tc.reference)
+			is.NoErr(err)
+
+			ref, err := resolver.Resolve(&rec)
+			is.NoErr(err)
+
+			is.Equal(ref.Get(), tc.want)
+		})
+	}
+}
+
+func TestReference_Get_NoData(t *testing.T) {
+	rec := opencdc.Record{}
+
+	testCases := []struct {
+		reference string
+		want      any
+	}{
+		{".Position", nil},
+		{".Operation", opencdc.Operation(0)},
+		{".Metadata.foo", ""},
+		{".Metadata.bar", ""},
+		{".Key.foo1", nil},
+		{".Key.nested1.bar1", nil},
+		{".Payload.Before.foo2", nil},
+		{".Payload.Before.nested2.bar2", nil},
+		{".Payload.After.foo3", nil},
+		{".Payload.After.nested3.bar3", nil},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.reference, func(t *testing.T) {
+			is := is.New(t)
+			resolver, err := NewReferenceResolver(tc.reference)
+			is.NoErr(err)
+
+			ref, err := resolver.Resolve(&rec)
+			is.NoErr(err)
+
+			is.Equal(ref.Get(), tc.want)
+		})
+	}
+}
+
 func TestReference_Set(t *testing.T) {
 	testCases := []struct {
 		reference  string
 		getFieldFn func(opencdc.Record) any
 	}{
+		{".", func(r opencdc.Record) any { return r }},
 		{".Position", func(r opencdc.Record) any { return r.Position }},
 		{".Operation", func(r opencdc.Record) any { return r.Operation }},
 		{".Metadata.foo", func(r opencdc.Record) any { return r.Metadata["foo"] }},
@@ -87,7 +171,7 @@ func TestReference_Set(t *testing.T) {
 			ref, err := resolver.Resolve(&rec)
 			is.NoErr(err)
 
-			err = ref.Set("foo")
+			err = ref.Set("create")
 			is.NoErr(err)
 
 			is.Equal(ref.Get(), tc.getFieldFn(rec))
