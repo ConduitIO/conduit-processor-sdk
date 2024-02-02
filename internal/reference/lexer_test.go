@@ -43,7 +43,7 @@ func assertEqual(t *testing.T, i1, i2 []item, checkPos bool) bool {
 }
 
 func TestLex(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name  string
 		input string
 		items []item
