@@ -15,11 +15,31 @@
 package reference
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
 )
+
+func TestNewReferenceResolver_Fail(t *testing.T) {
+	testCases := []string{
+		"foo",
+		"(.Key)",
+		".foo",
+		".Position.foo",
+		".Operation.foo",
+		".Metadata.foo.bar",
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc, func(t *testing.T) {
+			is := is.New(t)
+			_, err := NewReferenceResolver(tc)
+			is.True(err != nil)
+		})
+	}
+}
 
 func TestReference_Get_RawData(t *testing.T) {
 	rec := opencdc.Record{
@@ -39,11 +59,13 @@ func TestReference_Get_RawData(t *testing.T) {
 		reference string
 		want      any
 	}{
+		{".", rec},
 		{".Position", rec.Position},
 		{".Operation", rec.Operation},
 		{".Metadata.foo", rec.Metadata["foo"]},
 		{".Metadata.bar", ""},
 		{".Key", rec.Key},
+		{".Payload", rec.Payload},
 		{".Payload.Before", rec.Payload.Before},
 		{".Payload.After", rec.Payload.After},
 	}
@@ -145,36 +167,246 @@ func TestReference_Get_NoData(t *testing.T) {
 	}
 }
 
-func TestReference_Set(t *testing.T) {
-	testCases := []struct {
-		reference  string
-		getFieldFn func(opencdc.Record) any
-	}{
-		{".", func(r opencdc.Record) any { return r }},
-		{".Position", func(r opencdc.Record) any { return r.Position }},
-		{".Operation", func(r opencdc.Record) any { return r.Operation }},
-		{".Metadata.foo", func(r opencdc.Record) any { return r.Metadata["foo"] }},
-		{".Metadata.bar", func(r opencdc.Record) any { return r.Metadata["bar"] }},
-		{".Key", func(r opencdc.Record) any { return r.Key }},
-		{".Payload.Before", func(r opencdc.Record) any { return r.Payload.Before }},
-		{".Payload.After", func(r opencdc.Record) any { return r.Payload.After }},
+type testReferenceSetCase[T any] struct {
+	value   any
+	want    T
+	wantErr bool
+}
+
+func testSet[T any](t *testing.T, resolver ReferenceResolver, tc testReferenceSetCase[T]) {
+	is := is.New(t)
+
+	rec := opencdc.Record{}
+
+	ref, err := resolver.Resolve(&rec)
+	is.NoErr(err)
+
+	err = ref.Set(tc.value)
+	if tc.wantErr {
+		is.True(err != nil)
+	} else {
+		is.NoErr(err)
+		is.Equal(ref.Get(), tc.want)
+	}
+}
+
+func TestReference_Set_Position(t *testing.T) {
+	// all test cases should fail, position can not be set
+	testCases := []testReferenceSetCase[opencdc.Data]{
+		{"", opencdc.RawData(""), true},
+		{"foo", opencdc.RawData("foo"), true},
+		{opencdc.RawData("bar"), opencdc.RawData("bar"), true},
+		{opencdc.StructuredData{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, true},
+		{map[string]any{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, true},
+		{nil, nil, true},
+		{0, nil, true},
 	}
 
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Position")
+	is.NoErr(err)
+
 	for _, tc := range testCases {
-		t.Run(tc.reference, func(t *testing.T) {
-			is := is.New(t)
-			resolver, err := NewReferenceResolver(tc.reference)
-			is.NoErr(err)
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
 
-			rec := opencdc.Record{}
+func TestReference_Set_Operation(t *testing.T) {
+	testCases := []testReferenceSetCase[opencdc.Operation]{
+		{"create", opencdc.OperationCreate, false},
+		{"update", opencdc.OperationUpdate, false},
+		{"delete", opencdc.OperationDelete, false},
+		{"snapshot", opencdc.OperationSnapshot, false},
+		{0, 0, true},
+		{1, opencdc.OperationCreate, false},
+		{2, opencdc.OperationUpdate, false},
+		{3, opencdc.OperationDelete, false},
+		{4, opencdc.OperationSnapshot, false},
+		{5, 0, true},
+		{"", 0, true},
+		{"foo", 0, true},
+	}
 
-			ref, err := resolver.Resolve(&rec)
-			is.NoErr(err)
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Operation")
+	is.NoErr(err)
 
-			err = ref.Set("create")
-			is.NoErr(err)
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
 
-			is.Equal(ref.Get(), tc.getFieldFn(rec))
+func TestReference_Set_Metadata(t *testing.T) {
+	testCases := []testReferenceSetCase[opencdc.Metadata]{
+		{opencdc.Metadata{}, opencdc.Metadata{}, false},
+		{map[string]string{}, opencdc.Metadata{}, false},
+		{nil, nil, false},
+		{"", nil, true},
+		{"foo", nil, true},
+	}
+
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Metadata")
+	is.NoErr(err)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
+
+func TestReference_Set_MetadataField(t *testing.T) {
+	testCases := []testReferenceSetCase[string]{
+		{"", "", false},
+		{"foo", "foo", false},
+		{nil, "", true},
+		{0, "", true},
+	}
+
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Metadata.foo")
+	is.NoErr(err)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
+
+func TestReference_Set_Key(t *testing.T) {
+	testCases := []testReferenceSetCase[opencdc.Data]{
+		{"", opencdc.RawData(""), false},
+		{"foo", opencdc.RawData("foo"), false},
+		{opencdc.RawData("bar"), opencdc.RawData("bar"), false},
+		{opencdc.StructuredData{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{map[string]any{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{nil, nil, false},
+		{0, nil, true},
+	}
+
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Key")
+	is.NoErr(err)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
+
+func TestReference_Set_KeyField(t *testing.T) {
+	testCases := []testReferenceSetCase[any]{
+		{"", "", false},
+		{"foo", "foo", false},
+		{opencdc.RawData("bar"), opencdc.RawData("bar"), false},
+		{opencdc.StructuredData{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{map[string]any{"foo": "bar"}, map[string]any{"foo": "bar"}, false},
+		{nil, nil, false},
+		{0, 0, false},
+	}
+
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Key.foo")
+	is.NoErr(err)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
+
+func TestReference_Set_PayloadBefore(t *testing.T) {
+	testCases := []testReferenceSetCase[opencdc.Data]{
+		{"", opencdc.RawData(""), false},
+		{"foo", opencdc.RawData("foo"), false},
+		{opencdc.RawData("bar"), opencdc.RawData("bar"), false},
+		{opencdc.StructuredData{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{map[string]any{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{nil, nil, false},
+		{0, nil, true},
+	}
+
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Payload.Before")
+	is.NoErr(err)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
+
+func TestReference_Set_PayloadBeforeField(t *testing.T) {
+	testCases := []testReferenceSetCase[any]{
+		{"", "", false},
+		{"foo", "foo", false},
+		{opencdc.RawData("bar"), opencdc.RawData("bar"), false},
+		{opencdc.StructuredData{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{map[string]any{"foo": "bar"}, map[string]any{"foo": "bar"}, false},
+		{nil, nil, false},
+		{0, 0, false},
+	}
+
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Payload.Before.foo")
+	is.NoErr(err)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
+
+func TestReference_Set_PayloadAfter(t *testing.T) {
+	testCases := []testReferenceSetCase[opencdc.Data]{
+		{"", opencdc.RawData(""), false},
+		{"foo", opencdc.RawData("foo"), false},
+		{opencdc.RawData("bar"), opencdc.RawData("bar"), false},
+		{opencdc.StructuredData{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{map[string]any{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{nil, nil, false},
+		{0, nil, true},
+	}
+
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Payload.After")
+	is.NoErr(err)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
+		})
+	}
+}
+
+func TestReference_Set_PayloadAfterField(t *testing.T) {
+	testCases := []testReferenceSetCase[any]{
+		{"", "", false},
+		{"foo", "foo", false},
+		{opencdc.RawData("bar"), opencdc.RawData("bar"), false},
+		{opencdc.StructuredData{"foo": "bar"}, opencdc.StructuredData{"foo": "bar"}, false},
+		{map[string]any{"foo": "bar"}, map[string]any{"foo": "bar"}, false},
+		{nil, nil, false},
+		{0, 0, false},
+	}
+
+	is := is.New(t)
+	resolver, err := NewReferenceResolver(".Payload.After.foo")
+	is.NoErr(err)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+			testSet(t, resolver, tc)
 		})
 	}
 }

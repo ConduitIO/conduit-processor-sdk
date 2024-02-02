@@ -23,7 +23,7 @@ import (
 
 type Reference interface {
 	Get() any
-	Set(string) error
+	Set(any) error
 
 	walk(field string) (Reference, error)
 }
@@ -37,32 +37,43 @@ type ReferenceResolver struct {
 	fields []string
 }
 
-func NewReferenceResolver(ref string) (ReferenceResolver, error) {
-	l := newLexer(ref)
+func NewReferenceResolver(input string) (ReferenceResolver, error) {
+	l := newLexer(input)
 
 	i := l.Next()
-	if i.typ == itemVariable {
+	if i.typ == itemVariable || i.typ == itemDot {
 		// skip variable token, if any
 		i = l.Next()
 	}
+
+	// dummy record reference to validate if fields can be resolved
+	var ref Reference = recordReference{rec: &opencdc.Record{}}
 
 	var fields []string
 	for i.typ != itemEOF && i.typ != itemError {
 		// for now all we accept are chained fields
 		if i.typ != itemField {
-			return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", ref, i)
+			return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
 		}
-		// TODO validate field name in context of the record
+
 		field := i.val[1:] // skip leading dot
+
+		// validate field name in context of the record
+		var err error
+		ref, err = ref.walk(field)
+		if err != nil {
+			return ReferenceResolver{}, fmt.Errorf("invalid reference %q: %w", input, err)
+		}
+
 		fields = append(fields, field)
 		i = l.Next()
 	}
 	if i.typ == itemError {
-		return ReferenceResolver{}, fmt.Errorf("invalid reference %q: %s", ref, i.val)
+		return ReferenceResolver{}, fmt.Errorf("invalid reference %q: %s", input, i.val)
 	}
 
 	return ReferenceResolver{
-		Raw:    ref,
+		Raw:    input,
 		fields: fields,
 	}, nil
 }
@@ -93,9 +104,8 @@ func (r recordReference) Get() any {
 	return *r.rec
 }
 
-func (r recordReference) Set(val string) error {
-	// TODO
-	return errors.New("not implemented")
+func (r recordReference) Set(any) error {
+	return errors.New("cannot set entire record")
 }
 
 func (r recordReference) walk(field string) (Reference, error) {
@@ -123,7 +133,7 @@ func (r positionReference) Get() any {
 	return r.rec.Position
 }
 
-func (r positionReference) Set(string) error {
+func (r positionReference) Set(any) error {
 	return errors.New("cannot set position")
 }
 
@@ -139,13 +149,26 @@ func (r operationReference) Get() any {
 	return r.rec.Operation
 }
 
-func (r operationReference) Set(val string) error {
+func (r operationReference) Set(val any) error {
 	var op opencdc.Operation
-	err := op.UnmarshalText([]byte(val))
-	if err != nil {
-		return fmt.Errorf("failed to set operation: %w", err)
+
+	switch val := val.(type) {
+	case opencdc.Operation, int:
+		op = opencdc.Operation(val.(int))
+	case string:
+		err := op.UnmarshalText([]byte(val))
+		if err != nil {
+			return fmt.Errorf("failed to set operation: %w", err)
+		}
+	default:
+		return fmt.Errorf("unexpected type %T for operation", val)
+	}
+
+	if op < opencdc.OperationCreate || op > opencdc.OperationSnapshot {
+		return fmt.Errorf("operation %q: %w", op, opencdc.ErrUnknownOperation)
 	}
 	r.rec.Operation = op
+
 	return nil
 }
 
@@ -161,9 +184,18 @@ func (r metadataReference) Get() any {
 	return r.rec.Metadata
 }
 
-func (r metadataReference) Set(val string) error {
-	// TODO
-	return errors.New("not implemented")
+func (r metadataReference) Set(val any) error {
+	switch val := val.(type) {
+	case opencdc.Metadata:
+		r.rec.Metadata = val
+	case map[string]string:
+		r.rec.Metadata = val
+	case nil:
+		r.rec.Metadata = nil
+	default:
+		return fmt.Errorf("unexpected type %T for metadata", val)
+	}
+	return nil
 }
 
 func (r metadataReference) walk(field string) (Reference, error) {
@@ -184,8 +216,13 @@ func (r metadataFieldReference) Get() any {
 	return r.rec.Metadata[r.field]
 }
 
-func (r metadataFieldReference) Set(val string) error {
-	r.rec.Metadata[r.field] = val
+func (r metadataFieldReference) Set(val any) error {
+	switch val := val.(type) {
+	case string:
+		r.rec.Metadata[r.field] = val
+	default:
+		return fmt.Errorf("unexpected type %T for metadata", val)
+	}
 	return nil
 }
 
@@ -201,8 +238,21 @@ func (r keyReference) Get() any {
 	return r.rec.Key
 }
 
-func (r keyReference) Set(val string) error {
-	r.rec.Key = opencdc.RawData(val)
+func (r keyReference) Set(val any) error {
+	switch val := val.(type) {
+	case opencdc.RawData, opencdc.StructuredData:
+		r.rec.Key = val.(opencdc.Data)
+	case string:
+		r.rec.Key = opencdc.RawData(val)
+	case []byte:
+		r.rec.Key = opencdc.RawData(val)
+	case map[string]any:
+		r.rec.Key = opencdc.StructuredData(val)
+	case nil:
+		r.rec.Key = nil
+	default:
+		return fmt.Errorf("unexpected type %T for key", val)
+	}
 	return nil
 }
 
@@ -230,9 +280,14 @@ func (r payloadReference) Get() any {
 	return r.rec.Payload
 }
 
-func (r payloadReference) Set(val string) error {
-	// TODO
-	return errors.New("not implemented")
+func (r payloadReference) Set(val any) error {
+	switch val := val.(type) {
+	case opencdc.Change:
+		r.rec.Payload = val
+	default:
+		return fmt.Errorf("unexpected type %T for payload", val)
+	}
+	return nil
 }
 
 func (r payloadReference) walk(field string) (Reference, error) {
@@ -254,8 +309,21 @@ func (r payloadBeforeReference) Get() any {
 	return r.rec.Payload.Before
 }
 
-func (r payloadBeforeReference) Set(val string) error {
-	r.rec.Payload.Before = opencdc.RawData(val)
+func (r payloadBeforeReference) Set(val any) error {
+	switch val := val.(type) {
+	case opencdc.RawData, opencdc.StructuredData:
+		r.rec.Payload.Before = val.(opencdc.Data)
+	case string:
+		r.rec.Payload.Before = opencdc.RawData(val)
+	case []byte:
+		r.rec.Payload.Before = opencdc.RawData(val)
+	case map[string]any:
+		r.rec.Payload.Before = opencdc.StructuredData(val)
+	case nil:
+		r.rec.Payload.Before = nil
+	default:
+		return fmt.Errorf("unexpected type %T for payload before", val)
+	}
 	return nil
 }
 
@@ -283,8 +351,21 @@ func (r payloadAfterReference) Get() any {
 	return r.rec.Payload.After
 }
 
-func (r payloadAfterReference) Set(val string) error {
-	r.rec.Payload.After = opencdc.RawData(val)
+func (r payloadAfterReference) Set(val any) error {
+	switch val := val.(type) {
+	case opencdc.RawData, opencdc.StructuredData:
+		r.rec.Payload.After = val.(opencdc.Data)
+	case string:
+		r.rec.Payload.After = opencdc.RawData(val)
+	case []byte:
+		r.rec.Payload.After = opencdc.RawData(val)
+	case map[string]any:
+		r.rec.Payload.After = opencdc.StructuredData(val)
+	case nil:
+		r.rec.Payload.After = nil
+	default:
+		return fmt.Errorf("unexpected type %T for payload after", val)
+	}
 	return nil
 }
 
@@ -313,7 +394,7 @@ func (r dataFieldReference) Get() any {
 	return r.data[r.field]
 }
 
-func (r dataFieldReference) Set(val string) error {
+func (r dataFieldReference) Set(val any) error {
 	r.data[r.field] = val
 	return nil
 }
