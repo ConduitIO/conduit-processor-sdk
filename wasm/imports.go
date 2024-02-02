@@ -25,7 +25,9 @@ import "unsafe"
 // (1) a pointer to the address where the command should be written
 // (2) the size of allocated memory.
 //
-// The return value can be 0 (for a successful reply) or an error code.
+// The return value indicates the size of the allocated request in bytes. If the
+// command is larger than the allocated memory, the caller should reallocate the
+// memory and call `command_request` again.
 //
 //go:wasmimport conduit command_request
 func _commandRequest(ptr unsafe.Pointer, size uint32) uint32
