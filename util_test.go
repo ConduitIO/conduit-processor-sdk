@@ -41,9 +41,10 @@ func ExampleReferenceResolver_simple() {
 	err = ref.Set("foo")
 	fmt.Println(err)
 
-	// Output: ref value: my position
+	// Output:
+	// ref value: my position
 	// setting the position is not allowed, let's try it
-	// cannot set position
+	// cannot set position: cannot set immutable reference
 }
 
 func ExampleReferenceResolver_nested() {
@@ -75,7 +76,8 @@ func ExampleReferenceResolver_nested() {
 
 	fmt.Println("new value:", rec.Key)
 
-	// Output: ref value: baz
+	// Output:
+	// ref value: baz
 	// setting the field now ...
 	// new value: map[foo:map[bar:qux]]
 }
@@ -103,7 +105,8 @@ func ExampleReferenceResolver_setNonExistingField() {
 
 	fmt.Println("new value:", rec.Payload.After)
 
-	// Output: ref value: <nil>
+	// Output:
+	// ref value: <nil>
 	// setting the field now ...
 	// new value: map[foo:map[bar:hello]]
 }

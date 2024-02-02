@@ -177,7 +177,10 @@ type testReferenceSetCase[T any] struct {
 }
 
 func testSet[T any](t *testing.T, resolver Resolver, tc testReferenceSetCase[T]) {
+	t.Helper()
+
 	is := is.New(t)
+	is.Helper()
 
 	rec := opencdc.Record{}
 
@@ -222,6 +225,10 @@ func TestReference_Set_Operation(t *testing.T) {
 		{"update", opencdc.OperationUpdate, false},
 		{"delete", opencdc.OperationDelete, false},
 		{"snapshot", opencdc.OperationSnapshot, false},
+		{opencdc.OperationCreate, opencdc.OperationCreate, false},
+		{opencdc.OperationUpdate, opencdc.OperationUpdate, false},
+		{opencdc.OperationDelete, opencdc.OperationDelete, false},
+		{opencdc.OperationSnapshot, opencdc.OperationSnapshot, false},
 		{0, 0, true},
 		{1, opencdc.OperationCreate, false},
 		{2, opencdc.OperationUpdate, false},

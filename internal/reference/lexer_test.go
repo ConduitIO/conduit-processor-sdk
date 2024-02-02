@@ -28,6 +28,7 @@ func mkItem(typ itemType, text string) item {
 }
 
 func assertEqual(t *testing.T, i1, i2 []item, checkPos bool) bool {
+	t.Helper()
 	is := is.New(t)
 	is.Helper()
 	is.Equal(len(i1), len(i2))

@@ -15,7 +15,6 @@
 package reference
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/conduitio/conduit-commons/opencdc"
@@ -58,27 +57,27 @@ func NewResolver(input string) (Resolver, error) {
 	for i.typ != itemEOF && i.typ != itemError {
 		var field string
 
-		switch i.typ {
+		switch i.typ { //nolint:exhaustive // we only care about these tokens
 		case itemField:
 			field = i.val[1:] // skip leading dot
 		case itemLeftBracket:
 			if len(fields) == 0 {
 				// no field to index
-				return Resolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+				return Resolver{}, fmt.Errorf("invalid reference %q: %w", input, UnexpectedTokenError{i: i})
 			}
 			i = l.Next()
 			if i.typ != itemString {
-				return Resolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+				return Resolver{}, fmt.Errorf("invalid reference %q: %w", input, UnexpectedTokenError{i: i})
 			}
 
 			field = i.val[1 : len(i.val)-1] // remove quotes
 
 			i = l.Next()
 			if i.typ != itemRightBracket {
-				return Resolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+				return Resolver{}, fmt.Errorf("invalid reference %q: %w", input, UnexpectedTokenError{i: i})
 			}
 		default:
-			return Resolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+			return Resolver{}, fmt.Errorf("invalid reference %q: %w", input, UnexpectedTokenError{i: i})
 		}
 
 		// validate field name in context of the record
@@ -93,6 +92,7 @@ func NewResolver(input string) (Resolver, error) {
 	}
 
 	if i.typ == itemError {
+		//nolint:goerr113 // i.val contains the error string, we need to create a new error
 		return Resolver{}, fmt.Errorf("invalid reference %q: %s", input, i.val)
 	}
 
@@ -113,7 +113,7 @@ func (rr Resolver) Resolve(rec *opencdc.Record) (Reference, error) {
 		var err error
 		ref, err = ref.walk(field)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not resolve field %q: %w", field, err)
 		}
 	}
 
@@ -129,23 +129,23 @@ func (r recordReference) Get() any {
 }
 
 func (r recordReference) Set(any) error {
-	return errors.New("cannot set entire record")
+	return fmt.Errorf("cannot set record: %w", ErrImmutableReference)
 }
 
 func (r recordReference) walk(field string) (Reference, error) {
 	switch field {
 	case "Position":
-		return positionReference{rec: r.rec}, nil
+		return positionReference(r), nil
 	case "Operation":
-		return operationReference{rec: r.rec}, nil
+		return operationReference(r), nil
 	case "Metadata":
-		return metadataReference{rec: r.rec}, nil
+		return metadataReference(r), nil
 	case "Key":
-		return keyReference{rec: r.rec}, nil
+		return keyReference(r), nil
 	case "Payload":
-		return payloadReference{rec: r.rec}, nil
+		return payloadReference(r), nil
 	default:
-		return nil, fmt.Errorf("unexpected field %q", field)
+		return nil, fmt.Errorf("unexpected field %q: %w", field, ErrNotResolvable)
 	}
 }
 
@@ -158,11 +158,11 @@ func (r positionReference) Get() any {
 }
 
 func (r positionReference) Set(any) error {
-	return errors.New("cannot set position")
+	return fmt.Errorf("cannot set position: %w", ErrImmutableReference)
 }
 
 func (r positionReference) walk(string) (Reference, error) {
-	return nil, errors.New("position is not a structured field, can't address a field inside position")
+	return nil, fmt.Errorf("position is not a structured field: %w", ErrNotResolvable)
 }
 
 type operationReference struct {
@@ -177,15 +177,17 @@ func (r operationReference) Set(val any) error {
 	var op opencdc.Operation
 
 	switch val := val.(type) {
-	case opencdc.Operation, int:
-		op = opencdc.Operation(val.(int))
+	case opencdc.Operation:
+		op = val
+	case int:
+		op = opencdc.Operation(val)
 	case string:
 		err := op.UnmarshalText([]byte(val))
 		if err != nil {
 			return fmt.Errorf("failed to set operation: %w", err)
 		}
 	default:
-		return fmt.Errorf("unexpected type %T for operation", val)
+		return fmt.Errorf("can't set type %T for operation: %w", val, ErrUnexpectedType)
 	}
 
 	if op < opencdc.OperationCreate || op > opencdc.OperationSnapshot {
@@ -197,7 +199,7 @@ func (r operationReference) Set(val any) error {
 }
 
 func (r operationReference) walk(string) (Reference, error) {
-	return nil, errors.New("operation is not a structured field, can't address a field inside operation")
+	return nil, fmt.Errorf("operation is not a structured field: %w", ErrNotResolvable)
 }
 
 type metadataReference struct {
@@ -217,7 +219,7 @@ func (r metadataReference) Set(val any) error {
 	case nil:
 		r.rec.Metadata = nil
 	default:
-		return fmt.Errorf("unexpected type %T for metadata", val)
+		return fmt.Errorf("can't set type %T for metadata: %w", val, ErrUnexpectedType)
 	}
 	return nil
 }
@@ -245,13 +247,13 @@ func (r metadataFieldReference) Set(val any) error {
 	case string:
 		r.rec.Metadata[r.field] = val
 	default:
-		return fmt.Errorf("unexpected type %T for metadata", val)
+		return fmt.Errorf("can't set type %T for metadata: %w", val, ErrUnexpectedType)
 	}
 	return nil
 }
 
 func (r metadataFieldReference) walk(string) (Reference, error) {
-	return nil, errors.New("metadata fields are not structured, can't address a field inside a metadata field")
+	return nil, fmt.Errorf("metadata fields are not structured: %w", ErrNotResolvable)
 }
 
 type keyReference struct {
@@ -265,7 +267,7 @@ func (r keyReference) Get() any {
 func (r keyReference) Set(val any) error {
 	switch val := val.(type) {
 	case opencdc.RawData, opencdc.StructuredData:
-		r.rec.Key = val.(opencdc.Data)
+		r.rec.Key = val.(opencdc.Data) //nolint:forcetypeassert // we know it's the right type
 	case string:
 		r.rec.Key = opencdc.RawData(val)
 	case []byte:
@@ -275,7 +277,7 @@ func (r keyReference) Set(val any) error {
 	case nil:
 		r.rec.Key = nil
 	default:
-		return fmt.Errorf("unexpected type %T for key", val)
+		return fmt.Errorf("can't set type %T for key: %w", val, ErrUnexpectedType)
 	}
 	return nil
 }
@@ -288,10 +290,10 @@ func (r keyReference) walk(field string) (Reference, error) {
 		// create new structured data
 		r.rec.Key = opencdc.StructuredData{}
 	default:
-		return nil, errors.New("key does not contain structured data, can't address a field inside key")
+		return nil, fmt.Errorf("key does not contain structured data: %w", ErrNotResolvable)
 	}
 	return dataFieldReference{
-		data:  r.rec.Key.(opencdc.StructuredData),
+		data:  r.rec.Key.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
 		field: field,
 	}, nil
 }
@@ -309,7 +311,7 @@ func (r payloadReference) Set(val any) error {
 	case opencdc.Change:
 		r.rec.Payload = val
 	default:
-		return fmt.Errorf("unexpected type %T for payload", val)
+		return fmt.Errorf("can't set type %T for payload: %w", val, ErrUnexpectedType)
 	}
 	return nil
 }
@@ -317,11 +319,11 @@ func (r payloadReference) Set(val any) error {
 func (r payloadReference) walk(field string) (Reference, error) {
 	switch field {
 	case "Before":
-		return payloadBeforeReference{rec: r.rec}, nil
+		return payloadBeforeReference(r), nil
 	case "After":
-		return payloadAfterReference{rec: r.rec}, nil
+		return payloadAfterReference(r), nil
 	default:
-		return nil, fmt.Errorf("unexpected field %q", field)
+		return nil, fmt.Errorf("unexpected field %q: %w", field, ErrNotResolvable)
 	}
 }
 
@@ -336,7 +338,7 @@ func (r payloadBeforeReference) Get() any {
 func (r payloadBeforeReference) Set(val any) error {
 	switch val := val.(type) {
 	case opencdc.RawData, opencdc.StructuredData:
-		r.rec.Payload.Before = val.(opencdc.Data)
+		r.rec.Payload.Before = val.(opencdc.Data) //nolint:forcetypeassert // we know it's the right type
 	case string:
 		r.rec.Payload.Before = opencdc.RawData(val)
 	case []byte:
@@ -346,7 +348,7 @@ func (r payloadBeforeReference) Set(val any) error {
 	case nil:
 		r.rec.Payload.Before = nil
 	default:
-		return fmt.Errorf("unexpected type %T for payload before", val)
+		return fmt.Errorf("can't set type %T for payload before: %w", val, ErrUnexpectedType)
 	}
 	return nil
 }
@@ -359,10 +361,10 @@ func (r payloadBeforeReference) walk(field string) (Reference, error) {
 		// create new structured data
 		r.rec.Payload.Before = opencdc.StructuredData{}
 	default:
-		return nil, errors.New("payload before does not contain structured data, can't address a field inside payload before")
+		return nil, fmt.Errorf("payload before does not contain structured data: %w", ErrNotResolvable)
 	}
 	return dataFieldReference{
-		data:  r.rec.Payload.Before.(opencdc.StructuredData),
+		data:  r.rec.Payload.Before.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
 		field: field,
 	}, nil
 }
@@ -378,7 +380,7 @@ func (r payloadAfterReference) Get() any {
 func (r payloadAfterReference) Set(val any) error {
 	switch val := val.(type) {
 	case opencdc.RawData, opencdc.StructuredData:
-		r.rec.Payload.After = val.(opencdc.Data)
+		r.rec.Payload.After = val.(opencdc.Data) //nolint:forcetypeassert // we know it's the right type
 	case string:
 		r.rec.Payload.After = opencdc.RawData(val)
 	case []byte:
@@ -388,7 +390,7 @@ func (r payloadAfterReference) Set(val any) error {
 	case nil:
 		r.rec.Payload.After = nil
 	default:
-		return fmt.Errorf("unexpected type %T for payload after", val)
+		return fmt.Errorf("can't set type %T for payload after: %w", val, ErrUnexpectedType)
 	}
 	return nil
 }
@@ -401,10 +403,10 @@ func (r payloadAfterReference) walk(field string) (Reference, error) {
 		// create new structured data
 		r.rec.Payload.After = opencdc.StructuredData{}
 	default:
-		return nil, errors.New("payload after does not contain structured data, can't address a field inside payload after")
+		return nil, fmt.Errorf("payload after does not contain structured data: %w", ErrNotResolvable)
 	}
 	return dataFieldReference{
-		data:  r.rec.Payload.After.(opencdc.StructuredData),
+		data:  r.rec.Payload.After.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
 		field: field,
 	}, nil
 }
@@ -431,7 +433,7 @@ func (r dataFieldReference) walk(field string) (Reference, error) {
 
 	data, ok := r.data[r.field].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("data field %[1]s does not contain structured data, can't address a field inside %[1]s", r.field)
+		return nil, fmt.Errorf("data field %s does not contain structured data: %w", r.field, ErrNotResolvable)
 	}
 	return dataFieldReference{data: data, field: field}, nil
 }

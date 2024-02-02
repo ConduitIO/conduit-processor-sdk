@@ -45,7 +45,8 @@ type ReferenceResolver reference.Resolver
 // field does not exist in the record, the field will be created.
 // The returned reference can be used to set the value of the field.
 func (r ReferenceResolver) Resolve(rec *opencdc.Record) (Reference, error) {
-	return reference.Resolver(r).Resolve(rec)
+	ref, err := reference.Resolver(r).Resolve(rec)
+	return Reference(ref), err
 }
 
 // NewReferenceResolver creates a new reference resolver from the input string.
