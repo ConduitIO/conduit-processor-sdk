@@ -62,6 +62,9 @@ const (
 	itemDot
 	itemField
 	itemVariable // variable starting with '$', such as '$' or  '$1' or '$hello'
+	itemString
+	itemLeftBracket
+	itemRightBracket
 )
 
 const eof = -1
@@ -156,7 +159,7 @@ func (l *lexer) atTerminator() bool {
 		return true
 	}
 	switch r {
-	case eof, '.':
+	case eof, '.', '[', ']':
 		return true
 	}
 	return false
@@ -199,6 +202,12 @@ func (l *lexer) lexReference() stateFn {
 			}
 		}
 		return (*lexer).lexField
+	case r == '[':
+		return l.emit(itemLeftBracket)
+	case r == ']':
+		return l.emit(itemRightBracket)
+	case r == '"':
+		return (*lexer).lexQuote
 	default:
 		return l.errorf("unrecognized character in reference: %#U", r)
 	}
@@ -233,4 +242,23 @@ func (l *lexer) lexField() stateFn {
 		return l.errorf("bad character %#U", r)
 	}
 	return l.emit(itemField)
+}
+
+// lexQuote scans a quoted string.
+func (l *lexer) lexQuote() stateFn {
+Loop:
+	for {
+		switch l.next() {
+		case '\\':
+			if r := l.next(); r != eof && r != '\n' {
+				break
+			}
+			fallthrough
+		case eof, '\n':
+			return l.errorf("unterminated quoted string")
+		case '"':
+			break Loop
+		}
+	}
+	return l.emit(itemString)
 }

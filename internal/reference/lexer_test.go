@@ -66,6 +66,13 @@ func TestLex(t *testing.T) {
 			mkItem(itemField, ".x"),
 			mkItem(itemEOF, ""),
 		}},
+		{"map index", `.x["my string"]`, []item{
+			mkItem(itemField, ".x"),
+			mkItem(itemLeftBracket, "["),
+			mkItem(itemString, `"my string"`),
+			mkItem(itemRightBracket, "]"),
+			mkItem(itemEOF, ""),
+		}},
 		{"named variable", "$x", []item{
 			mkItem(itemError, "bad character U+0078 'x'"),
 		}},

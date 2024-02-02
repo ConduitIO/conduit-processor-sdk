@@ -51,12 +51,30 @@ func NewReferenceResolver(input string) (ReferenceResolver, error) {
 
 	var fields []string
 	for i.typ != itemEOF && i.typ != itemError {
-		// for now all we accept are chained fields
-		if i.typ != itemField {
+		var field string
+
+		switch i.typ {
+		case itemField:
+			field = i.val[1:] // skip leading dot
+		case itemLeftBracket:
+			if len(fields) == 0 {
+				// no field to index
+				return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+			}
+			i = l.Next()
+			if i.typ != itemString {
+				return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+			}
+
+			field = i.val[1 : len(i.val)-1] // remove quotes
+
+			i = l.Next()
+			if i.typ != itemRightBracket {
+				return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+			}
+		default:
 			return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
 		}
-
-		field := i.val[1:] // skip leading dot
 
 		// validate field name in context of the record
 		var err error
@@ -68,6 +86,7 @@ func NewReferenceResolver(input string) (ReferenceResolver, error) {
 		fields = append(fields, field)
 		i = l.Next()
 	}
+
 	if i.typ == itemError {
 		return ReferenceResolver{}, fmt.Errorf("invalid reference %q: %s", input, i.val)
 	}
