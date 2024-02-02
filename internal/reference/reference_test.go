@@ -22,7 +22,7 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestNewReferenceResolver_Fail(t *testing.T) {
+func TestNewResolver_Fail(t *testing.T) {
 	testCases := []string{
 		"foo",
 		"(.Key)",
@@ -38,7 +38,7 @@ func TestNewReferenceResolver_Fail(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc, func(t *testing.T) {
 			is := is.New(t)
-			_, err := NewReferenceResolver(tc)
+			_, err := NewResolver(tc)
 			is.True(err != nil)
 		})
 	}
@@ -76,7 +76,7 @@ func TestReference_Get_RawData(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.reference, func(t *testing.T) {
 			is := is.New(t)
-			resolver, err := NewReferenceResolver(tc.reference)
+			resolver, err := NewResolver(tc.reference)
 			is.NoErr(err)
 
 			ref, err := resolver.Resolve(&rec)
@@ -126,7 +126,7 @@ func TestReference_Get_StructuredData(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.reference, func(t *testing.T) {
 			is := is.New(t)
-			resolver, err := NewReferenceResolver(tc.reference)
+			resolver, err := NewResolver(tc.reference)
 			is.NoErr(err)
 
 			ref, err := resolver.Resolve(&rec)
@@ -159,7 +159,7 @@ func TestReference_Get_NoData(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.reference, func(t *testing.T) {
 			is := is.New(t)
-			resolver, err := NewReferenceResolver(tc.reference)
+			resolver, err := NewResolver(tc.reference)
 			is.NoErr(err)
 
 			ref, err := resolver.Resolve(&rec)
@@ -176,7 +176,7 @@ type testReferenceSetCase[T any] struct {
 	wantErr bool
 }
 
-func testSet[T any](t *testing.T, resolver ReferenceResolver, tc testReferenceSetCase[T]) {
+func testSet[T any](t *testing.T, resolver Resolver, tc testReferenceSetCase[T]) {
 	is := is.New(t)
 
 	rec := opencdc.Record{}
@@ -206,7 +206,7 @@ func TestReference_Set_Position(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Position")
+	resolver, err := NewResolver(".Position")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -233,7 +233,7 @@ func TestReference_Set_Operation(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Operation")
+	resolver, err := NewResolver(".Operation")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -253,7 +253,7 @@ func TestReference_Set_Metadata(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Metadata")
+	resolver, err := NewResolver(".Metadata")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -272,7 +272,7 @@ func TestReference_Set_MetadataField(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Metadata.foo")
+	resolver, err := NewResolver(".Metadata.foo")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -291,7 +291,7 @@ func TestReference_Set_MetadataField_MapIndex(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(`.Metadata["map key with spaces and symbols @$%^&*()_+"]`)
+	resolver, err := NewResolver(`.Metadata["map key with spaces and symbols @$%^&*()_+"]`)
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -313,7 +313,7 @@ func TestReference_Set_Key(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Key")
+	resolver, err := NewResolver(".Key")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -335,7 +335,7 @@ func TestReference_Set_KeyField(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Key.foo")
+	resolver, err := NewResolver(".Key.foo")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -357,7 +357,7 @@ func TestReference_Set_KeyField_MapIndex(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(`.Key["map key with spaces and symbols @$%^&*()_+"]`)
+	resolver, err := NewResolver(`.Key["map key with spaces and symbols @$%^&*()_+"]`)
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -379,7 +379,7 @@ func TestReference_Set_PayloadBefore(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Payload.Before")
+	resolver, err := NewResolver(".Payload.Before")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -401,7 +401,7 @@ func TestReference_Set_PayloadBeforeField(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Payload.Before.foo")
+	resolver, err := NewResolver(".Payload.Before.foo")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -423,7 +423,7 @@ func TestReference_Set_PayloadBeforeField_MapIndex(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(`.Payload.Before["map key with spaces and symbols @$%^&*()_+"]`)
+	resolver, err := NewResolver(`.Payload.Before["map key with spaces and symbols @$%^&*()_+"]`)
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -445,7 +445,7 @@ func TestReference_Set_PayloadAfter(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Payload.After")
+	resolver, err := NewResolver(".Payload.After")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -467,7 +467,7 @@ func TestReference_Set_PayloadAfterField(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(".Payload.After.foo")
+	resolver, err := NewResolver(".Payload.After.foo")
 	is.NoErr(err)
 
 	for _, tc := range testCases {
@@ -489,7 +489,7 @@ func TestReference_Set_PayloadAfterField_MapIndex(t *testing.T) {
 	}
 
 	is := is.New(t)
-	resolver, err := NewReferenceResolver(`.Payload.After["map key with spaces and symbols @$%^&*()_+"]`)
+	resolver, err := NewResolver(`.Payload.After["map key with spaces and symbols @$%^&*()_+"]`)
 	is.NoErr(err)
 
 	for _, tc := range testCases {

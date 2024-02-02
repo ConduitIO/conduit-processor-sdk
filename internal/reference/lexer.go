@@ -25,6 +25,8 @@ import (
 // template action delimiters (e.g. {{ or }}), only field references. It also
 // does not support the "pipeline" syntax (e.g. .X.Y | func) or any of the
 // other template features.
+// However, it additionally supports accessing map values using the standard
+// bracket notation (e.g. .X["Y"]).
 type lexer struct {
 	input string
 	pos   int  // current position in the input

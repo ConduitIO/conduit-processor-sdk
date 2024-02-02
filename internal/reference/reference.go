@@ -21,23 +21,28 @@ import (
 	"github.com/conduitio/conduit-commons/opencdc"
 )
 
+// Reference is an interface that represents a reference to a field in a record.
+// It can be used to get and set the value of the field dynamically using input
+// provided by the user.
 type Reference interface {
+	// Get returns the value of the reference. The type of the returned value
+	// depends on the reference.
 	Get() any
+	// Set sets the value of the reference. The type of the value depends on the
+	// reference. If the value is not of the expected type, an error is returned.
 	Set(any) error
 
 	walk(field string) (Reference, error)
 }
 
-// ReferenceResolver is a type that knows how to resolve a reference to a field
+// Resolver is a type that knows how to resolve a reference to a field
 // in a record. It is used to specify the target of a processor's output.
-type ReferenceResolver struct {
-	// Raw is the raw string that was parsed to create this reference resolver.
-	Raw string
-
+type Resolver struct {
+	raw    string
 	fields []string
 }
 
-func NewReferenceResolver(input string) (ReferenceResolver, error) {
+func NewResolver(input string) (Resolver, error) {
 	l := newLexer(input)
 
 	i := l.Next()
@@ -59,28 +64,28 @@ func NewReferenceResolver(input string) (ReferenceResolver, error) {
 		case itemLeftBracket:
 			if len(fields) == 0 {
 				// no field to index
-				return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+				return Resolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
 			}
 			i = l.Next()
 			if i.typ != itemString {
-				return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+				return Resolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
 			}
 
 			field = i.val[1 : len(i.val)-1] // remove quotes
 
 			i = l.Next()
 			if i.typ != itemRightBracket {
-				return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+				return Resolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
 			}
 		default:
-			return ReferenceResolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
+			return Resolver{}, fmt.Errorf("invalid reference %q: unexpected token %s", input, i)
 		}
 
 		// validate field name in context of the record
 		var err error
 		ref, err = ref.walk(field)
 		if err != nil {
-			return ReferenceResolver{}, fmt.Errorf("invalid reference %q: %w", input, err)
+			return Resolver{}, fmt.Errorf("invalid reference %q: %w", input, err)
 		}
 
 		fields = append(fields, field)
@@ -88,11 +93,11 @@ func NewReferenceResolver(input string) (ReferenceResolver, error) {
 	}
 
 	if i.typ == itemError {
-		return ReferenceResolver{}, fmt.Errorf("invalid reference %q: %s", input, i.val)
+		return Resolver{}, fmt.Errorf("invalid reference %q: %s", input, i.val)
 	}
 
-	return ReferenceResolver{
-		Raw:    input,
+	return Resolver{
+		raw:    input,
 		fields: fields,
 	}, nil
 }
@@ -101,7 +106,7 @@ func NewReferenceResolver(input string) (ReferenceResolver, error) {
 // cannot be resolved an error is returned. If the reference is valid but the
 // field does not exist in the record, the field will be created.
 // The returned reference can be used to set the value of the field.
-func (rr ReferenceResolver) Resolve(rec *opencdc.Record) (Reference, error) {
+func (rr Resolver) Resolve(rec *opencdc.Record) (Reference, error) {
 	var ref Reference = recordReference{rec: rec}
 
 	for _, field := range rr.fields {
