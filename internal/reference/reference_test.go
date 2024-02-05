@@ -66,7 +66,7 @@ func TestReference_Get_RawData(t *testing.T) {
 		{".Position", rec.Position},
 		{".Operation", rec.Operation},
 		{".Metadata.foo", rec.Metadata["foo"]},
-		{".Metadata.bar", ""},
+		{".Metadata.bar", nil},
 		{".Key", rec.Key},
 		{".Payload", rec.Payload},
 		{".Payload.Before", rec.Payload.Before},
@@ -146,8 +146,8 @@ func TestReference_Get_NoData(t *testing.T) {
 	}{
 		{".Position", nil},
 		{".Operation", opencdc.Operation(0)},
-		{".Metadata.foo", ""},
-		{".Metadata.bar", ""},
+		{".Metadata.foo", nil},
+		{".Metadata.bar", nil},
 		{".Key.foo1", nil},
 		{".Key.nested1.bar1", nil},
 		{".Payload.Before.foo2", nil},
@@ -196,7 +196,27 @@ func testSet[T any](t *testing.T, resolver Resolver, tc testReferenceSetCase[T])
 	}
 }
 
-func TestReference_Set_Position(t *testing.T) {
+func testDelete(t *testing.T, resolver Resolver, rec opencdc.Record, emptyVal any, allowed bool) {
+	t.Helper()
+
+	is := is.New(t)
+	is.Helper()
+
+	ref, err := resolver.Resolve(&rec)
+	is.NoErr(err)
+
+	is.True(ref.Get() != nil)
+
+	err = ref.Delete()
+	if allowed {
+		is.NoErr(err)
+		is.Equal(ref.Get(), emptyVal)
+	} else {
+		is.True(err != nil)
+	}
+}
+
+func TestReference_Position(t *testing.T) {
 	// all test cases should fail, position can not be set
 	testCases := []testReferenceSetCase[opencdc.Data]{
 		{"", opencdc.RawData(""), true},
@@ -213,13 +233,23 @@ func TestReference_Set_Position(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Position: opencdc.Position("foo")},
+			nil,
+			false,
+		)
+	})
 }
 
-func TestReference_Set_Operation(t *testing.T) {
+func TestReference_Operation(t *testing.T) {
 	testCases := []testReferenceSetCase[opencdc.Operation]{
 		{"create", opencdc.OperationCreate, false},
 		{"update", opencdc.OperationUpdate, false},
@@ -237,6 +267,7 @@ func TestReference_Set_Operation(t *testing.T) {
 		{5, 0, true},
 		{"", 0, true},
 		{"foo", 0, true},
+		{nil, 0, true},
 	}
 
 	is := is.New(t)
@@ -244,17 +275,27 @@ func TestReference_Set_Operation(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Operation: opencdc.OperationCreate},
+			nil,
+			false,
+		)
+	})
 }
 
-func TestReference_Set_Metadata(t *testing.T) {
+func TestReference_Metadata(t *testing.T) {
 	testCases := []testReferenceSetCase[opencdc.Metadata]{
 		{opencdc.Metadata{}, opencdc.Metadata{}, false},
 		{map[string]string{}, opencdc.Metadata{}, false},
-		{nil, nil, false},
+		{nil, opencdc.Metadata{}, false},
 		{"", nil, true},
 		{"foo", nil, true},
 	}
@@ -264,17 +305,27 @@ func TestReference_Set_Metadata(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Metadata: opencdc.Metadata{"foo": "bar"}},
+			opencdc.Metadata{},
+			true,
+		)
+	})
 }
 
-func TestReference_Set_MetadataField(t *testing.T) {
-	testCases := []testReferenceSetCase[string]{
+func TestReference_MetadataField(t *testing.T) {
+	testCases := []testReferenceSetCase[any]{
 		{"", "", false},
 		{"foo", "foo", false},
-		{nil, "", true},
+		{nil, nil, false},
 		{0, "", true},
 	}
 
@@ -283,17 +334,27 @@ func TestReference_Set_MetadataField(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Metadata: opencdc.Metadata{"foo": "bar"}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_MetadataField_MapIndex(t *testing.T) {
-	testCases := []testReferenceSetCase[string]{
+func TestReference_MetadataField_MapIndex(t *testing.T) {
+	testCases := []testReferenceSetCase[any]{
 		{"", "", false},
 		{"foo", "foo", false},
-		{nil, "", true},
+		{nil, nil, false},
 		{0, "", true},
 	}
 
@@ -302,13 +363,23 @@ func TestReference_Set_MetadataField_MapIndex(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Metadata: opencdc.Metadata{"map key with spaces and symbols @$%^&*()_+": "bar"}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_Key(t *testing.T) {
+func TestReference_Key(t *testing.T) {
 	testCases := []testReferenceSetCase[opencdc.Data]{
 		{"", opencdc.RawData(""), false},
 		{"foo", opencdc.RawData("foo"), false},
@@ -324,13 +395,23 @@ func TestReference_Set_Key(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Key: opencdc.RawData("foo")},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_KeyField(t *testing.T) {
+func TestReference_KeyField(t *testing.T) {
 	testCases := []testReferenceSetCase[any]{
 		{"", "", false},
 		{"foo", "foo", false},
@@ -346,13 +427,23 @@ func TestReference_Set_KeyField(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Key: opencdc.StructuredData{"foo": "bar"}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_KeyField_MapIndex(t *testing.T) {
+func TestReference_KeyField_MapIndex(t *testing.T) {
 	testCases := []testReferenceSetCase[any]{
 		{"", "", false},
 		{"foo", "foo", false},
@@ -368,13 +459,23 @@ func TestReference_Set_KeyField_MapIndex(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Key: opencdc.StructuredData{"map key with spaces and symbols @$%^&*()_+": "bar"}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_PayloadBefore(t *testing.T) {
+func TestReference_PayloadBefore(t *testing.T) {
 	testCases := []testReferenceSetCase[opencdc.Data]{
 		{"", opencdc.RawData(""), false},
 		{"foo", opencdc.RawData("foo"), false},
@@ -390,13 +491,23 @@ func TestReference_Set_PayloadBefore(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{Before: opencdc.RawData("foo")}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_PayloadBeforeField(t *testing.T) {
+func TestReference_PayloadBeforeField(t *testing.T) {
 	testCases := []testReferenceSetCase[any]{
 		{"", "", false},
 		{"foo", "foo", false},
@@ -412,13 +523,23 @@ func TestReference_Set_PayloadBeforeField(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{Before: opencdc.StructuredData{"foo": "bar"}}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_PayloadBeforeField_MapIndex(t *testing.T) {
+func TestReference_PayloadBeforeField_MapIndex(t *testing.T) {
 	testCases := []testReferenceSetCase[any]{
 		{"", "", false},
 		{"foo", "foo", false},
@@ -434,13 +555,23 @@ func TestReference_Set_PayloadBeforeField_MapIndex(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{Before: opencdc.StructuredData{"map key with spaces and symbols @$%^&*()_+": "bar"}}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_PayloadAfter(t *testing.T) {
+func TestReference_PayloadAfter(t *testing.T) {
 	testCases := []testReferenceSetCase[opencdc.Data]{
 		{"", opencdc.RawData(""), false},
 		{"foo", opencdc.RawData("foo"), false},
@@ -456,13 +587,23 @@ func TestReference_Set_PayloadAfter(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{After: opencdc.RawData("foo")}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_PayloadAfterField(t *testing.T) {
+func TestReference_PayloadAfterField(t *testing.T) {
 	testCases := []testReferenceSetCase[any]{
 		{"", "", false},
 		{"foo", "foo", false},
@@ -478,13 +619,23 @@ func TestReference_Set_PayloadAfterField(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{After: opencdc.StructuredData{"foo": "bar"}}},
+			nil,
+			true,
+		)
+	})
 }
 
-func TestReference_Set_PayloadAfterField_MapIndex(t *testing.T) {
+func TestReference_PayloadAfterField_MapIndex(t *testing.T) {
 	testCases := []testReferenceSetCase[any]{
 		{"", "", false},
 		{"foo", "foo", false},
@@ -500,8 +651,18 @@ func TestReference_Set_PayloadAfterField_MapIndex(t *testing.T) {
 	is.NoErr(err)
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%v", tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Set %v", tc.value), func(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
+
+	t.Run("Delete", func(t *testing.T) {
+		testDelete(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{After: opencdc.StructuredData{"map key with spaces and symbols @$%^&*()_+": "bar"}}},
+			nil,
+			true,
+		)
+	})
 }

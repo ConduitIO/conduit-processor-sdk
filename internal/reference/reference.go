@@ -30,6 +30,9 @@ type Reference interface {
 	// Set sets the value of the reference. The type of the value depends on the
 	// reference. If the value is not of the expected type, an error is returned.
 	Set(any) error
+	// Delete deletes the value of the reference. If the reference is not
+	// deletable, an error is returned.
+	Delete() error
 
 	walk(field string) (Reference, error)
 }
@@ -132,6 +135,10 @@ func (r recordReference) Set(any) error {
 	return fmt.Errorf("cannot set record: %w", ErrImmutableReference)
 }
 
+func (r recordReference) Delete() error {
+	return fmt.Errorf("cannot delete record: %w", ErrImmutableReference)
+}
+
 func (r recordReference) walk(field string) (Reference, error) {
 	switch field {
 	case "Position":
@@ -159,6 +166,10 @@ func (r positionReference) Get() any {
 
 func (r positionReference) Set(any) error {
 	return fmt.Errorf("cannot set position: %w", ErrImmutableReference)
+}
+
+func (r positionReference) Delete() error {
+	return fmt.Errorf("cannot delete position: %w", ErrImmutableReference)
 }
 
 func (r positionReference) walk(string) (Reference, error) {
@@ -198,6 +209,10 @@ func (r operationReference) Set(val any) error {
 	return nil
 }
 
+func (r operationReference) Delete() error {
+	return fmt.Errorf("cannot delete operation: %w", ErrImmutableReference)
+}
+
 func (r operationReference) walk(string) (Reference, error) {
 	return nil, fmt.Errorf("operation is not a structured field: %w", ErrNotResolvable)
 }
@@ -217,10 +232,15 @@ func (r metadataReference) Set(val any) error {
 	case map[string]string:
 		r.rec.Metadata = val
 	case nil:
-		r.rec.Metadata = nil
+		r.rec.Metadata = opencdc.Metadata{} // reset metadata
 	default:
 		return fmt.Errorf("can't set type %T for metadata: %w", val, ErrUnexpectedType)
 	}
+	return nil
+}
+
+func (r metadataReference) Delete() error {
+	r.rec.Metadata = opencdc.Metadata{} // reset metadata
 	return nil
 }
 
@@ -239,16 +259,27 @@ type metadataFieldReference struct {
 }
 
 func (r metadataFieldReference) Get() any {
-	return r.rec.Metadata[r.field]
+	val, ok := r.rec.Metadata[r.field]
+	if !ok {
+		return nil
+	}
+	return val
 }
 
 func (r metadataFieldReference) Set(val any) error {
 	switch val := val.(type) {
 	case string:
 		r.rec.Metadata[r.field] = val
+	case nil:
+		delete(r.rec.Metadata, r.field) // delete field
 	default:
 		return fmt.Errorf("can't set type %T for metadata: %w", val, ErrUnexpectedType)
 	}
+	return nil
+}
+
+func (r metadataFieldReference) Delete() error {
+	delete(r.rec.Metadata, r.field)
 	return nil
 }
 
@@ -279,6 +310,11 @@ func (r keyReference) Set(val any) error {
 	default:
 		return fmt.Errorf("can't set type %T for key: %w", val, ErrUnexpectedType)
 	}
+	return nil
+}
+
+func (r keyReference) Delete() error {
+	r.rec.Key = nil
 	return nil
 }
 
@@ -316,6 +352,11 @@ func (r payloadReference) Set(val any) error {
 	return nil
 }
 
+func (r payloadReference) Delete() error {
+	r.rec.Payload = opencdc.Change{}
+	return nil
+}
+
 func (r payloadReference) walk(field string) (Reference, error) {
 	switch field {
 	case "Before":
@@ -350,6 +391,11 @@ func (r payloadBeforeReference) Set(val any) error {
 	default:
 		return fmt.Errorf("can't set type %T for payload before: %w", val, ErrUnexpectedType)
 	}
+	return nil
+}
+
+func (r payloadBeforeReference) Delete() error {
+	r.rec.Payload.Before = nil
 	return nil
 }
 
@@ -395,6 +441,11 @@ func (r payloadAfterReference) Set(val any) error {
 	return nil
 }
 
+func (r payloadAfterReference) Delete() error {
+	r.rec.Payload.After = nil
+	return nil
+}
+
 func (r payloadAfterReference) walk(field string) (Reference, error) {
 	switch r.rec.Payload.After.(type) {
 	case opencdc.StructuredData:
@@ -422,6 +473,11 @@ func (r dataFieldReference) Get() any {
 
 func (r dataFieldReference) Set(val any) error {
 	r.data[r.field] = val
+	return nil
+}
+
+func (r dataFieldReference) Delete() error {
+	delete(r.data, r.field)
 	return nil
 }
 
