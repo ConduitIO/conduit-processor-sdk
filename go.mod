@@ -8,6 +8,7 @@ require (
 	github.com/bufbuild/buf v1.29.0
 	github.com/conduitio/conduit-commons v0.0.0-20240103200651-5a5746611a8e
 	github.com/golangci/golangci-lint v1.55.2
+	github.com/matryer/is v1.4.1
 	github.com/rs/zerolog v1.32.0
 	go.uber.org/mock v0.4.0
 	google.golang.org/protobuf v1.32.0
