@@ -44,7 +44,7 @@ func ExampleReferenceResolver_simple() {
 	// Output:
 	// ref value: my position
 	// setting the position is not allowed, let's try it
-	// cannot set position: cannot set immutable reference
+	// cannot set .Position: cannot set immutable reference
 }
 
 func ExampleReferenceResolver_nested() {
