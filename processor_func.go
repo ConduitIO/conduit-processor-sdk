@@ -56,6 +56,7 @@ func (f ProcessorFunc) Process(ctx context.Context, records []opencdc.Record) []
 			outRecs[i] = FilterRecord{}
 		case err != nil:
 			outRecs[i] = ErrorRecord{Error: err}
+			return outRecs[:i+1] // stop processing on first error
 		default:
 			outRecs[i] = SingleRecord(outRec)
 		}
