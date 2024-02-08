@@ -26,9 +26,7 @@ import (
 
 const defaultCommandSize = 1024 // 1kB
 
-var (
-	buffer = make([]byte, defaultCommandSize)
-)
+var buffer = make([]byte, defaultCommandSize)
 
 // NextCommand retrieves the next command from Conduit.
 func NextCommand(cmdReq *processorv1.CommandRequest) error {

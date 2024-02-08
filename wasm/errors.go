@@ -24,21 +24,19 @@ const (
 	// The imported function _nextCommand returns an uint32 value
 	// that is either the number of bytes actually written or an error code.
 	// Because of that, we're reserving a range of error codes.
-	ErrorCodeStart = ErrorCodeNoMoreCommands
+	ErrorCodeStart = math.MaxUint32 - 100
 
-	ErrorCodeInsufficientSize = math.MaxUint32 - iota
+	ErrorCodeNoMoreCommands = math.MaxUint32 - iota
 	ErrorCodeUnknownCommandRequest
 	ErrorCodeUnknownCommandResponse
 	ErrorCodeMemoryOutOfRange
-	ErrorCodeNoMoreCommands
 )
 
 var (
-	ErrInsufficientSize       = NewError(ErrorCodeInsufficientSize, "allocated memory size is insufficient")
+	ErrNoMoreCommands         = NewError(ErrorCodeNoMoreCommands, "no more commands")
 	ErrUnknownCommandRequest  = NewError(ErrorCodeUnknownCommandRequest, "unknown command request")
 	ErrUnknownCommandResponse = NewError(ErrorCodeUnknownCommandResponse, "unknown command response")
 	ErrMemoryOutOfRange       = NewError(ErrorCodeMemoryOutOfRange, "memory out of range")
-	ErrNoMoreCommands         = NewError(ErrorCodeNoMoreCommands, "no more commands")
 )
 
 // Error is an error sent to or received from the host (i.e. Conduit).
@@ -68,16 +66,14 @@ func NewError(code uint32, message string) *Error {
 
 func NewErrorFromCode(code uint32) *Error {
 	switch code {
-	case ErrorCodeInsufficientSize:
-		return ErrInsufficientSize
+	case ErrorCodeNoMoreCommands:
+		return ErrNoMoreCommands
 	case ErrorCodeUnknownCommandRequest:
 		return ErrUnknownCommandRequest
 	case ErrorCodeUnknownCommandResponse:
 		return ErrUnknownCommandResponse
 	case ErrorCodeMemoryOutOfRange:
 		return ErrMemoryOutOfRange
-	case ErrorCodeNoMoreCommands:
-		return ErrNoMoreCommands
 	default:
 		return NewError(code, "unknown error code")
 	}

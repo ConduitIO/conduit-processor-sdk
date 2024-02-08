@@ -3,7 +3,7 @@ default: fmt lint test
 
 .PHONY: test
 test:
-	go test $(GOTEST_FLAGS) -race ./... -tags !wasm
+	go test $(GOTEST_FLAGS) -race ./...
 
 .PHONY: lint
 lint:
