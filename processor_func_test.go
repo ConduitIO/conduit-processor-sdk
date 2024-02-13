@@ -29,7 +29,7 @@ func TestProcessorFunc_Process_Success(t *testing.T) {
 
 	proc := NewProcessorFunc(
 		Specification{Name: "test"},
-		func(ctx context.Context, record opencdc.Record) (opencdc.Record, error) {
+		func(_ context.Context, record opencdc.Record) (opencdc.Record, error) {
 			record.Metadata = opencdc.Metadata{"foo": "bar"}
 			return record, nil
 		},
@@ -54,7 +54,7 @@ func TestProcessorFunc_Process_Error(t *testing.T) {
 
 	proc := NewProcessorFunc(
 		Specification{Name: "test"},
-		func(ctx context.Context, record opencdc.Record) (opencdc.Record, error) {
+		func(context.Context, opencdc.Record) (opencdc.Record, error) {
 			return opencdc.Record{}, wantErr
 		},
 	)
