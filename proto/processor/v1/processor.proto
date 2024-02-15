@@ -3,7 +3,7 @@ syntax = "proto3";
 package processor.v1;
 
 import "opencdc/v1/opencdc.proto";
-import "parameter/v1/parameter.proto";
+import "config/v1/parameter.proto";
 
 message CommandRequest {
   oneof request {
@@ -45,7 +45,7 @@ message Specify {
     string author = 5;
     // A map that describes parameters available for configuring the
     // processor plugin.
-    map<string, parameter.v1.Parameter> parameters = 6;
+    map<string, config.v1.Parameter> parameters = 6;
   }
 }
 

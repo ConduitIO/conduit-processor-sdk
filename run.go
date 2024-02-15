@@ -23,8 +23,8 @@ import (
 	"os"
 
 	"github.com/conduitio/conduit-commons/opencdc"
+	configv1 "github.com/conduitio/conduit-commons/proto/config/v1"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
-	parameterv1 "github.com/conduitio/conduit-commons/proto/parameter/v1"
 	"github.com/conduitio/conduit-processor-sdk/internal"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"github.com/conduitio/conduit-processor-sdk/wasm"
@@ -229,7 +229,7 @@ func (e commandExecutor) executeTeardown(ctx context.Context, p Processor, _ *pr
 type protoConverter struct{}
 
 func (c protoConverter) specifyResponse(in Specification) *processorv1.Specify_Response {
-	params := make(map[string]*parameterv1.Parameter, len(in.Parameters))
+	params := make(map[string]*configv1.Parameter, len(in.Parameters))
 	in.Parameters.ToProto(params)
 	return &processorv1.Specify_Response{
 		Name:        in.Name,
