@@ -23,6 +23,7 @@ import (
 	"os"
 
 	"github.com/conduitio/conduit-commons/opencdc"
+	configv1 "github.com/conduitio/conduit-commons/proto/config/v1"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
 	"github.com/conduitio/conduit-processor-sdk/internal"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
@@ -227,68 +228,16 @@ func (e commandExecutor) executeTeardown(ctx context.Context, p Processor, _ *pr
 // protoConverter converts between the SDK and protobuf types.
 type protoConverter struct{}
 
-func _() {
-	// An "invalid array index" compiler error signifies that the constant values have changed.
-	// This is to ensure that the proto enums are in sync with the SDK enums.
-	var cTypes [1]struct{}
-	_ = cTypes[int(ValidationTypeRequired)-int(processorv1.Specify_Parameter_Validation_TYPE_REQUIRED)]
-	_ = cTypes[int(ValidationTypeRegex)-int(processorv1.Specify_Parameter_Validation_TYPE_REGEX)]
-	_ = cTypes[int(ValidationTypeInclusion)-int(processorv1.Specify_Parameter_Validation_TYPE_INCLUSION)]
-	_ = cTypes[int(ValidationTypeExclusion)-int(processorv1.Specify_Parameter_Validation_TYPE_EXCLUSION)]
-	_ = cTypes[int(ValidationTypeLessThan)-int(processorv1.Specify_Parameter_Validation_TYPE_LESS_THAN)]
-	_ = cTypes[int(ValidationTypeGreaterThan)-int(processorv1.Specify_Parameter_Validation_TYPE_GREATER_THAN)]
-
-	_ = cTypes[int(ParameterTypeInt)-int(processorv1.Specify_Parameter_TYPE_INT)]
-	_ = cTypes[int(ParameterTypeFloat)-int(processorv1.Specify_Parameter_TYPE_FLOAT)]
-	_ = cTypes[int(ParameterTypeBool)-int(processorv1.Specify_Parameter_TYPE_BOOL)]
-	_ = cTypes[int(ParameterTypeString)-int(processorv1.Specify_Parameter_TYPE_STRING)]
-	_ = cTypes[int(ParameterTypeDuration)-int(processorv1.Specify_Parameter_TYPE_DURATION)]
-	_ = cTypes[int(ParameterTypeFile)-int(processorv1.Specify_Parameter_TYPE_FILE)]
-}
-
 func (c protoConverter) specifyResponse(in Specification) *processorv1.Specify_Response {
+	params := make(map[string]*configv1.Parameter, len(in.Parameters))
+	in.Parameters.ToProto(params)
 	return &processorv1.Specify_Response{
 		Name:        in.Name,
 		Summary:     in.Summary,
 		Description: in.Description,
 		Version:     in.Version,
 		Author:      in.Author,
-		Parameters:  c.specifyParameters(in.Parameters),
-	}
-}
-
-func (c protoConverter) specifyParameters(in map[string]Parameter) map[string]*processorv1.Specify_Parameter {
-	out := make(map[string]*processorv1.Specify_Parameter, len(in))
-	for name, param := range in {
-		out[name] = c.specifyParameter(param)
-	}
-	return out
-}
-
-func (c protoConverter) specifyParameter(in Parameter) *processorv1.Specify_Parameter {
-	return &processorv1.Specify_Parameter{
-		Default:     in.Default,
-		Description: in.Description,
-		Type:        processorv1.Specify_Parameter_Type(in.Type),
-		Validations: c.specifyParameterValidations(in.Validations),
-	}
-}
-
-func (c protoConverter) specifyParameterValidations(in []Validation) []*processorv1.Specify_Parameter_Validation {
-	if in == nil {
-		return nil
-	}
-	out := make([]*processorv1.Specify_Parameter_Validation, len(in))
-	for i, v := range in {
-		out[i] = c.specifyParameterValidation(v)
-	}
-	return out
-}
-
-func (c protoConverter) specifyParameterValidation(in Validation) *processorv1.Specify_Parameter_Validation {
-	return &processorv1.Specify_Parameter_Validation{
-		Type:  processorv1.Specify_Parameter_Validation_Type(in.Type),
-		Value: in.Value,
+		Parameters:  params,
 	}
 }
 
