@@ -143,7 +143,7 @@ func (r recordReference) Delete() error {
 	return fmt.Errorf("cannot delete record: %w", ErrImmutableReference)
 }
 
-func (r recordReference) Rename(name string) error {
+func (r recordReference) Rename(string) error {
 	return fmt.Errorf("cannot rename record: %w", ErrImmutableReference)
 }
 
@@ -180,7 +180,7 @@ func (r positionReference) Delete() error {
 	return fmt.Errorf("cannot delete .Position: %w", ErrImmutableReference)
 }
 
-func (r positionReference) Rename(name string) error {
+func (r positionReference) Rename(string) error {
 	return fmt.Errorf("cannot rename .Position: %w", ErrImmutableReference)
 }
 
@@ -225,7 +225,7 @@ func (r operationReference) Delete() error {
 	return fmt.Errorf("cannot delete operation: %w", ErrImmutableReference)
 }
 
-func (r operationReference) Rename(name string) error {
+func (r operationReference) Rename(string) error {
 	return fmt.Errorf("cannot rename operation: %w", ErrImmutableReference)
 }
 
@@ -260,7 +260,7 @@ func (r metadataReference) Delete() error {
 	return nil
 }
 
-func (r metadataReference) Rename(name string) error {
+func (r metadataReference) Rename(string) error {
 	return fmt.Errorf("cannot rename .Metadata: %w", ErrImmutableReference)
 }
 
@@ -344,7 +344,7 @@ func (r keyReference) Delete() error {
 	return nil
 }
 
-func (r keyReference) Rename(name string) error {
+func (r keyReference) Rename(string) error {
 	return fmt.Errorf("cannot rename .Key: %w", ErrImmutableReference)
 }
 
@@ -388,7 +388,7 @@ func (r payloadReference) Delete() error {
 	return nil
 }
 
-func (r payloadReference) Rename(name string) error {
+func (r payloadReference) Rename(string) error {
 	return fmt.Errorf("cannot rename .Payload: %w", ErrImmutableReference)
 }
 
@@ -434,7 +434,7 @@ func (r payloadBeforeReference) Delete() error {
 	return nil
 }
 
-func (r payloadBeforeReference) Rename(name string) error {
+func (r payloadBeforeReference) Rename(string) error {
 	return fmt.Errorf("cannot rename .Payload.Before: %w", ErrImmutableReference)
 }
 
@@ -486,7 +486,7 @@ func (r payloadAfterReference) Delete() error {
 	return nil
 }
 
-func (r payloadAfterReference) Rename(name string) error {
+func (r payloadAfterReference) Rename(string) error {
 	return fmt.Errorf("cannot rename .Payload.After: %w", ErrImmutableReference)
 }
 
