@@ -15,6 +15,7 @@
 package reference
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -207,7 +208,7 @@ func testRename(t *testing.T, resolver Resolver, newReference string, rec opencd
 
 	err = ref.Rename("newName")
 	if wantErr {
-		is.True(err != nil)
+		is.True(errors.Is(err, ErrImmutableReference))
 		return
 	}
 	is.NoErr(err)
