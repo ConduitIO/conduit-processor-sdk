@@ -17,7 +17,6 @@ package reference
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/conduitio/conduit-commons/opencdc"
@@ -212,7 +211,7 @@ func testRename(t *testing.T, resolver Resolver, newReference string, rec opencd
 		if immutable {
 			is.True(errors.Is(err, ErrImmutableReference))
 		} else {
-			is.True(strings.Contains(err.Error(), "field already exists"))
+			is.True(errors.Is(err, ErrFieldExists))
 		}
 		return
 	}

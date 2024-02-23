@@ -306,7 +306,7 @@ func (r metadataFieldReference) Delete() error {
 func (r metadataFieldReference) Rename(name string) error {
 	_, ok := r.rec.Metadata[name]
 	if ok {
-		return fmt.Errorf("cannot rename, metadata.%s field already exists", name)
+		return fmt.Errorf("cannot rename, field %q: %w", name, ErrFieldExists)
 	}
 	r.rec.Metadata[name] = r.rec.Metadata[r.field]
 	delete(r.rec.Metadata, r.field)
@@ -534,7 +534,7 @@ func (r dataFieldReference) Delete() error {
 func (r dataFieldReference) Rename(name string) error {
 	_, ok := r.data[name]
 	if ok {
-		return fmt.Errorf("cannot rename, %q field already exists", name)
+		return fmt.Errorf("cannot rename, field %q: %w", name, ErrFieldExists)
 	}
 	r.data[name] = r.data[r.field]
 	delete(r.data, r.field)
