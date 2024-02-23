@@ -17,6 +17,7 @@ package sdk
 import (
 	"context"
 
+	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
 )
 
@@ -73,47 +74,8 @@ type Specification struct {
 	// Author declares the entity that created or maintains this processor.
 	Author string
 	// Parameters describe how to configure the processor.
-	Parameters map[string]Parameter
+	Parameters config.Parameters
 }
-
-// Parameter defines a single parameter within a processor's configuration.
-type Parameter struct {
-	// Default is the default value of the parameter, if any.
-	Default string
-	// Type defines the parameter data type.
-	Type ParameterType
-	// Description holds a description of the field and how to configure it.
-	Description string
-	// Validations list of validations to check for the parameter.
-	Validations []Validation
-}
-
-type Validation struct {
-	Type  ValidationType
-	Value string
-}
-
-type ValidationType int64
-
-const (
-	ValidationTypeRequired ValidationType = iota + 1
-	ValidationTypeGreaterThan
-	ValidationTypeLessThan
-	ValidationTypeInclusion
-	ValidationTypeExclusion
-	ValidationTypeRegex
-)
-
-type ParameterType int
-
-const (
-	ParameterTypeString ParameterType = iota + 1
-	ParameterTypeInt
-	ParameterTypeFloat
-	ParameterTypeBool
-	ParameterTypeFile
-	ParameterTypeDuration
-)
 
 // ProcessedRecord is a record returned by the processor.
 type ProcessedRecord interface {
