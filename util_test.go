@@ -116,17 +116,23 @@ func ExampleReferenceResolver_setNonExistingField() {
 
 func ExampleParseConfig() {
 	cfg := map[string]string{
-		"foo":        "bar",
+		"foo": "bar   ", // will be sanitized
+		// "bar" is missing, will be set to the default value
 		"nested.baz": "1m",
 	}
 
 	params := config.Parameters{
-		"foo":        config.Parameter{Type: config.ParameterTypeString},
+		"foo": config.Parameter{Type: config.ParameterTypeString},
+		"bar": config.Parameter{
+			Type:    config.ParameterTypeInt,
+			Default: "42",
+		},
 		"nested.baz": config.Parameter{Type: config.ParameterTypeDuration},
 	}
 
 	var target struct {
 		Foo    string `json:"foo"`
+		Bar    int    `json:"bar"`
 		Nested struct {
 			Baz time.Duration `json:"baz"`
 		} `json:"nested"`
@@ -139,5 +145,5 @@ func ExampleParseConfig() {
 
 	fmt.Printf("%+v", target)
 
-	// Output: {Foo:bar Nested:{Baz:1m0s}}
+	// Output: {Foo:bar Bar:42 Nested:{Baz:1m0s}}
 }
