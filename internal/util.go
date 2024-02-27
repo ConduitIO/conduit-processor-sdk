@@ -39,5 +39,13 @@ func UtilFromContext(ctx context.Context) Util {
 	if util != nil {
 		return util.(Util) //nolint:forcetypeassert // we know it's a Util, we set it
 	}
-	return nil
+	return DefaultUtil{}
+}
+
+// DefaultUtil is the default implementation of Util. This is used when no Util
+// is set (i.e. in tests).
+type DefaultUtil struct{}
+
+func (DefaultUtil) Logger(ctx context.Context) *zerolog.Logger {
+	return zerolog.Ctx(ctx)
 }
