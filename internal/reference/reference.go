@@ -33,9 +33,9 @@ type Reference interface {
 	// Delete deletes the value of the reference. If the reference is not
 	// deletable, an error is returned.
 	Delete() error
-	// Rename renames the referenced field, the old field values stay the same
-	// under the new name. Make sure to create a new reference resolver for the
-	// new field name to have access to it.
+	// Rename renames the referenced field, the old field value is moved to the
+	// new field. The reference is still pointing to the old field, while the returned
+	// reference points to the new field.
 	Rename(string) (Reference, error)
 
 	walk(field string) (Reference, error)
