@@ -25,8 +25,9 @@ func (e UnexpectedTokenError) Error() string {
 }
 
 var (
-	ErrImmutableReference = fmt.Errorf("cannot set immutable reference")
-	ErrNotResolvable      = fmt.Errorf("cannot resolve reference")
-	ErrUnexpectedType     = fmt.Errorf("unexpected type")
-	ErrFieldExists        = fmt.Errorf("field already exists")
+	ErrImmutableReference       = fmt.Errorf("cannot set immutable reference")
+	ErrRenameImmutableReference = fmt.Errorf("cannot rename immutable reference")
+	ErrNotResolvable            = fmt.Errorf("cannot resolve reference")
+	ErrUnexpectedType           = fmt.Errorf("unexpected type")
+	ErrFieldExists              = fmt.Errorf("field already exists")
 )
