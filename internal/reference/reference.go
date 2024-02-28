@@ -33,6 +33,10 @@ type Reference interface {
 	// Delete deletes the value of the reference. If the reference is not
 	// deletable, an error is returned.
 	Delete() error
+	// Rename renames the referenced field, the old field value is moved to the
+	// new field. The reference is still pointing to the old field, while the returned
+	// reference points to the new field.
+	Rename(string) (Reference, error)
 
 	walk(field string) (Reference, error)
 }
@@ -139,6 +143,10 @@ func (r recordReference) Delete() error {
 	return fmt.Errorf("cannot delete record: %w", ErrImmutableReference)
 }
 
+func (r recordReference) Rename(string) (Reference, error) {
+	return nil, fmt.Errorf("cannot rename record: %w", ErrRenameImmutableReference)
+}
+
 func (r recordReference) walk(field string) (Reference, error) {
 	switch field {
 	case "Position":
@@ -170,6 +178,10 @@ func (r positionReference) Set(any) error {
 
 func (r positionReference) Delete() error {
 	return fmt.Errorf("cannot delete .Position: %w", ErrImmutableReference)
+}
+
+func (r positionReference) Rename(string) (Reference, error) {
+	return nil, fmt.Errorf("cannot rename .Position: %w", ErrRenameImmutableReference)
 }
 
 func (r positionReference) walk(string) (Reference, error) {
@@ -213,6 +225,10 @@ func (r operationReference) Delete() error {
 	return fmt.Errorf("cannot delete operation: %w", ErrImmutableReference)
 }
 
+func (r operationReference) Rename(string) (Reference, error) {
+	return nil, fmt.Errorf("cannot rename operation: %w", ErrRenameImmutableReference)
+}
+
 func (r operationReference) walk(string) (Reference, error) {
 	return nil, fmt.Errorf(".Operation is not a structured field: %w", ErrNotResolvable)
 }
@@ -242,6 +258,10 @@ func (r metadataReference) Set(val any) error {
 func (r metadataReference) Delete() error {
 	r.rec.Metadata = opencdc.Metadata{} // reset metadata
 	return nil
+}
+
+func (r metadataReference) Rename(string) (Reference, error) {
+	return nil, fmt.Errorf("cannot rename .Metadata: %w", ErrRenameImmutableReference)
 }
 
 func (r metadataReference) walk(field string) (Reference, error) {
@@ -283,6 +303,19 @@ func (r metadataFieldReference) Delete() error {
 	return nil
 }
 
+func (r metadataFieldReference) Rename(name string) (Reference, error) {
+	_, ok := r.rec.Metadata[name]
+	if ok {
+		return nil, fmt.Errorf("cannot rename, field %q: %w", name, ErrFieldExists)
+	}
+	r.rec.Metadata[name] = r.rec.Metadata[r.field]
+	delete(r.rec.Metadata, r.field)
+	return metadataFieldReference{
+		rec:   r.rec,
+		field: name,
+	}, nil
+}
+
 func (r metadataFieldReference) walk(string) (Reference, error) {
 	return nil, fmt.Errorf(".Metadata fields are not structured: %w", ErrNotResolvable)
 }
@@ -316,6 +349,10 @@ func (r keyReference) Set(val any) error {
 func (r keyReference) Delete() error {
 	r.rec.Key = nil
 	return nil
+}
+
+func (r keyReference) Rename(string) (Reference, error) {
+	return nil, fmt.Errorf("cannot rename .Key: %w", ErrRenameImmutableReference)
 }
 
 func (r keyReference) walk(field string) (Reference, error) {
@@ -358,6 +395,10 @@ func (r payloadReference) Delete() error {
 	return nil
 }
 
+func (r payloadReference) Rename(string) (Reference, error) {
+	return nil, fmt.Errorf("cannot rename .Payload: %w", ErrRenameImmutableReference)
+}
+
 func (r payloadReference) walk(field string) (Reference, error) {
 	switch field {
 	case "Before":
@@ -398,6 +439,10 @@ func (r payloadBeforeReference) Set(val any) error {
 func (r payloadBeforeReference) Delete() error {
 	r.rec.Payload.Before = nil
 	return nil
+}
+
+func (r payloadBeforeReference) Rename(string) (Reference, error) {
+	return nil, fmt.Errorf("cannot rename .Payload.Before: %w", ErrRenameImmutableReference)
 }
 
 func (r payloadBeforeReference) walk(field string) (Reference, error) {
@@ -448,6 +493,10 @@ func (r payloadAfterReference) Delete() error {
 	return nil
 }
 
+func (r payloadAfterReference) Rename(string) (Reference, error) {
+	return nil, fmt.Errorf("cannot rename .Payload.After: %w", ErrRenameImmutableReference)
+}
+
 func (r payloadAfterReference) walk(field string) (Reference, error) {
 	switch r.rec.Payload.After.(type) {
 	case opencdc.StructuredData:
@@ -483,6 +532,20 @@ func (r dataFieldReference) Set(val any) error {
 func (r dataFieldReference) Delete() error {
 	delete(r.data, r.field)
 	return nil
+}
+
+func (r dataFieldReference) Rename(name string) (Reference, error) {
+	_, ok := r.data[name]
+	if ok {
+		return nil, fmt.Errorf("cannot rename, field %q: %w", name, ErrFieldExists)
+	}
+	r.data[name] = r.data[r.field]
+	delete(r.data, r.field)
+	return dataFieldReference{
+		data:  r.data,
+		field: name,
+		path:  r.path + "." + r.field,
+	}, nil
 }
 
 func (r dataFieldReference) walk(field string) (Reference, error) {

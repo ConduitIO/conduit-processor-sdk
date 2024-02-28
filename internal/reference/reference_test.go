@@ -15,6 +15,7 @@
 package reference
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -196,6 +197,29 @@ func testSet[T any](t *testing.T, resolver Resolver, tc testReferenceSetCase[T])
 	}
 }
 
+func testRename(t *testing.T, resolver Resolver, rec opencdc.Record, want any, wantErr bool, immutable bool) {
+	t.Helper()
+
+	is := is.New(t)
+	is.Helper()
+
+	ref, err := resolver.Resolve(&rec)
+	is.NoErr(err)
+
+	renamedRef, err := ref.Rename("newName")
+	if wantErr {
+		if immutable {
+			is.True(errors.Is(err, ErrRenameImmutableReference))
+		} else {
+			is.True(errors.Is(err, ErrFieldExists))
+		}
+		return
+	}
+	is.NoErr(err)
+	is.Equal(renamedRef.Get(), want)
+	is.Equal(ref.Get(), nil)
+}
+
 func testDelete(t *testing.T, resolver Resolver, rec opencdc.Record, emptyVal any, allowed bool) {
 	t.Helper()
 
@@ -237,7 +261,16 @@ func TestReference_Position(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Position: opencdc.Position("foo")},
+			"",
+			true,
+			true,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -279,7 +312,16 @@ func TestReference_Operation(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Operation: opencdc.OperationCreate},
+			"",
+			true,
+			true,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -309,7 +351,16 @@ func TestReference_Metadata(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Metadata: opencdc.Metadata{"foo": "bar"}},
+			"",
+			true,
+			true,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -338,7 +389,26 @@ func TestReference_MetadataField(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Metadata: opencdc.Metadata{"foo": "bar"}},
+			"bar",
+			false,
+			false,
+		)
+	})
+	t.Run("Rename:fieldExists", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Metadata: opencdc.Metadata{"foo": "bar", "newName": "baz"}}, // field newName already exists
+			"bar",
+			true,
+			false,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -367,7 +437,16 @@ func TestReference_MetadataField_MapIndex(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Metadata: opencdc.Metadata{"map key with spaces and symbols @$%^&*()_+": "bar"}},
+			"bar",
+			false,
+			true,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -399,7 +478,16 @@ func TestReference_Key(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Key: opencdc.RawData("foo")},
+			"",
+			true,
+			true,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -431,7 +519,16 @@ func TestReference_KeyField(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Key: opencdc.StructuredData{"foo": "bar"}},
+			"bar",
+			false,
+			false,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -463,7 +560,16 @@ func TestReference_KeyField_MapIndex(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Key: opencdc.StructuredData{"map key with spaces and symbols @$%^&*()_+": "bar"}},
+			"bar",
+			false,
+			false,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -495,7 +601,16 @@ func TestReference_PayloadBefore(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{Before: opencdc.RawData("foo")}},
+			"",
+			true,
+			true,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -527,7 +642,16 @@ func TestReference_PayloadBeforeField(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{Before: opencdc.StructuredData{"foo": "bar"}}},
+			"bar",
+			false,
+			false,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -559,7 +683,16 @@ func TestReference_PayloadBeforeField_MapIndex(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{Before: opencdc.StructuredData{"map key with spaces and symbols @$%^&*()_+": "bar"}}},
+			"bar",
+			false,
+			false,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -591,7 +724,16 @@ func TestReference_PayloadAfter(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{After: opencdc.RawData("foo")}},
+			"",
+			true,
+			true,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -623,7 +765,27 @@ func TestReference_PayloadAfterField(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{After: opencdc.StructuredData{"foo": "bar"}}},
+			"bar",
+			false,
+			false,
+		)
+	})
+	t.Run("Rename:fieldExists", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			// field newName already exists
+			opencdc.Record{Payload: opencdc.Change{After: opencdc.StructuredData{"foo": "bar", "newName": "baz"}}},
+			"",
+			true,
+			false,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
@@ -655,7 +817,16 @@ func TestReference_PayloadAfterField_MapIndex(t *testing.T) {
 			testSet(t, resolver, tc)
 		})
 	}
-
+	t.Run("Rename", func(t *testing.T) {
+		testRename(
+			t,
+			resolver,
+			opencdc.Record{Payload: opencdc.Change{After: opencdc.StructuredData{"map key with spaces and symbols @$%^&*()_+": "bar"}}},
+			"bar",
+			false,
+			false,
+		)
+	})
 	t.Run("Delete", func(t *testing.T) {
 		testDelete(
 			t,
