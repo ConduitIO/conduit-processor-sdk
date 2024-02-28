@@ -15,8 +15,11 @@
 package sdk
 
 import (
+	"context"
 	"fmt"
+	"time"
 
+	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
 )
 
@@ -109,4 +112,38 @@ func ExampleReferenceResolver_setNonExistingField() {
 	// ref value: <nil>
 	// setting the field now ...
 	// new value: map[foo:map[bar:hello]]
+}
+
+func ExampleParseConfig() {
+	cfg := map[string]string{
+		"foo": "bar   ", // will be sanitized
+		// "bar" is missing, will be set to the default value
+		"nested.baz": "1m",
+	}
+
+	params := config.Parameters{
+		"foo": config.Parameter{Type: config.ParameterTypeString},
+		"bar": config.Parameter{
+			Type:    config.ParameterTypeInt,
+			Default: "42",
+		},
+		"nested.baz": config.Parameter{Type: config.ParameterTypeDuration},
+	}
+
+	var target struct {
+		Foo    string `json:"foo"`
+		Bar    int    `json:"bar"`
+		Nested struct {
+			Baz time.Duration `json:"baz"`
+		} `json:"nested"`
+	}
+
+	err := ParseConfig(context.Background(), cfg, &target, params)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%+v", target)
+
+	// Output: {Foo:bar Bar:42 Nested:{Baz:1m0s}}
 }
