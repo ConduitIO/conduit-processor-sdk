@@ -6,7 +6,7 @@ toolchain go1.21.5
 
 require (
 	github.com/bufbuild/buf v1.29.0
-	github.com/conduitio/conduit-commons v0.0.0-20240216175021-58737e44eb62
+	github.com/conduitio/conduit-commons v0.0.0-20240229142452-df003dec114a
 	github.com/golangci/golangci-lint v1.56.2
 	github.com/matryer/is v1.4.1
 	github.com/rs/zerolog v1.32.0

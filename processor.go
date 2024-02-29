@@ -62,19 +62,19 @@ type Processor interface {
 // and allows them to describe their parameters.
 type Specification struct {
 	// Name is the name of the processor.
-	Name string
+	Name string `json:"name"`
 	// Summary is a brief description of the processor and what it does.
-	Summary string
+	Summary string `json:"summary"`
 	// Description is a more long form area appropriate for README-like text
 	// that the author can provide for documentation about the specified
 	// Parameters.
-	Description string
+	Description string `json:"description"`
 	// Version string. Should be a semver prepended with `v`, e.g. `v1.54.3`.
-	Version string
+	Version string `json:"version"`
 	// Author declares the entity that created or maintains this processor.
-	Author string
+	Author string `json:"author"`
 	// Parameters describe how to configure the processor.
-	Parameters config.Parameters
+	Parameters config.Parameters `json:"parameters"`
 }
 
 // ProcessedRecord is a record returned by the processor.
