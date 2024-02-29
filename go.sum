@@ -137,6 +137,8 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/conduitio/conduit-commons v0.0.0-20240216175021-58737e44eb62 h1:h1AcneviaadJqw1KAUfzIDBVrODma4rneg13q726KQU=
 github.com/conduitio/conduit-commons v0.0.0-20240216175021-58737e44eb62/go.mod h1:Hhr5nik71/Wz3yrLjaKSZ2HRQp1wNSOPY2JGGKz7fsw=
+github.com/conduitio/conduit-commons v0.0.0-20240229141546-e5b020b6d35a h1:Zpw3wFuvx8lgr+cMjYz9yPweEC/VXIlFd+wxrD1s7Tg=
+github.com/conduitio/conduit-commons v0.0.0-20240229141546-e5b020b6d35a/go.mod h1:Hhr5nik71/Wz3yrLjaKSZ2HRQp1wNSOPY2JGGKz7fsw=
 github.com/containerd/log v0.1.0 h1:TCJt7ioM2cr/tfR8GPbGf9/VRAX8D2B4PjzCpfX540I=
 github.com/containerd/log v0.1.0/go.mod h1:VRRf09a7mHDIRezVKTRCrOq78v577GXq3bSa3EhrzVo=
 github.com/containerd/stargz-snapshotter/estargz v0.15.1 h1:eXJjw9RbkLFgioVaTG+G/ZW/0kEe2oEKCdS/ZxIyoCU=
