@@ -5,4 +5,146 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/conduitio/conduit-processor-sdk)](https://goreportcard.com/report/github.com/conduitio/conduit-processor-sdk)
 [![Go Reference](https://pkg.go.dev/badge/github.com/conduitio/conduit-processor-sdk.svg)](https://pkg.go.dev/github.com/conduitio/conduit-processor-sdk)
 
-:construction: **This repository is under construction, check back in the end of February** :construction:
+This repository contains the Go software development kit for implementing a
+processor for [Conduit](https://github.com/conduitio/conduit).
+
+## Get started
+
+Create a new folder and initialize a fresh go module:
+
+```sh
+go mod init example.com/conduit-processor-demo
+```
+
+Add the processor SDK dependency:
+
+```sh
+go get github.com/conduitio/conduit-processor-sdk
+```
+
+You can now create a new processor by implementing the
+[`Processor`](https://pkg.go.dev/github.com/conduitio/conduit-processor-sdk#Processor)
+interface. Here is an example of a simple processor that adds a field to the
+record:
+
+```go
+package example
+
+import (
+	"context"
+
+	"github.com/conduitio/conduit-commons/config"
+	"github.com/conduitio/conduit-commons/opencdc"
+	sdk "github.com/conduitio/conduit-processor-sdk"
+)
+
+type AddFieldProcessor struct {
+	sdk.UnimplementedProcessor
+	Field string
+	Value string
+}
+
+// Specification returns metadata about the processor.
+func (p *AddFieldProcessor) Specification(context.Context) (sdk.Specification, error) {
+	return sdk.Specification{
+		Name:    "myAddFieldProcessor",
+		Summary: "Add a field to the record.",
+		Description: `This processor lets you configure a static field that will
+be added to the record into field .Payload.After. If the payload is not
+structured data, this processor will panic.`,
+		Version: "v1.0.0",
+		Author:  "John Doe",
+		Parameters: map[string]config.Parameter{
+			"field": {Type: config.ParameterTypeString, Description: "The name of the field to add"},
+			"name":  {Type: config.ParameterTypeString, Description: "The value of the field to add"},
+		},
+	}, nil
+}
+
+// Configure is called by Conduit to configure the processor. It receives a map
+// with the parameters defined in the Specification method.
+func (p *AddFieldProcessor) Configure(ctx context.Context, config map[string]string) error {
+	p.Field = config["field"]
+	p.Value = config["value"]
+	return nil
+}
+
+// Process is called by Conduit to process records. It receives a slice of
+// records and should return a slice of processed records.
+func (p *AddFieldProcessor) Process(ctx context.Context, records []opencdc.Record) []sdk.ProcessedRecord {
+	out := make([]sdk.ProcessedRecord, 0, len(records))
+	for _, record := range records {
+		record.Payload.After.(opencdc.StructuredData)[p.Field] = p.Value
+		out = append(out, sdk.SingleRecord(record))
+	}
+	return out
+}
+```
+
+You also need to add an entrypoint to your connector, since it will be run as a
+standalone WASM plugin:
+
+```go
+//go:build wasm
+
+package main
+
+import (
+	example "example.com/add-field-processor"
+	sdk "github.com/conduitio/conduit-processor-sdk"
+)
+
+func main() {
+	sdk.Run(&example.AddFieldProcessor{})
+}
+```
+
+With this you are set to build your processor. Note that we are building the
+processor as a WebAssembly module, so you need to set `GOARCH` and `GOOS`:
+
+```sh
+GOARCH=wasm GOOS=wasip1 go build -o add-field-processor.wasm cmd/main.go
+```
+
+The produced `add-field-processor.wasm` file can be used as a processor in
+Conduit. Copy it to the `processors` directory of your Conduit instance and
+configure it in the `processors` section of the `conduit.yaml` file.
+
+## FAQ
+
+### Why do I need to specify `GOARCH` and `GOOS`?
+
+Conduit uses [WebAssembly](https://webassembly.org) to run standalone processors.
+This means that you need to build your processor as a WebAssembly module. You can
+do this by setting the environment variables `GOARCH=wasm` and `GOOS=wasip1` when
+running `go build`. This will produce a WebAssembly module that can be used as a
+processor in Conduit.
+
+### How do I run a processor?
+
+You can run a processor by copying the WebAssembly module to the `processors`
+directory of your Conduit instance and configuring it in the `processors`
+section of the `conduit.yaml` file using the name the processor defines in its
+specifications.
+
+### How do I log from a processor?
+
+You can get a `zerolog.logger` instance from the context using the
+[`sdk.Logger`](https://pkg.go.dev/github.com/conduitio/conduit-processor-sdk#Logger)
+function. This logger is pre-configured to append logs in the format expected by
+Conduit.
+
+Keep in mind that logging in the hot path (i.e. in the `Process` method) can have
+a significant impact on the performance of your processor, therefore we recommend
+to use the `Trace` level for logs that are not essential for the operation of the
+processor.
+
+Example:
+
+```go
+func (p *AddFieldProcessor) Process(ctx context.Context, records []opencdc.Record) []sdk.ProcessedRecord {
+    logger := sdk.Logger(ctx)
+    logger.Trace().Msg("Processing records")
+    // ...
+}
+```
