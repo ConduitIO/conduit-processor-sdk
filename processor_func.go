@@ -41,11 +41,7 @@ func NewProcessorFunc(specs Specification, f func(context.Context, opencdc.Recor
 	}
 }
 
-func (f ProcessorFunc) Specification() (Specification, error)            { return f.specs, nil }
-func (ProcessorFunc) Configure(context.Context, map[string]string) error { return nil }
-func (ProcessorFunc) Open(context.Context) error {
-	return nil
-}
+func (f ProcessorFunc) Specification() (Specification, error) { return f.specs, nil }
 
 func (f ProcessorFunc) Process(ctx context.Context, records []opencdc.Record) []ProcessedRecord {
 	outRecs := make([]ProcessedRecord, len(records))
@@ -62,8 +58,4 @@ func (f ProcessorFunc) Process(ctx context.Context, records []opencdc.Record) []
 		}
 	}
 	return outRecs
-}
-
-func (ProcessorFunc) Teardown(context.Context) error {
-	return nil
 }

@@ -29,24 +29,24 @@ func (UnimplementedProcessor) Specification() (Specification, error) {
 	return Specification{}, fmt.Errorf("action \"Specification\": %w", ErrUnimplemented)
 }
 
-// Configure needs to be overridden in the actual implementation.
+// Configure is optional and can be overridden in the actual implementation.
 func (UnimplementedProcessor) Configure(context.Context, map[string]string) error {
-	return fmt.Errorf("action \"Configure\": %w", ErrUnimplemented)
+	return nil
 }
 
-// Open needs to be overridden in the actual implementation.
+// Open is optional and can be overridden in the actual implementation.
 func (UnimplementedProcessor) Open(context.Context) error {
-	return fmt.Errorf("action \"Open\": %w", ErrUnimplemented)
+	return nil
 }
 
 // Process needs to be overridden in the actual implementation.
 func (UnimplementedProcessor) Process(context.Context, []opencdc.Record) []ProcessedRecord {
-	return nil
+	return []ProcessedRecord{ErrorRecord{Error: ErrUnimplemented}}
 }
 
-// Teardown needs to be overridden in the actual implementation.
+// Teardown is optional and can be overridden in the actual implementation.
 func (UnimplementedProcessor) Teardown(context.Context) error {
-	return fmt.Errorf("action \"Teardown\": %w", ErrUnimplemented)
+	return nil
 }
 
 func (UnimplementedProcessor) mustEmbedUnimplementedProcessor() {}
