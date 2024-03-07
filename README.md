@@ -99,6 +99,29 @@ func main() {
 }
 ```
 
+If the processor is very simple and can be reduced to a single function (e.g. 
+no configuration needed), then we can use `sdk.NewProcessorFunc()`, as below:
+
+```go
+//go:build wasm
+
+package main
+
+import (
+   sdk "github.com/conduitio/conduit-processor-sdk"
+)
+
+func main() {
+   sdk.Run(&sdk.NewProcessorFunc(
+      sdk.Specification{Name: "simple-processor"}),
+      func(ctx context.Context, rec opencdc.Record) (opencdc.Record, error) {
+         // do something with the record
+         return rec
+      },
+   )
+}
+```
+
 With this you are set to build your processor. Note that we are building the
 processor as a WebAssembly module, so you need to set `GOARCH` and `GOOS`:
 
