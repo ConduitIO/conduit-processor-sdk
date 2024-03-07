@@ -81,7 +81,7 @@ func (p *AddFieldProcessor) Process(ctx context.Context, records []opencdc.Recor
 }
 ```
 
-You also need to add an entrypoint to your connector, since it will be run as a
+You also need to add an entrypoint to your processor, since it will be run as a
 standalone WASM plugin:
 
 ```go
