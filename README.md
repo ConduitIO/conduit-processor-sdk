@@ -108,7 +108,7 @@ GOARCH=wasm GOOS=wasip1 go build -o add-field-processor.wasm cmd/main.go
 
 The produced `add-field-processor.wasm` file can be used as a processor in
 Conduit. Copy it to the `processors` directory of your Conduit instance and
-configure it in the `processors` section of the `conduit.yaml` file.
+configure it in the `processors` section of the pipeline configuration file.
 
 ## FAQ
 
@@ -120,12 +120,34 @@ do this by setting the environment variables `GOARCH=wasm` and `GOOS=wasip1` whe
 running `go build`. This will produce a WebAssembly module that can be used as a
 processor in Conduit.
 
-### How do I run a processor?
+### How do I use a processor?
 
-You can run a processor by copying the WebAssembly module to the `processors`
-directory of your Conduit instance and configuring it in the `processors`
-section of the `conduit.yaml` file using the name the processor defines in its
-specifications.
+To use a standalone WASM processor in Conduit, the following two steps need to be
+done:
+
+1. Copying the WebAssembly module to the processors directory of your Conduit
+   instance. By default, that's a directory called `processors` that is in the same
+   directory as Conduit. The directory can be changed with the `processors.path` flag.
+
+   An example directory structure would be:
+   ```shell
+   tree .
+   .
+   ├── conduit
+   └── processors
+       └── add-field-processor.wasm
+   ```
+2. Use the processor in the `processors` section of the pipeline configuration file.
+   using the name the processor defines in its specifications. An example configuration
+   for the processor above would be:
+   ```yaml
+    processors:
+     - id: add-foo-field
+       plugin: myAddFieldProcessor
+       settings:
+         field: 'foo'
+         value: 'bar'
+   ```
 
 ### How do I log from a processor?
 
@@ -143,8 +165,8 @@ Example:
 
 ```go
 func (p *AddFieldProcessor) Process(ctx context.Context, records []opencdc.Record) []sdk.ProcessedRecord {
-    logger := sdk.Logger(ctx)
-    logger.Trace().Msg("Processing records")
-    // ...
+logger := sdk.Logger(ctx)
+logger.Trace().Msg("Processing records")
+// ...
 }
 ```
