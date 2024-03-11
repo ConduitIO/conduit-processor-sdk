@@ -11,7 +11,7 @@ require (
 	github.com/matryer/is v1.4.1
 	github.com/rs/zerolog v1.32.0
 	go.uber.org/mock v0.4.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 	mvdan.cc/gofumpt v0.6.0
 )
 
