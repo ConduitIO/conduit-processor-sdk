@@ -8,7 +8,10 @@
 This repository contains the Go software development kit for implementing a
 processor for [Conduit](https://github.com/conduitio/conduit).
 
-## Get started
+Note: if you'd like to use another language for writing processors, feel free to
+[open an issue](https://github.com/ConduitIO/conduit/issues) and request a processor SDK for a specific language.
+
+## Quick Start
 
 Create a new folder and initialize a fresh go module:
 
@@ -24,82 +27,10 @@ go get github.com/conduitio/conduit-processor-sdk
 
 You can now create a new processor by implementing the
 [`Processor`](https://pkg.go.dev/github.com/conduitio/conduit-processor-sdk#Processor)
-interface. Here is an example of a simple processor that adds a field to the
-record:
+interface. For more details about that, check our documentation for 
+[Building Standalone Processors](https://conduit.io/docs/processors/building-standalone-processors).
 
-```go
-package example
-
-import (
-	"context"
-
-	"github.com/conduitio/conduit-commons/config"
-	"github.com/conduitio/conduit-commons/opencdc"
-	sdk "github.com/conduitio/conduit-processor-sdk"
-)
-
-type AddFieldProcessor struct {
-	sdk.UnimplementedProcessor
-	Field string
-	Value string
-}
-
-// Specification returns metadata about the processor.
-func (p *AddFieldProcessor) Specification(context.Context) (sdk.Specification, error) {
-	return sdk.Specification{
-		Name:    "myAddFieldProcessor",
-		Summary: "Add a field to the record.",
-		Description: `This processor lets you configure a static field that will
-be added to the record into field .Payload.After. If the payload is not
-structured data, this processor will panic.`,
-		Version: "v1.0.0",
-		Author:  "John Doe",
-		Parameters: map[string]config.Parameter{
-			"field": {Type: config.ParameterTypeString, Description: "The name of the field to add"},
-			"name":  {Type: config.ParameterTypeString, Description: "The value of the field to add"},
-		},
-	}, nil
-}
-
-// Configure is called by Conduit to configure the processor. It receives a map
-// with the parameters defined in the Specification method.
-func (p *AddFieldProcessor) Configure(ctx context.Context, config map[string]string) error {
-	p.Field = config["field"]
-	p.Value = config["value"]
-	return nil
-}
-
-// Process is called by Conduit to process records. It receives a slice of
-// records and should return a slice of processed records.
-func (p *AddFieldProcessor) Process(ctx context.Context, records []opencdc.Record) []sdk.ProcessedRecord {
-	out := make([]sdk.ProcessedRecord, 0, len(records))
-	for _, record := range records {
-		record.Payload.After.(opencdc.StructuredData)[p.Field] = p.Value
-		out = append(out, sdk.SingleRecord(record))
-	}
-	return out
-}
-```
-
-You also need to add an entrypoint to your processor, since it will be run as a
-standalone WASM plugin:
-
-```go
-//go:build wasm
-
-package main
-
-import (
-	example "example.com/add-field-processor"
-	sdk "github.com/conduitio/conduit-processor-sdk"
-)
-
-func main() {
-	sdk.Run(&example.AddFieldProcessor{})
-}
-```
-
-If the processor is very simple and can be reduced to a single function (e.g. 
+On the other hand, if the processor is very simple and can be reduced to a single function (e.g. 
 no configuration needed), then we can use `sdk.NewProcessorFunc()`, as below:
 
 ```go
