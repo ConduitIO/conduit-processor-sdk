@@ -28,7 +28,7 @@ go get github.com/conduitio/conduit-processor-sdk
 You can now create a new processor by implementing the
 [`Processor`](https://pkg.go.dev/github.com/conduitio/conduit-processor-sdk#Processor)
 interface. For more details about that, check our documentation for 
-[Building Standalone Processors](https://conduit.io/docs/processors/building-standalone-processors).
+[Building Standalone Processors](https://conduit.io/docs/processors/standalone/building).
 
 On the other hand, if the processor is very simple and can be reduced to a single function (e.g. 
 no configuration needed), then we can use `sdk.NewProcessorFunc()`, as below:
