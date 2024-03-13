@@ -9,7 +9,7 @@ This repository contains the Go software development kit for implementing a
 processor for [Conduit](https://github.com/conduitio/conduit).
 
 Note: if you'd like to use another language for writing processors, feel free to
-[open an issue](https://github.com/ConduitIO/conduit/issues) and request a processor SDK for a specific language.
+[open an issue](https://github.com/ConduitIO/conduit/issues/new?assignees=&labels=feature%2Ctriage&projects=&template=1-feature-request.yml&title=Feature%3A+%3Ctitle%3E) and request a processor SDK for a specific language.
 
 ## Quick Start
 
