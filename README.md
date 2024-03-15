@@ -99,7 +99,7 @@ func main() {
 }
 ```
 
-If the processor is very simple and can be reduced to a single function (e.g. 
+If the processor is very simple and can be reduced to a single function (e.g.
 no configuration needed), then we can use `sdk.NewProcessorFunc()`, as below:
 
 ```go
@@ -112,13 +112,13 @@ import (
 )
 
 func main() {
-   sdk.Run(&sdk.NewProcessorFunc(
-      sdk.Specification{Name: "simple-processor"}),
+   sdk.Run(sdk.NewProcessorFunc(
+      sdk.Specification{Name: "simple-processor"},
       func(ctx context.Context, rec opencdc.Record) (opencdc.Record, error) {
          // do something with the record
-         return rec
+         return rec, nil
       },
-   )
+   ))
 }
 ```
 
