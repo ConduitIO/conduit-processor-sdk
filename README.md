@@ -113,7 +113,7 @@ import (
 
 func main() {
    sdk.Run(sdk.NewProcessorFunc(
-      sdk.Specification{Name: "simple-processor", Version: "v1.0.0"},
+      sdk.Specification{Name: "simple-processor"},
       func(ctx context.Context, rec opencdc.Record) (opencdc.Record, error) {
          // do something with the record
          return rec, nil
