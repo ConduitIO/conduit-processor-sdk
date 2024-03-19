@@ -35,6 +35,10 @@ var _ Processor = ProcessorFunc{} // Ensure ProcessorFunc implements Processor
 // This is useful for creating simple processors without needing to implement
 // the full Processor interface.
 func NewProcessorFunc(specs Specification, f func(context.Context, opencdc.Record) (opencdc.Record, error)) ProcessorFunc {
+	if specs.Version == "" {
+		// Default version matches default from runtime/debug.
+		specs.Version = "(devel)"
+	}
 	return ProcessorFunc{
 		specs: specs,
 		f:     f,

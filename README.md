@@ -43,13 +43,13 @@ import (
 )
 
 func main() {
-   sdk.Run(&sdk.NewProcessorFunc(
-      sdk.Specification{Name: "simple-processor"}),
+   sdk.Run(sdk.NewProcessorFunc(
+      sdk.Specification{Name: "simple-processor"},
       func(ctx context.Context, rec opencdc.Record) (opencdc.Record, error) {
          // do something with the record
-         return rec
+         return rec, nil
       },
-   )
+   ))
 }
 ```
 
