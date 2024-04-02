@@ -16,6 +16,7 @@ package reference
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/conduitio/conduit-commons/opencdc"
 )
@@ -49,7 +50,7 @@ type Resolver struct {
 }
 
 func NewResolver(input string) (Resolver, error) {
-	l := newLexer(input)
+	l := newLexer(cleanInput(input))
 
 	i := l.Next()
 	if i.typ == itemVariable || i.typ == itemDot {
@@ -107,6 +108,31 @@ func NewResolver(input string) (Resolver, error) {
 		raw:    input,
 		fields: fields,
 	}, nil
+}
+
+func cleanInput(input string) string {
+	replacePrefix := func(s string, replacements map[string]string) string {
+		for prefix, replacement := range replacements {
+			if strings.HasPrefix(s, prefix) {
+				return replacement + s[len(prefix):]
+			}
+		}
+		return s
+	}
+	input = replacePrefix(input, map[string]string{
+		".payload":   ".Payload",
+		".key":       ".Key",
+		".metadata":  ".Metadata",
+		".position":  ".Position",
+		".operation": ".Operation",
+	})
+	if strings.HasPrefix(input, ".Payload") {
+		input = replacePrefix(input, map[string]string{
+			".Payload.before": ".Payload.Before",
+			".Payload.after":  ".Payload.After",
+		})
+	}
+	return input
 }
 
 // Resolve resolves the reference to a field in the record. If the reference
