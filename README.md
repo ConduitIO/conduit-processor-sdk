@@ -103,7 +103,8 @@ done:
 
 ### How do I log in a processor?
 
-You can get a `zerolog.Logger` instance from the context using the
+You can get a [`zerolog.Logger`](https://pkg.go.dev/github.com/rs/zerolog) instance
+from the context using the
 [`sdk.Logger`](https://pkg.go.dev/github.com/conduitio/conduit-processor-sdk#Logger)
 function. This logger is pre-configured to append logs in the format expected by
 Conduit.
