@@ -16,7 +16,7 @@ Note: if you'd like to use another language for writing processors, feel free to
 Create a new folder and initialize a fresh go module:
 
 ```sh
-go mod init example.com/conduit-processor-demo
+go mod init example.com/conduit-processor-example
 ```
 
 Add the processor SDK dependency:
@@ -39,28 +39,28 @@ no configuration needed), then we can use `sdk.NewProcessorFunc()`, as below:
 package main
 
 import (
-   sdk "github.com/conduitio/conduit-processor-sdk"
+    sdk "github.com/conduitio/conduit-processor-sdk"
 )
 
 func main() {
-   sdk.Run(sdk.NewProcessorFunc(
-      sdk.Specification{Name: "simple-processor"},
-      func(ctx context.Context, rec opencdc.Record) (opencdc.Record, error) {
-         // do something with the record
-         return rec, nil
-      },
-   ))
+    sdk.Run(sdk.NewProcessorFunc(
+        sdk.Specification{Name: "example-processor"},
+        func(ctx context.Context, rec opencdc.Record) (opencdc.Record, error) {
+            // do something with the record
+            return rec, nil
+        },
+    ))
 }
 ```
 
-With this you are set to build your processor. Note that we are building the
+With this, you are set to build your processor. Note that we are building the
 processor as a WebAssembly module, so you need to set `GOARCH` and `GOOS`:
 
 ```sh
-GOARCH=wasm GOOS=wasip1 go build -o add-field-processor.wasm cmd/main.go
+GOARCH=wasm GOOS=wasip1 go build -o example-processor.wasm main.go
 ```
 
-The produced `add-field-processor.wasm` file can be used as a processor in
+The produced `example-processor.wasm` file can be used as a processor in
 Conduit. Copy it to the `processors` directory of your Conduit instance and
 configure it in the `processors` section of the pipeline configuration file.
 
@@ -81,31 +81,29 @@ done:
 
 1. Copying the WebAssembly module to the processors directory of your Conduit
    instance. By default, that's a directory called `processors` that is in the same
-   directory as Conduit. The directory can be changed with the `processors.path` flag.
+   directory as Conduit. The directory can be changed with the `-processors.path` flag.
 
    An example directory structure would be:
    ```shell
-   tree .
    .
    ├── conduit
    └── processors
-       └── add-field-processor.wasm
+       └── example-processor.wasm
    ```
 2. Use the processor in the `processors` section of the pipeline configuration file.
-   using the name the processor defines in its specifications. An example configuration
-   for the processor above would be:
+   using the name the processor defines in its specifications. For example:
    ```yaml
-    processors:
-     - id: add-foo-field
-       plugin: myAddFieldProcessor
+   processors:
+     - id: my-example-processor
+       plugin: example-processor
        settings:
          field: 'foo'
          value: 'bar'
    ```
 
-### How do I log from a processor?
+### How do I log in a processor?
 
-You can get a `zerolog.logger` instance from the context using the
+You can get a `zerolog.Logger` instance from the context using the
 [`sdk.Logger`](https://pkg.go.dev/github.com/conduitio/conduit-processor-sdk#Logger)
 function. This logger is pre-configured to append logs in the format expected by
 Conduit.
@@ -118,9 +116,9 @@ processor.
 Example:
 
 ```go
-func (p *AddFieldProcessor) Process(ctx context.Context, records []opencdc.Record) []sdk.ProcessedRecord {
-logger := sdk.Logger(ctx)
-logger.Trace().Msg("Processing records")
-// ...
+func (p *ExampleProcessor) Process(ctx context.Context, records []opencdc.Record) []sdk.ProcessedRecord {
+    logger := sdk.Logger(ctx)
+    logger.Trace().Msg("Processing records")
+    // ...
 }
 ```
