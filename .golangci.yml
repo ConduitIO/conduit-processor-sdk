@@ -37,7 +37,7 @@ issues:
         - errcheck
         - forcetypeassert
         - funlen
-        - goerr113
+        - err113
         - dupl
 
 linters:
