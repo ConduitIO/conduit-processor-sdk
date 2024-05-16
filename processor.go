@@ -110,7 +110,7 @@ func (e ErrorRecord) MarshalJSON() ([]byte, error) {
 	}{
 		Error: errorMsg,
 	}
-	return json.Marshal(anon)
+	return json.Marshal(anon) //nolint:wrapcheck // no need to wrap error
 }
 
 // Support for MultiRecord will be added in the future.

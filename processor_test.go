@@ -90,6 +90,5 @@ func TestProcessedRecord_MarshalJSON(t *testing.T) {
 			got = got[:len(got)-1] // remove trailing newline
 			is.Equal("", cmp.Diff(tc.want, got))
 		})
-
 	}
 }
