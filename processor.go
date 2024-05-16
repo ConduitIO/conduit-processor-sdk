@@ -16,6 +16,7 @@ package sdk
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
@@ -95,10 +96,22 @@ func (FilterRecord) isProcessedRecord() {}
 // ErrorRecord is a record that failed to be processed and will be nacked.
 type ErrorRecord struct {
 	// Error is the error cause.
-	Error error
+	Error error `json:"error"`
 }
 
 func (e ErrorRecord) isProcessedRecord() {}
+func (e ErrorRecord) MarshalJSON() ([]byte, error) {
+	var errorMsg string
+	if e.Error != nil {
+		errorMsg = e.Error.Error()
+	}
+	anon := struct {
+		Error string `json:"error"`
+	}{
+		Error: errorMsg,
+	}
+	return json.Marshal(anon)
+}
 
 // Support for MultiRecord will be added in the future.
 // type MultiRecord []opencdc.Record
