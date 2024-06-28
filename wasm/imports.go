@@ -41,3 +41,29 @@ func _commandRequest(ptr unsafe.Pointer, size uint32) uint32
 //
 //go:wasmimport conduit command_response
 func _commandResponse(ptr unsafe.Pointer, size uint32) uint32
+
+// Imports `create_schema` from the host, which created a schema
+//
+// The arguments are:
+// (1) a pointer to the address where the response should be written
+// (2) the size of allocated memory.
+//
+// The return value indicates the size of the allocated request in bytes. If the
+// command is larger than the allocated memory, the caller should reallocate the
+// memory and call `create_schema` again.
+//
+//go:wasmimport conduit create_schema
+func _createSchema(ptr unsafe.Pointer, size uint32) uint32
+
+// Imports `get_schema` from the host, which created a schema
+//
+// The arguments are:
+// (1) a pointer to the address where the response should be written
+// (2) the size of allocated memory.
+//
+// The return value indicates the size of the allocated request in bytes. If the
+// command is larger than the allocated memory, the caller should reallocate the
+// memory and call `get_schema` again.
+//
+//go:wasmimport conduit get_schema
+func _getSchema(ptr unsafe.Pointer, size uint32) uint32

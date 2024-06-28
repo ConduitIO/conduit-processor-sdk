@@ -22,6 +22,52 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Schema_Type int32
+
+const (
+	Schema_TYPE_UNSPECIFIED Schema_Type = 0
+	Schema_TYPE_AVRO        Schema_Type = 1
+)
+
+// Enum value maps for Schema_Type.
+var (
+	Schema_Type_name = map[int32]string{
+		0: "TYPE_UNSPECIFIED",
+		1: "TYPE_AVRO",
+	}
+	Schema_Type_value = map[string]int32{
+		"TYPE_UNSPECIFIED": 0,
+		"TYPE_AVRO":        1,
+	}
+)
+
+func (x Schema_Type) Enum() *Schema_Type {
+	p := new(Schema_Type)
+	*p = x
+	return p
+}
+
+func (x Schema_Type) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Schema_Type) Descriptor() protoreflect.EnumDescriptor {
+	return file_processor_v1_processor_proto_enumTypes[0].Descriptor()
+}
+
+func (Schema_Type) Type() protoreflect.EnumType {
+	return &file_processor_v1_processor_proto_enumTypes[0]
+}
+
+func (x Schema_Type) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Schema_Type.Descriptor instead.
+func (Schema_Type) EnumDescriptor() ([]byte, []int) {
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{2, 0}
+}
+
 type CommandRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -282,6 +328,290 @@ func (*CommandResponse_Process) isCommandResponse_Response() {}
 
 func (*CommandResponse_Teardown) isCommandResponse_Response() {}
 
+type Schema struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Subject string      `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	Version int32       `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	Type    Schema_Type `protobuf:"varint,3,opt,name=type,proto3,enum=processor.v1.Schema_Type" json:"type,omitempty"`
+	// The schema contents
+	Bytes []byte `protobuf:"bytes,4,opt,name=bytes,proto3" json:"bytes,omitempty"`
+}
+
+func (x *Schema) Reset() {
+	*x = Schema{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_processor_v1_processor_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Schema) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Schema) ProtoMessage() {}
+
+func (x *Schema) ProtoReflect() protoreflect.Message {
+	mi := &file_processor_v1_processor_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Schema.ProtoReflect.Descriptor instead.
+func (*Schema) Descriptor() ([]byte, []int) {
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Schema) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *Schema) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *Schema) GetType() Schema_Type {
+	if x != nil {
+		return x.Type
+	}
+	return Schema_TYPE_UNSPECIFIED
+}
+
+func (x *Schema) GetBytes() []byte {
+	if x != nil {
+		return x.Bytes
+	}
+	return nil
+}
+
+type CreateSchemaRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Subject string      `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	Type    Schema_Type `protobuf:"varint,2,opt,name=type,proto3,enum=processor.v1.Schema_Type" json:"type,omitempty"`
+	Bytes   []byte      `protobuf:"bytes,3,opt,name=bytes,proto3" json:"bytes,omitempty"`
+}
+
+func (x *CreateSchemaRequest) Reset() {
+	*x = CreateSchemaRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_processor_v1_processor_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateSchemaRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSchemaRequest) ProtoMessage() {}
+
+func (x *CreateSchemaRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_processor_v1_processor_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSchemaRequest.ProtoReflect.Descriptor instead.
+func (*CreateSchemaRequest) Descriptor() ([]byte, []int) {
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CreateSchemaRequest) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *CreateSchemaRequest) GetType() Schema_Type {
+	if x != nil {
+		return x.Type
+	}
+	return Schema_TYPE_UNSPECIFIED
+}
+
+func (x *CreateSchemaRequest) GetBytes() []byte {
+	if x != nil {
+		return x.Bytes
+	}
+	return nil
+}
+
+type CreateSchemaResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Schema *Schema `protobuf:"bytes,1,opt,name=schema,proto3" json:"schema,omitempty"`
+}
+
+func (x *CreateSchemaResponse) Reset() {
+	*x = CreateSchemaResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_processor_v1_processor_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateSchemaResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSchemaResponse) ProtoMessage() {}
+
+func (x *CreateSchemaResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_processor_v1_processor_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSchemaResponse.ProtoReflect.Descriptor instead.
+func (*CreateSchemaResponse) Descriptor() ([]byte, []int) {
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CreateSchemaResponse) GetSchema() *Schema {
+	if x != nil {
+		return x.Schema
+	}
+	return nil
+}
+
+type GetSchemaRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Subject string `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	Version int32  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (x *GetSchemaRequest) Reset() {
+	*x = GetSchemaRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_processor_v1_processor_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetSchemaRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSchemaRequest) ProtoMessage() {}
+
+func (x *GetSchemaRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_processor_v1_processor_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSchemaRequest.ProtoReflect.Descriptor instead.
+func (*GetSchemaRequest) Descriptor() ([]byte, []int) {
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetSchemaRequest) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *GetSchemaRequest) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+type GetSchemaResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Schema *Schema `protobuf:"bytes,1,opt,name=schema,proto3" json:"schema,omitempty"`
+}
+
+func (x *GetSchemaResponse) Reset() {
+	*x = GetSchemaResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_processor_v1_processor_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetSchemaResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSchemaResponse) ProtoMessage() {}
+
+func (x *GetSchemaResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_processor_v1_processor_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSchemaResponse.ProtoReflect.Descriptor instead.
+func (*GetSchemaResponse) Descriptor() ([]byte, []int) {
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetSchemaResponse) GetSchema() *Schema {
+	if x != nil {
+		return x.Schema
+	}
+	return nil
+}
+
 type Specify struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -291,7 +621,7 @@ type Specify struct {
 func (x *Specify) Reset() {
 	*x = Specify{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[2]
+		mi := &file_processor_v1_processor_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -304,7 +634,7 @@ func (x *Specify) String() string {
 func (*Specify) ProtoMessage() {}
 
 func (x *Specify) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[2]
+	mi := &file_processor_v1_processor_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -317,7 +647,7 @@ func (x *Specify) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Specify.ProtoReflect.Descriptor instead.
 func (*Specify) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{2}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{7}
 }
 
 type Configure struct {
@@ -329,7 +659,7 @@ type Configure struct {
 func (x *Configure) Reset() {
 	*x = Configure{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[3]
+		mi := &file_processor_v1_processor_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -342,7 +672,7 @@ func (x *Configure) String() string {
 func (*Configure) ProtoMessage() {}
 
 func (x *Configure) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[3]
+	mi := &file_processor_v1_processor_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -355,7 +685,7 @@ func (x *Configure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Configure.ProtoReflect.Descriptor instead.
 func (*Configure) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{3}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{8}
 }
 
 type Open struct {
@@ -367,7 +697,7 @@ type Open struct {
 func (x *Open) Reset() {
 	*x = Open{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[4]
+		mi := &file_processor_v1_processor_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -380,7 +710,7 @@ func (x *Open) String() string {
 func (*Open) ProtoMessage() {}
 
 func (x *Open) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[4]
+	mi := &file_processor_v1_processor_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -393,7 +723,7 @@ func (x *Open) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Open.ProtoReflect.Descriptor instead.
 func (*Open) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{4}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{9}
 }
 
 type Process struct {
@@ -405,7 +735,7 @@ type Process struct {
 func (x *Process) Reset() {
 	*x = Process{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[5]
+		mi := &file_processor_v1_processor_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -418,7 +748,7 @@ func (x *Process) String() string {
 func (*Process) ProtoMessage() {}
 
 func (x *Process) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[5]
+	mi := &file_processor_v1_processor_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -431,7 +761,7 @@ func (x *Process) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Process.ProtoReflect.Descriptor instead.
 func (*Process) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{5}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{10}
 }
 
 type Teardown struct {
@@ -443,7 +773,7 @@ type Teardown struct {
 func (x *Teardown) Reset() {
 	*x = Teardown{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[6]
+		mi := &file_processor_v1_processor_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -456,7 +786,7 @@ func (x *Teardown) String() string {
 func (*Teardown) ProtoMessage() {}
 
 func (x *Teardown) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[6]
+	mi := &file_processor_v1_processor_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -469,7 +799,7 @@ func (x *Teardown) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Teardown.ProtoReflect.Descriptor instead.
 func (*Teardown) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{6}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{11}
 }
 
 type Error struct {
@@ -484,7 +814,7 @@ type Error struct {
 func (x *Error) Reset() {
 	*x = Error{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[7]
+		mi := &file_processor_v1_processor_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -497,7 +827,7 @@ func (x *Error) String() string {
 func (*Error) ProtoMessage() {}
 
 func (x *Error) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[7]
+	mi := &file_processor_v1_processor_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -510,7 +840,7 @@ func (x *Error) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Error.ProtoReflect.Descriptor instead.
 func (*Error) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{7}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Error) GetCode() uint32 {
@@ -536,7 +866,7 @@ type Specify_Request struct {
 func (x *Specify_Request) Reset() {
 	*x = Specify_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[8]
+		mi := &file_processor_v1_processor_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -549,7 +879,7 @@ func (x *Specify_Request) String() string {
 func (*Specify_Request) ProtoMessage() {}
 
 func (x *Specify_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[8]
+	mi := &file_processor_v1_processor_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -562,7 +892,7 @@ func (x *Specify_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Specify_Request.ProtoReflect.Descriptor instead.
 func (*Specify_Request) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{2, 0}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{7, 0}
 }
 
 type Specify_Response struct {
@@ -592,7 +922,7 @@ type Specify_Response struct {
 func (x *Specify_Response) Reset() {
 	*x = Specify_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[9]
+		mi := &file_processor_v1_processor_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -605,7 +935,7 @@ func (x *Specify_Response) String() string {
 func (*Specify_Response) ProtoMessage() {}
 
 func (x *Specify_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[9]
+	mi := &file_processor_v1_processor_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,7 +948,7 @@ func (x *Specify_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Specify_Response.ProtoReflect.Descriptor instead.
 func (*Specify_Response) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{2, 1}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{7, 1}
 }
 
 func (x *Specify_Response) GetName() string {
@@ -674,7 +1004,7 @@ type Configure_Request struct {
 func (x *Configure_Request) Reset() {
 	*x = Configure_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[11]
+		mi := &file_processor_v1_processor_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -687,7 +1017,7 @@ func (x *Configure_Request) String() string {
 func (*Configure_Request) ProtoMessage() {}
 
 func (x *Configure_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[11]
+	mi := &file_processor_v1_processor_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -700,7 +1030,7 @@ func (x *Configure_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Configure_Request.ProtoReflect.Descriptor instead.
 func (*Configure_Request) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{3, 0}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{8, 0}
 }
 
 func (x *Configure_Request) GetParameters() map[string]string {
@@ -719,7 +1049,7 @@ type Configure_Response struct {
 func (x *Configure_Response) Reset() {
 	*x = Configure_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[12]
+		mi := &file_processor_v1_processor_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -732,7 +1062,7 @@ func (x *Configure_Response) String() string {
 func (*Configure_Response) ProtoMessage() {}
 
 func (x *Configure_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[12]
+	mi := &file_processor_v1_processor_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -745,7 +1075,7 @@ func (x *Configure_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Configure_Response.ProtoReflect.Descriptor instead.
 func (*Configure_Response) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{3, 1}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{8, 1}
 }
 
 type Open_Request struct {
@@ -757,7 +1087,7 @@ type Open_Request struct {
 func (x *Open_Request) Reset() {
 	*x = Open_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[14]
+		mi := &file_processor_v1_processor_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -770,7 +1100,7 @@ func (x *Open_Request) String() string {
 func (*Open_Request) ProtoMessage() {}
 
 func (x *Open_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[14]
+	mi := &file_processor_v1_processor_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -783,7 +1113,7 @@ func (x *Open_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Open_Request.ProtoReflect.Descriptor instead.
 func (*Open_Request) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{4, 0}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{9, 0}
 }
 
 type Open_Response struct {
@@ -795,7 +1125,7 @@ type Open_Response struct {
 func (x *Open_Response) Reset() {
 	*x = Open_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[15]
+		mi := &file_processor_v1_processor_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -808,7 +1138,7 @@ func (x *Open_Response) String() string {
 func (*Open_Response) ProtoMessage() {}
 
 func (x *Open_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[15]
+	mi := &file_processor_v1_processor_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -821,7 +1151,7 @@ func (x *Open_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Open_Response.ProtoReflect.Descriptor instead.
 func (*Open_Response) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{4, 1}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{9, 1}
 }
 
 type Process_Request struct {
@@ -835,7 +1165,7 @@ type Process_Request struct {
 func (x *Process_Request) Reset() {
 	*x = Process_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[16]
+		mi := &file_processor_v1_processor_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -848,7 +1178,7 @@ func (x *Process_Request) String() string {
 func (*Process_Request) ProtoMessage() {}
 
 func (x *Process_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[16]
+	mi := &file_processor_v1_processor_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -861,7 +1191,7 @@ func (x *Process_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Process_Request.ProtoReflect.Descriptor instead.
 func (*Process_Request) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{5, 0}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{10, 0}
 }
 
 func (x *Process_Request) GetRecords() []*v11.Record {
@@ -882,7 +1212,7 @@ type Process_Response struct {
 func (x *Process_Response) Reset() {
 	*x = Process_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[17]
+		mi := &file_processor_v1_processor_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -895,7 +1225,7 @@ func (x *Process_Response) String() string {
 func (*Process_Response) ProtoMessage() {}
 
 func (x *Process_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[17]
+	mi := &file_processor_v1_processor_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -908,7 +1238,7 @@ func (x *Process_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Process_Response.ProtoReflect.Descriptor instead.
 func (*Process_Response) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{5, 1}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{10, 1}
 }
 
 func (x *Process_Response) GetRecords() []*Process_ProcessedRecord {
@@ -934,7 +1264,7 @@ type Process_ProcessedRecord struct {
 func (x *Process_ProcessedRecord) Reset() {
 	*x = Process_ProcessedRecord{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[18]
+		mi := &file_processor_v1_processor_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -947,7 +1277,7 @@ func (x *Process_ProcessedRecord) String() string {
 func (*Process_ProcessedRecord) ProtoMessage() {}
 
 func (x *Process_ProcessedRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[18]
+	mi := &file_processor_v1_processor_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -960,7 +1290,7 @@ func (x *Process_ProcessedRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Process_ProcessedRecord.ProtoReflect.Descriptor instead.
 func (*Process_ProcessedRecord) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{5, 2}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{10, 2}
 }
 
 func (m *Process_ProcessedRecord) GetRecord() isProcess_ProcessedRecord_Record {
@@ -1022,7 +1352,7 @@ type Process_FilterRecord struct {
 func (x *Process_FilterRecord) Reset() {
 	*x = Process_FilterRecord{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[19]
+		mi := &file_processor_v1_processor_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1035,7 +1365,7 @@ func (x *Process_FilterRecord) String() string {
 func (*Process_FilterRecord) ProtoMessage() {}
 
 func (x *Process_FilterRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[19]
+	mi := &file_processor_v1_processor_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1048,7 +1378,7 @@ func (x *Process_FilterRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Process_FilterRecord.ProtoReflect.Descriptor instead.
 func (*Process_FilterRecord) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{5, 3}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{10, 3}
 }
 
 type Process_ErrorRecord struct {
@@ -1062,7 +1392,7 @@ type Process_ErrorRecord struct {
 func (x *Process_ErrorRecord) Reset() {
 	*x = Process_ErrorRecord{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[20]
+		mi := &file_processor_v1_processor_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1075,7 +1405,7 @@ func (x *Process_ErrorRecord) String() string {
 func (*Process_ErrorRecord) ProtoMessage() {}
 
 func (x *Process_ErrorRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[20]
+	mi := &file_processor_v1_processor_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1088,7 +1418,7 @@ func (x *Process_ErrorRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Process_ErrorRecord.ProtoReflect.Descriptor instead.
 func (*Process_ErrorRecord) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{5, 4}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{10, 4}
 }
 
 func (x *Process_ErrorRecord) GetError() *Error {
@@ -1107,7 +1437,7 @@ type Teardown_Request struct {
 func (x *Teardown_Request) Reset() {
 	*x = Teardown_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[21]
+		mi := &file_processor_v1_processor_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1120,7 +1450,7 @@ func (x *Teardown_Request) String() string {
 func (*Teardown_Request) ProtoMessage() {}
 
 func (x *Teardown_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[21]
+	mi := &file_processor_v1_processor_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1133,7 +1463,7 @@ func (x *Teardown_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Teardown_Request.ProtoReflect.Descriptor instead.
 func (*Teardown_Request) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{6, 0}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{11, 0}
 }
 
 type Teardown_Response struct {
@@ -1145,7 +1475,7 @@ type Teardown_Response struct {
 func (x *Teardown_Response) Reset() {
 	*x = Teardown_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_processor_v1_processor_proto_msgTypes[22]
+		mi := &file_processor_v1_processor_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1158,7 +1488,7 @@ func (x *Teardown_Response) String() string {
 func (*Teardown_Response) ProtoMessage() {}
 
 func (x *Teardown_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_processor_v1_processor_proto_msgTypes[22]
+	mi := &file_processor_v1_processor_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1171,7 +1501,7 @@ func (x *Teardown_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Teardown_Response.ProtoReflect.Descriptor instead.
 func (*Teardown_Response) Descriptor() ([]byte, []int) {
-	return file_processor_v1_processor_proto_rawDescGZIP(), []int{6, 1}
+	return file_processor_v1_processor_proto_rawDescGZIP(), []int{11, 1}
 }
 
 var File_processor_v1_processor_proto protoreflect.FileDescriptor
@@ -1227,87 +1557,119 @@ var file_processor_v1_processor_proto_rawDesc = []byte{
 	0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x54, 0x65, 0x61, 0x72, 0x64, 0x6f, 0x77, 0x6e, 0x2e, 0x52,
 	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x48, 0x00, 0x52, 0x08, 0x74, 0x65, 0x61, 0x72, 0x64,
 	0x6f, 0x77, 0x6e, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
-	0xc8, 0x02, 0x0a, 0x07, 0x53, 0x70, 0x65, 0x63, 0x69, 0x66, 0x79, 0x1a, 0x09, 0x0a, 0x07, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0xb1, 0x02, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61,
-	0x72, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72,
-	0x79, 0x12, 0x20, 0x0a, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74,
-	0x69, 0x6f, 0x6e, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x16, 0x0a,
-	0x06, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x61,
-	0x75, 0x74, 0x68, 0x6f, 0x72, 0x12, 0x4e, 0x0a, 0x0a, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74,
-	0x65, 0x72, 0x73, 0x18, 0x06, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2e, 0x2e, 0x70, 0x72, 0x6f, 0x63,
-	0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x70, 0x65, 0x63, 0x69, 0x66, 0x79,
-	0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65,
-	0x74, 0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0a, 0x70, 0x61, 0x72, 0x61, 0x6d,
-	0x65, 0x74, 0x65, 0x72, 0x73, 0x1a, 0x53, 0x0a, 0x0f, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74,
-	0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x2a, 0x0a, 0x05, 0x76, 0x61,
-	0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x63, 0x6f, 0x6e, 0x66,
-	0x69, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x52,
-	0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0xb3, 0x01, 0x0a, 0x09, 0x43,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x65, 0x1a, 0x99, 0x01, 0x0a, 0x07, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x12, 0x4f, 0x0a, 0x0a, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65,
-	0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2f, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65,
-	0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72,
-	0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65,
-	0x74, 0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0a, 0x70, 0x61, 0x72, 0x61, 0x6d,
-	0x65, 0x74, 0x65, 0x72, 0x73, 0x1a, 0x3d, 0x0a, 0x0f, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74,
-	0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61,
-	0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
-	0x3a, 0x02, 0x38, 0x01, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x22, 0x1d, 0x0a, 0x04, 0x4f, 0x70, 0x65, 0x6e, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
-	0xc5, 0x03, 0x0a, 0x07, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x1a, 0x37, 0x0a, 0x07, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x2c, 0x0a, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64,
-	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x6f, 0x70, 0x65, 0x6e, 0x63, 0x64,
-	0x63, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x52, 0x07, 0x72, 0x65, 0x63,
-	0x6f, 0x72, 0x64, 0x73, 0x1a, 0x4b, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x3f, 0x0a, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
-	0x0b, 0x32, 0x25, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31,
-	0x2e, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x2e, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73,
-	0x65, 0x64, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x52, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64,
-	0x73, 0x1a, 0xe9, 0x01, 0x0a, 0x0f, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x65, 0x64, 0x52,
-	0x65, 0x63, 0x6f, 0x72, 0x64, 0x12, 0x39, 0x0a, 0x0d, 0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x5f,
-	0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x6f,
-	0x70, 0x65, 0x6e, 0x63, 0x64, 0x63, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64,
-	0x48, 0x00, 0x52, 0x0c, 0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64,
-	0x12, 0x49, 0x0a, 0x0d, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x5f, 0x72, 0x65, 0x63, 0x6f, 0x72,
-	0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73,
-	0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x2e, 0x46,
-	0x69, 0x6c, 0x74, 0x65, 0x72, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x48, 0x00, 0x52, 0x0c, 0x66,
-	0x69, 0x6c, 0x74, 0x65, 0x72, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x12, 0x46, 0x0a, 0x0c, 0x65,
-	0x72, 0x72, 0x6f, 0x72, 0x5f, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x21, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31,
-	0x2e, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x2e, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x65,
-	0x63, 0x6f, 0x72, 0x64, 0x48, 0x00, 0x52, 0x0b, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x65, 0x63,
-	0x6f, 0x72, 0x64, 0x42, 0x08, 0x0a, 0x06, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x1a, 0x0e, 0x0a,
-	0x0c, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x1a, 0x38, 0x0a,
-	0x0b, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x12, 0x29, 0x0a, 0x05,
-	0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72,
-	0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x45, 0x72, 0x72, 0x6f, 0x72,
-	0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x22, 0x21, 0x0a, 0x08, 0x54, 0x65, 0x61, 0x72, 0x64,
-	0x6f, 0x77, 0x6e, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0a,
-	0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x35, 0x0a, 0x05, 0x45, 0x72,
-	0x72, 0x6f, 0x72, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0d, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61,
-	0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67,
-	0x65, 0x42, 0xbe, 0x01, 0x0a, 0x10, 0x63, 0x6f, 0x6d, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73,
-	0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x42, 0x0e, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f,
-	0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x49, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
-	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x6e, 0x64, 0x75, 0x69, 0x74, 0x69, 0x6f, 0x2f, 0x63,
-	0x6f, 0x6e, 0x64, 0x75, 0x69, 0x74, 0x2d, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72,
-	0x2d, 0x73, 0x64, 0x6b, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x63, 0x65,
-	0x73, 0x73, 0x6f, 0x72, 0x2f, 0x76, 0x31, 0x3b, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f,
-	0x72, 0x76, 0x31, 0xa2, 0x02, 0x03, 0x50, 0x58, 0x58, 0xaa, 0x02, 0x0c, 0x50, 0x72, 0x6f, 0x63,
-	0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x56, 0x31, 0xca, 0x02, 0x0c, 0x50, 0x72, 0x6f, 0x63, 0x65,
-	0x73, 0x73, 0x6f, 0x72, 0x5c, 0x56, 0x31, 0xe2, 0x02, 0x18, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73,
-	0x73, 0x6f, 0x72, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
-	0x74, 0x61, 0xea, 0x02, 0x0d, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x3a, 0x3a,
-	0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0xae, 0x01, 0x0a, 0x06, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75,
+	0x62, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x73, 0x75, 0x62,
+	0x6a, 0x65, 0x63, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x2d,
+	0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x19, 0x2e, 0x70,
+	0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x63, 0x68, 0x65,
+	0x6d, 0x61, 0x2e, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x14, 0x0a,
+	0x05, 0x62, 0x79, 0x74, 0x65, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x62, 0x79,
+	0x74, 0x65, 0x73, 0x22, 0x2b, 0x0a, 0x04, 0x54, 0x79, 0x70, 0x65, 0x12, 0x14, 0x0a, 0x10, 0x54,
+	0x59, 0x50, 0x45, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10,
+	0x00, 0x12, 0x0d, 0x0a, 0x09, 0x54, 0x59, 0x50, 0x45, 0x5f, 0x41, 0x56, 0x52, 0x4f, 0x10, 0x01,
+	0x22, 0x74, 0x0a, 0x13, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65,
+	0x63, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65, 0x63,
+	0x74, 0x12, 0x2d, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32,
+	0x19, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53,
+	0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65,
+	0x12, 0x14, 0x0a, 0x05, 0x62, 0x79, 0x74, 0x65, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52,
+	0x05, 0x62, 0x79, 0x74, 0x65, 0x73, 0x22, 0x44, 0x0a, 0x14, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
+	0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2c,
+	0x0a, 0x06, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14,
+	0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x52, 0x06, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x22, 0x46, 0x0a, 0x10,
+	0x47, 0x65, 0x74, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65,
+	0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x76, 0x65, 0x72,
+	0x73, 0x69, 0x6f, 0x6e, 0x22, 0x41, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x53, 0x63, 0x68, 0x65, 0x6d,
+	0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2c, 0x0a, 0x06, 0x73, 0x63, 0x68,
+	0x65, 0x6d, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x70, 0x72, 0x6f, 0x63,
+	0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52,
+	0x06, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x22, 0xc8, 0x02, 0x0a, 0x07, 0x53, 0x70, 0x65, 0x63,
+	0x69, 0x66, 0x79, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0xb1,
+	0x02, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e,
+	0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12,
+	0x18, 0x0a, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x12, 0x20, 0x0a, 0x0b, 0x64, 0x65, 0x73,
+	0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b,
+	0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x18, 0x0a, 0x07, 0x76,
+	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65,
+	0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x16, 0x0a, 0x06, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x18,
+	0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x12, 0x4e, 0x0a,
+	0x0a, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x73, 0x18, 0x06, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x2e, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31,
+	0x2e, 0x53, 0x70, 0x65, 0x63, 0x69, 0x66, 0x79, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x2e, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72,
+	0x79, 0x52, 0x0a, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x73, 0x1a, 0x53, 0x0a,
+	0x0f, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79,
+	0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b,
+	0x65, 0x79, 0x12, 0x2a, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x14, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61,
+	0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02,
+	0x38, 0x01, 0x22, 0xb3, 0x01, 0x0a, 0x09, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x65,
+	0x1a, 0x99, 0x01, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x4f, 0x0a, 0x0a,
+	0x70, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x2f, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e,
+	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x2e, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72,
+	0x79, 0x52, 0x0a, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x73, 0x1a, 0x3d, 0x0a,
+	0x0f, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79,
+	0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b,
+	0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x0a, 0x0a, 0x08,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x1d, 0x0a, 0x04, 0x4f, 0x70, 0x65, 0x6e,
+	0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0a, 0x0a, 0x08, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0xc5, 0x03, 0x0a, 0x07, 0x50, 0x72, 0x6f, 0x63,
+	0x65, 0x73, 0x73, 0x1a, 0x37, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x2c,
+	0x0a, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x12, 0x2e, 0x6f, 0x70, 0x65, 0x6e, 0x63, 0x64, 0x63, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x63,
+	0x6f, 0x72, 0x64, 0x52, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x1a, 0x4b, 0x0a, 0x08,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3f, 0x0a, 0x07, 0x72, 0x65, 0x63, 0x6f,
+	0x72, 0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x70, 0x72, 0x6f, 0x63,
+	0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73,
+	0x2e, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x65, 0x64, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64,
+	0x52, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x1a, 0xe9, 0x01, 0x0a, 0x0f, 0x50, 0x72,
+	0x6f, 0x63, 0x65, 0x73, 0x73, 0x65, 0x64, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x12, 0x39, 0x0a,
+	0x0d, 0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x5f, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x6f, 0x70, 0x65, 0x6e, 0x63, 0x64, 0x63, 0x2e, 0x76,
+	0x31, 0x2e, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x48, 0x00, 0x52, 0x0c, 0x73, 0x69, 0x6e, 0x67,
+	0x6c, 0x65, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x12, 0x49, 0x0a, 0x0d, 0x66, 0x69, 0x6c, 0x74,
+	0x65, 0x72, 0x5f, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x22, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x50,
+	0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x2e, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x52, 0x65, 0x63,
+	0x6f, 0x72, 0x64, 0x48, 0x00, 0x52, 0x0c, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x52, 0x65, 0x63,
+	0x6f, 0x72, 0x64, 0x12, 0x46, 0x0a, 0x0c, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x5f, 0x72, 0x65, 0x63,
+	0x6f, 0x72, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x70, 0x72, 0x6f, 0x63,
+	0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73,
+	0x2e, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x48, 0x00, 0x52, 0x0b,
+	0x65, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x42, 0x08, 0x0a, 0x06, 0x72,
+	0x65, 0x63, 0x6f, 0x72, 0x64, 0x1a, 0x0e, 0x0a, 0x0c, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x52,
+	0x65, 0x63, 0x6f, 0x72, 0x64, 0x1a, 0x38, 0x0a, 0x0b, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x65,
+	0x63, 0x6f, 0x72, 0x64, 0x12, 0x29, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e,
+	0x76, 0x31, 0x2e, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x22,
+	0x21, 0x0a, 0x08, 0x54, 0x65, 0x61, 0x72, 0x64, 0x6f, 0x77, 0x6e, 0x1a, 0x09, 0x0a, 0x07, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x35, 0x0a, 0x05, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x12, 0x12, 0x0a, 0x04, 0x63,
+	0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x12,
+	0x18, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x42, 0xbe, 0x01, 0x0a, 0x10, 0x63, 0x6f,
+	0x6d, 0x2e, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x76, 0x31, 0x42, 0x0e,
+	0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01,
+	0x5a, 0x49, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x6e,
+	0x64, 0x75, 0x69, 0x74, 0x69, 0x6f, 0x2f, 0x63, 0x6f, 0x6e, 0x64, 0x75, 0x69, 0x74, 0x2d, 0x70,
+	0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2d, 0x73, 0x64, 0x6b, 0x2f, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2f, 0x76, 0x31, 0x3b,
+	0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x76, 0x31, 0xa2, 0x02, 0x03, 0x50, 0x58,
+	0x58, 0xaa, 0x02, 0x0c, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x2e, 0x56, 0x31,
+	0xca, 0x02, 0x0c, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x5c, 0x56, 0x31, 0xe2,
+	0x02, 0x18, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x5c, 0x56, 0x31, 0x5c, 0x47,
+	0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x0d, 0x50, 0x72, 0x6f,
+	0x63, 0x65, 0x73, 0x73, 0x6f, 0x72, 0x3a, 0x3a, 0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -1322,60 +1684,71 @@ func file_processor_v1_processor_proto_rawDescGZIP() []byte {
 	return file_processor_v1_processor_proto_rawDescData
 }
 
-var file_processor_v1_processor_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_processor_v1_processor_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_processor_v1_processor_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_processor_v1_processor_proto_goTypes = []interface{}{
-	(*CommandRequest)(nil),          // 0: processor.v1.CommandRequest
-	(*CommandResponse)(nil),         // 1: processor.v1.CommandResponse
-	(*Specify)(nil),                 // 2: processor.v1.Specify
-	(*Configure)(nil),               // 3: processor.v1.Configure
-	(*Open)(nil),                    // 4: processor.v1.Open
-	(*Process)(nil),                 // 5: processor.v1.Process
-	(*Teardown)(nil),                // 6: processor.v1.Teardown
-	(*Error)(nil),                   // 7: processor.v1.Error
-	(*Specify_Request)(nil),         // 8: processor.v1.Specify.Request
-	(*Specify_Response)(nil),        // 9: processor.v1.Specify.Response
-	nil,                             // 10: processor.v1.Specify.Response.ParametersEntry
-	(*Configure_Request)(nil),       // 11: processor.v1.Configure.Request
-	(*Configure_Response)(nil),      // 12: processor.v1.Configure.Response
-	nil,                             // 13: processor.v1.Configure.Request.ParametersEntry
-	(*Open_Request)(nil),            // 14: processor.v1.Open.Request
-	(*Open_Response)(nil),           // 15: processor.v1.Open.Response
-	(*Process_Request)(nil),         // 16: processor.v1.Process.Request
-	(*Process_Response)(nil),        // 17: processor.v1.Process.Response
-	(*Process_ProcessedRecord)(nil), // 18: processor.v1.Process.ProcessedRecord
-	(*Process_FilterRecord)(nil),    // 19: processor.v1.Process.FilterRecord
-	(*Process_ErrorRecord)(nil),     // 20: processor.v1.Process.ErrorRecord
-	(*Teardown_Request)(nil),        // 21: processor.v1.Teardown.Request
-	(*Teardown_Response)(nil),       // 22: processor.v1.Teardown.Response
-	(*v1.Parameter)(nil),            // 23: config.v1.Parameter
-	(*v11.Record)(nil),              // 24: opencdc.v1.Record
+	(Schema_Type)(0),                // 0: processor.v1.Schema.Type
+	(*CommandRequest)(nil),          // 1: processor.v1.CommandRequest
+	(*CommandResponse)(nil),         // 2: processor.v1.CommandResponse
+	(*Schema)(nil),                  // 3: processor.v1.Schema
+	(*CreateSchemaRequest)(nil),     // 4: processor.v1.CreateSchemaRequest
+	(*CreateSchemaResponse)(nil),    // 5: processor.v1.CreateSchemaResponse
+	(*GetSchemaRequest)(nil),        // 6: processor.v1.GetSchemaRequest
+	(*GetSchemaResponse)(nil),       // 7: processor.v1.GetSchemaResponse
+	(*Specify)(nil),                 // 8: processor.v1.Specify
+	(*Configure)(nil),               // 9: processor.v1.Configure
+	(*Open)(nil),                    // 10: processor.v1.Open
+	(*Process)(nil),                 // 11: processor.v1.Process
+	(*Teardown)(nil),                // 12: processor.v1.Teardown
+	(*Error)(nil),                   // 13: processor.v1.Error
+	(*Specify_Request)(nil),         // 14: processor.v1.Specify.Request
+	(*Specify_Response)(nil),        // 15: processor.v1.Specify.Response
+	nil,                             // 16: processor.v1.Specify.Response.ParametersEntry
+	(*Configure_Request)(nil),       // 17: processor.v1.Configure.Request
+	(*Configure_Response)(nil),      // 18: processor.v1.Configure.Response
+	nil,                             // 19: processor.v1.Configure.Request.ParametersEntry
+	(*Open_Request)(nil),            // 20: processor.v1.Open.Request
+	(*Open_Response)(nil),           // 21: processor.v1.Open.Response
+	(*Process_Request)(nil),         // 22: processor.v1.Process.Request
+	(*Process_Response)(nil),        // 23: processor.v1.Process.Response
+	(*Process_ProcessedRecord)(nil), // 24: processor.v1.Process.ProcessedRecord
+	(*Process_FilterRecord)(nil),    // 25: processor.v1.Process.FilterRecord
+	(*Process_ErrorRecord)(nil),     // 26: processor.v1.Process.ErrorRecord
+	(*Teardown_Request)(nil),        // 27: processor.v1.Teardown.Request
+	(*Teardown_Response)(nil),       // 28: processor.v1.Teardown.Response
+	(*v1.Parameter)(nil),            // 29: config.v1.Parameter
+	(*v11.Record)(nil),              // 30: opencdc.v1.Record
 }
 var file_processor_v1_processor_proto_depIdxs = []int32{
-	8,  // 0: processor.v1.CommandRequest.specify:type_name -> processor.v1.Specify.Request
-	11, // 1: processor.v1.CommandRequest.configure:type_name -> processor.v1.Configure.Request
-	14, // 2: processor.v1.CommandRequest.open:type_name -> processor.v1.Open.Request
-	16, // 3: processor.v1.CommandRequest.process:type_name -> processor.v1.Process.Request
-	21, // 4: processor.v1.CommandRequest.teardown:type_name -> processor.v1.Teardown.Request
-	7,  // 5: processor.v1.CommandResponse.error:type_name -> processor.v1.Error
-	9,  // 6: processor.v1.CommandResponse.specify:type_name -> processor.v1.Specify.Response
-	12, // 7: processor.v1.CommandResponse.configure:type_name -> processor.v1.Configure.Response
-	15, // 8: processor.v1.CommandResponse.open:type_name -> processor.v1.Open.Response
-	17, // 9: processor.v1.CommandResponse.process:type_name -> processor.v1.Process.Response
-	22, // 10: processor.v1.CommandResponse.teardown:type_name -> processor.v1.Teardown.Response
-	10, // 11: processor.v1.Specify.Response.parameters:type_name -> processor.v1.Specify.Response.ParametersEntry
-	23, // 12: processor.v1.Specify.Response.ParametersEntry.value:type_name -> config.v1.Parameter
-	13, // 13: processor.v1.Configure.Request.parameters:type_name -> processor.v1.Configure.Request.ParametersEntry
-	24, // 14: processor.v1.Process.Request.records:type_name -> opencdc.v1.Record
-	18, // 15: processor.v1.Process.Response.records:type_name -> processor.v1.Process.ProcessedRecord
-	24, // 16: processor.v1.Process.ProcessedRecord.single_record:type_name -> opencdc.v1.Record
-	19, // 17: processor.v1.Process.ProcessedRecord.filter_record:type_name -> processor.v1.Process.FilterRecord
-	20, // 18: processor.v1.Process.ProcessedRecord.error_record:type_name -> processor.v1.Process.ErrorRecord
-	7,  // 19: processor.v1.Process.ErrorRecord.error:type_name -> processor.v1.Error
-	20, // [20:20] is the sub-list for method output_type
-	20, // [20:20] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	14, // 0: processor.v1.CommandRequest.specify:type_name -> processor.v1.Specify.Request
+	17, // 1: processor.v1.CommandRequest.configure:type_name -> processor.v1.Configure.Request
+	20, // 2: processor.v1.CommandRequest.open:type_name -> processor.v1.Open.Request
+	22, // 3: processor.v1.CommandRequest.process:type_name -> processor.v1.Process.Request
+	27, // 4: processor.v1.CommandRequest.teardown:type_name -> processor.v1.Teardown.Request
+	13, // 5: processor.v1.CommandResponse.error:type_name -> processor.v1.Error
+	15, // 6: processor.v1.CommandResponse.specify:type_name -> processor.v1.Specify.Response
+	18, // 7: processor.v1.CommandResponse.configure:type_name -> processor.v1.Configure.Response
+	21, // 8: processor.v1.CommandResponse.open:type_name -> processor.v1.Open.Response
+	23, // 9: processor.v1.CommandResponse.process:type_name -> processor.v1.Process.Response
+	28, // 10: processor.v1.CommandResponse.teardown:type_name -> processor.v1.Teardown.Response
+	0,  // 11: processor.v1.Schema.type:type_name -> processor.v1.Schema.Type
+	0,  // 12: processor.v1.CreateSchemaRequest.type:type_name -> processor.v1.Schema.Type
+	3,  // 13: processor.v1.CreateSchemaResponse.schema:type_name -> processor.v1.Schema
+	3,  // 14: processor.v1.GetSchemaResponse.schema:type_name -> processor.v1.Schema
+	16, // 15: processor.v1.Specify.Response.parameters:type_name -> processor.v1.Specify.Response.ParametersEntry
+	29, // 16: processor.v1.Specify.Response.ParametersEntry.value:type_name -> config.v1.Parameter
+	19, // 17: processor.v1.Configure.Request.parameters:type_name -> processor.v1.Configure.Request.ParametersEntry
+	30, // 18: processor.v1.Process.Request.records:type_name -> opencdc.v1.Record
+	24, // 19: processor.v1.Process.Response.records:type_name -> processor.v1.Process.ProcessedRecord
+	30, // 20: processor.v1.Process.ProcessedRecord.single_record:type_name -> opencdc.v1.Record
+	25, // 21: processor.v1.Process.ProcessedRecord.filter_record:type_name -> processor.v1.Process.FilterRecord
+	26, // 22: processor.v1.Process.ProcessedRecord.error_record:type_name -> processor.v1.Process.ErrorRecord
+	13, // 23: processor.v1.Process.ErrorRecord.error:type_name -> processor.v1.Error
+	24, // [24:24] is the sub-list for method output_type
+	24, // [24:24] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_processor_v1_processor_proto_init() }
@@ -1409,7 +1782,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Specify); i {
+			switch v := v.(*Schema); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1421,7 +1794,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Configure); i {
+			switch v := v.(*CreateSchemaRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1433,7 +1806,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Open); i {
+			switch v := v.(*CreateSchemaResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1445,7 +1818,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Process); i {
+			switch v := v.(*GetSchemaRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1457,7 +1830,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Teardown); i {
+			switch v := v.(*GetSchemaResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1469,7 +1842,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Error); i {
+			switch v := v.(*Specify); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1481,7 +1854,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Specify_Request); i {
+			switch v := v.(*Configure); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1493,7 +1866,19 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Specify_Response); i {
+			switch v := v.(*Open); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_processor_v1_processor_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Process); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1505,7 +1890,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Configure_Request); i {
+			switch v := v.(*Teardown); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1517,7 +1902,19 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Configure_Response); i {
+			switch v := v.(*Error); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_processor_v1_processor_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Specify_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1529,19 +1926,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Open_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_processor_v1_processor_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Open_Response); i {
+			switch v := v.(*Specify_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1553,7 +1938,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Process_Request); i {
+			switch v := v.(*Configure_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1565,19 +1950,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Process_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_processor_v1_processor_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Process_ProcessedRecord); i {
+			switch v := v.(*Configure_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1589,7 +1962,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Process_FilterRecord); i {
+			switch v := v.(*Open_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1601,7 +1974,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Process_ErrorRecord); i {
+			switch v := v.(*Open_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1613,7 +1986,7 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Teardown_Request); i {
+			switch v := v.(*Process_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1625,6 +1998,66 @@ func file_processor_v1_processor_proto_init() {
 			}
 		}
 		file_processor_v1_processor_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Process_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_processor_v1_processor_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Process_ProcessedRecord); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_processor_v1_processor_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Process_FilterRecord); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_processor_v1_processor_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Process_ErrorRecord); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_processor_v1_processor_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Teardown_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_processor_v1_processor_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Teardown_Response); i {
 			case 0:
 				return &v.state
@@ -1652,7 +2085,7 @@ func file_processor_v1_processor_proto_init() {
 		(*CommandResponse_Process)(nil),
 		(*CommandResponse_Teardown)(nil),
 	}
-	file_processor_v1_processor_proto_msgTypes[18].OneofWrappers = []interface{}{
+	file_processor_v1_processor_proto_msgTypes[23].OneofWrappers = []interface{}{
 		(*Process_ProcessedRecord_SingleRecord)(nil),
 		(*Process_ProcessedRecord_FilterRecord)(nil),
 		(*Process_ProcessedRecord_ErrorRecord)(nil),
@@ -1662,13 +2095,14 @@ func file_processor_v1_processor_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_processor_v1_processor_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   23,
+			NumEnums:      1,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_processor_v1_processor_proto_goTypes,
 		DependencyIndexes: file_processor_v1_processor_proto_depIdxs,
+		EnumInfos:         file_processor_v1_processor_proto_enumTypes,
 		MessageInfos:      file_processor_v1_processor_proto_msgTypes,
 	}.Build()
 	File_processor_v1_processor_proto = out.File
