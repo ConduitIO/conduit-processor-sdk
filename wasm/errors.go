@@ -30,6 +30,11 @@ const (
 	ErrorCodeUnknownCommandRequest
 	ErrorCodeUnknownCommandResponse
 	ErrorCodeMemoryOutOfRange
+
+	ErrorCodeSchemaUnmarshal
+	ErrorCodeSchemaMarshal
+	ErrorCodeSchemaGet
+	ErrorCodeSchemaCreate
 )
 
 var (
@@ -37,6 +42,11 @@ var (
 	ErrUnknownCommandRequest  = NewError(ErrorCodeUnknownCommandRequest, "unknown command request")
 	ErrUnknownCommandResponse = NewError(ErrorCodeUnknownCommandResponse, "unknown command response")
 	ErrMemoryOutOfRange       = NewError(ErrorCodeMemoryOutOfRange, "memory out of range")
+
+	ErrSchemaUnmarshal = NewError(ErrorCodeSchemaUnmarshal, "failed to unmarshal the proto request")
+	ErrSchemaMarshal   = NewError(ErrorCodeSchemaMarshal, "failed to marshal the proto response into a schema")
+	ErrSchemaGet       = NewError(ErrorCodeSchemaGet, "error while getting the schema")
+	ErrSchemaCreate    = NewError(ErrorCodeSchemaCreate, "error while creating the schema")
 )
 
 // Error is an error sent to or received from the host (i.e. Conduit).
@@ -74,6 +84,14 @@ func NewErrorFromCode(code uint32) *Error {
 		return ErrUnknownCommandResponse
 	case ErrorCodeMemoryOutOfRange:
 		return ErrMemoryOutOfRange
+	case ErrorCodeSchemaUnmarshal:
+		return ErrSchemaUnmarshal
+	case ErrorCodeSchemaMarshal:
+		return ErrSchemaMarshal
+	case ErrorCodeSchemaGet:
+		return ErrSchemaGet
+	case ErrorCodeSchemaCreate:
+		return ErrSchemaCreate
 	default:
 		return NewError(code, "unknown error code")
 	}
