@@ -328,6 +328,7 @@ func (*CommandResponse_Process) isCommandResponse_Response() {}
 
 func (*CommandResponse_Teardown) isCommandResponse_Response() {}
 
+// temp, will use the commons proto when added
 type Schema struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
