@@ -26,37 +26,6 @@ message CommandResponse {
   }
 }
 
-// temp, will use the commons proto when added
-message Schema {
-  enum Type {
-    TYPE_UNSPECIFIED = 0;
-    TYPE_AVRO = 1;
-  }
-
-  string subject = 1;
-  int32 version = 2;
-  Type type = 3;
-  // The schema contents
-  bytes bytes = 4;
-}
-
-message CreateSchemaRequest {
-  string subject = 1;
-  Schema.Type type = 2;
-  bytes bytes = 3;
-}
-message CreateSchemaResponse {
-  Schema schema = 1;
-}
-
-message GetSchemaRequest {
-  string subject = 1;
-  int32 version = 2;
-}
-message GetSchemaResponse {
-  Schema schema = 1;
-}
-
 message Specify {
   message Request {}
   message Response {

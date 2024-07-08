@@ -12,29 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build wasm
-
 package schema
 
 import (
 	cschema "github.com/conduitio/conduit-commons/schema"
-	"github.com/conduitio/conduit-processor-sdk/wasm"
 )
 
-func Get(subject string, version int) (GetResponse, error) {
-	req := GetSchemaRequest(subject, version)
-	resp, err := wasm.GetSchema(req)
-	if err != nil {
-		return GetResponse{}, err
-	}
-	return ToGetResponse(resp), nil
+type CreateRequest struct {
+	Subject string
+	Type    cschema.Type
+	Bytes   []byte
+}
+type CreateResponse struct {
+	cschema.Schema
 }
 
-func Create(subject string, typ cschema.Type, bytes []byte) (CreateResponse, error) {
-	req := CreateSchemaRequest(subject, typ, bytes)
-	resp, err := wasm.CreateSchema(req)
-	if err != nil {
-		return CreateResponse{}, err
-	}
-	return ToCreateResponse(resp), nil
+type GetRequest struct {
+	Subject string
+	Version int
+}
+type GetResponse struct {
+	cschema.Schema
 }

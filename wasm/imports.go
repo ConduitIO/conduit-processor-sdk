@@ -42,7 +42,7 @@ func _commandRequest(ptr unsafe.Pointer, size uint32) uint32
 //go:wasmimport conduit command_response
 func _commandResponse(ptr unsafe.Pointer, size uint32) uint32
 
-// Imports `create_schema` from the host, which created a schema
+// Imports `create_schema` from the host, which creates a schema
 //
 // The arguments are:
 // (1) a pointer to the address where the response should be written
@@ -55,7 +55,7 @@ func _commandResponse(ptr unsafe.Pointer, size uint32) uint32
 //go:wasmimport conduit create_schema
 func _createSchema(ptr unsafe.Pointer, size uint32) uint32
 
-// Imports `get_schema` from the host, which created a schema
+// Imports `get_schema` from the host, which gets a schema
 //
 // The arguments are:
 // (1) a pointer to the address where the response should be written
