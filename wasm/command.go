@@ -18,34 +18,43 @@ package wasm
 
 import (
 	"fmt"
+	"sync"
+
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"google.golang.org/protobuf/proto"
 )
 
-const defaultCommandSize = 1024 // 1kB
+const defaultBufferSize = 1024 // 1kB
 
-var buffer = make([]byte, defaultCommandSize)
+var bufferPool = sync.Pool{
+	New: func() any {
+		return make([]byte, defaultBufferSize)
+	},
+}
 
 func NextCommand(cmdReq *processorv1.CommandRequest) error {
-	commandRequestCaller := HostCaller{Func: _commandRequest}
-	buf, cmdSize, err := commandRequestCaller.Call(buffer, cap(buffer))
+	buffer := bufferPool.Get().([]byte)
+	defer bufferPool.Put(buffer)
+
+	buffer, cmdSize, err := hostCall(_commandRequest, buffer[:cap(buffer)])
 	if err != nil {
 		return err
 	}
 	// parse the command
-	if err := proto.Unmarshal(buf[:cmdSize], cmdReq); err != nil {
+	if err := proto.Unmarshal(buffer[:cmdSize], cmdReq); err != nil {
 		return fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 	}
 	return nil
 }
 
 func Reply(resp *processorv1.CommandResponse) error {
-	var err error
-	buffer, err = proto.MarshalOptions{}.MarshalAppend(buffer[:0], resp)
+	buffer := bufferPool.Get().([]byte)
+	defer bufferPool.Put(buffer)
+
+	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], resp)
 	if err != nil {
 		return fmt.Errorf("failed marshalling proto type into bytes: %w", err)
 	}
-	commandResponseCaller := HostCaller{Func: _commandResponse}
-	_, _, err = commandResponseCaller.Call(buffer, len(buffer))
+	_, _, err = hostCall(_commandResponse, buffer)
 	return err
 }

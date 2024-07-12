@@ -30,13 +30,6 @@ const (
 	ErrorCodeUnknownCommandRequest
 	ErrorCodeUnknownCommandResponse
 	ErrorCodeMemoryOutOfRange
-
-	ErrorCodeSchemaUnmarshal
-	ErrorCodeSchemaMarshal
-	ErrorCodeSchemaNotFound
-	ErrorCodeInvalidSchemaSubject
-	ErrorCodeInvalidSchemaType
-	ErrorCodeInvalidSchemaBytes
 )
 
 var (
@@ -44,14 +37,6 @@ var (
 	ErrUnknownCommandRequest  = NewError(ErrorCodeUnknownCommandRequest, "unknown command request")
 	ErrUnknownCommandResponse = NewError(ErrorCodeUnknownCommandResponse, "unknown command response")
 	ErrMemoryOutOfRange       = NewError(ErrorCodeMemoryOutOfRange, "memory out of range")
-
-	ErrSchemaUnmarshal = NewError(ErrorCodeSchemaUnmarshal, "failed to unmarshal the proto request")
-	ErrSchemaMarshal   = NewError(ErrorCodeSchemaMarshal, "failed to marshal the proto response into a schema")
-
-	ErrSchemaNotFound       = NewError(ErrorCodeSchemaNotFound, "schema not found")
-	ErrInvalidSchemaSubject = NewError(ErrorCodeInvalidSchemaSubject, "invalid schema subject")
-	ErrInvalidSchemaType    = NewError(ErrorCodeInvalidSchemaType, "invalid schema type")
-	ErrInvalidSchemaBytes   = NewError(ErrorCodeInvalidSchemaBytes, "invalid schema bytes")
 )
 
 // Error is an error sent to or received from the host (i.e. Conduit).
@@ -89,18 +74,6 @@ func NewErrorFromCode(code uint32) *Error {
 		return ErrUnknownCommandResponse
 	case ErrorCodeMemoryOutOfRange:
 		return ErrMemoryOutOfRange
-	case ErrorCodeSchemaUnmarshal:
-		return ErrSchemaUnmarshal
-	case ErrorCodeSchemaMarshal:
-		return ErrSchemaMarshal
-	case ErrorCodeSchemaNotFound:
-		return ErrSchemaNotFound
-	case ErrorCodeInvalidSchemaSubject:
-		return ErrInvalidSchemaSubject
-	case ErrorCodeInvalidSchemaType:
-		return ErrInvalidSchemaType
-	case ErrorCodeInvalidSchemaBytes:
-		return ErrInvalidSchemaBytes
 	default:
 		return NewError(code, "unknown error code")
 	}

@@ -24,19 +24,21 @@ import (
 )
 
 func CreateSchema(req *conduitv1.CreateSchemaRequest) (*conduitv1.CreateSchemaResponse, error) {
-	buf, err := proto.Marshal(req)
+	buffer := bufferPool.Get().([]byte)
+	defer bufferPool.Put(buffer)
+
+	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], req)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling request: %w", err)
 	}
 
-	createSchemaCaller := HostCaller{Func: _createSchema}
-	buf, cmdSize, err := createSchemaCaller.Call(buf, cap(buf))
-	if err != nil {
-		return nil, err
+	buffer, cmdSize, err := hostCall(_createSchema, buffer)
+	if cmdSize >= ErrorCodeStart {
+		return nil, NewErrorFromCode(cmdSize)
 	}
 
 	var resp conduitv1.CreateSchemaResponse
-	err = proto.Unmarshal(buf[:cmdSize], &resp)
+	err = proto.Unmarshal(buffer[:cmdSize], &resp)
 	if err != nil {
 		return nil, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 	}
@@ -45,19 +47,21 @@ func CreateSchema(req *conduitv1.CreateSchemaRequest) (*conduitv1.CreateSchemaRe
 }
 
 func GetSchema(req *conduitv1.GetSchemaRequest) (*conduitv1.GetSchemaResponse, error) {
-	buf, err := proto.Marshal(req)
+	buffer := bufferPool.Get().([]byte)
+	defer bufferPool.Put(buffer)
+
+	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], req)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling request: %w", err)
 	}
 
-	getSchemaCaller := HostCaller{Func: _getSchema}
-	buf, cmdSize, err := getSchemaCaller.Call(buf, cap(buf))
-	if err != nil {
-		return nil, err
+	buffer, cmdSize, err := hostCall(_getSchema, buffer)
+	if cmdSize >= ErrorCodeStart {
+		return nil, NewErrorFromCode(cmdSize)
 	}
 
 	var resp conduitv1.GetSchemaResponse
-	err = proto.Unmarshal(buf[:cmdSize], &resp)
+	err = proto.Unmarshal(buffer[:cmdSize], &resp)
 	if err != nil {
 		return nil, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 	}

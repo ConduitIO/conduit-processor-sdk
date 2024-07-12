@@ -31,20 +31,17 @@ import (
 // memory and call the function again.
 type HostFunc func(ptr unsafe.Pointer, size uint32) uint32
 
-type HostCaller struct {
-	Func HostFunc
-}
-
 // Call calls the function from the host 2 times max, is the buffer size is not
 // enough the first time its called, it will be resized the second call.
-// returns the buffer, the command size, and the error.
-func (fc *HostCaller) Call(buf []byte, size int) ([]byte, uint32, error) {
+// returns the buffer and the command size, a command size that
+// is >= math.MaxUint32-100 indicates an error.
+func hostCall(fn HostFunc, buf []byte) ([]byte, uint32, error) {
 	// 2 tries, 1st try is with the current buffer size, if that's not enough,
 	// then resize the buffer and try again
 	for i := 0; i < 2; i++ {
 		// request the host to write the response to the given buffer address
 		ptr := unsafe.Pointer(&buf[0])
-		cmdSize := fc.Func(ptr, uint32(size))
+		cmdSize := fn(ptr, uint32(len(buf)))
 		switch {
 		case cmdSize >= ErrorCodeStart: // error codes
 			return nil, cmdSize, NewErrorFromCode(cmdSize)
