@@ -15,22 +15,32 @@
 package schema
 
 import (
-	cschema "github.com/conduitio/conduit-commons/schema"
+	"context"
+
+	"github.com/conduitio/conduit-commons/schema"
+	"github.com/conduitio/conduit-processor-sdk/conduit"
+	"github.com/conduitio/conduit-processor-sdk/conduit/global"
 )
 
-type CreateRequest struct {
-	Subject string
-	Type    cschema.Type
-	Bytes   []byte
-}
-type CreateResponse struct {
-	cschema.Schema
+func Get(ctx context.Context, subject string, version int) (schema.Schema, error) {
+	resp, err := global.SchemaService.GetSchema(ctx, conduit.GetSchemaRequest{
+		Subject: subject,
+		Version: version,
+	})
+	if err != nil {
+		return schema.Schema{}, err
+	}
+	return resp.Schema, nil
 }
 
-type GetRequest struct {
-	Subject string
-	Version int
-}
-type GetResponse struct {
-	cschema.Schema
+func Create(ctx context.Context, subject string, typ schema.Type, bytes []byte) (schema.Schema, error) {
+	resp, err := global.SchemaService.CreateSchema(ctx, conduit.CreateSchemaRequest{
+		Subject: subject,
+		Type:    typ,
+		Bytes:   bytes,
+	})
+	if err != nil {
+		return schema.Schema{}, err
+	}
+	return resp.Schema, nil
 }

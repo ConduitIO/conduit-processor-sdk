@@ -25,7 +25,6 @@ import (
 	"github.com/conduitio/conduit-commons/opencdc"
 	configv1 "github.com/conduitio/conduit-commons/proto/config/v1"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
-	"github.com/conduitio/conduit-processor-sdk/internal"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"github.com/conduitio/conduit-processor-sdk/wasm"
 	"github.com/rs/zerolog"
@@ -63,13 +62,11 @@ func Run(p Processor) {
 			logLevel:    os.Getenv("CONDUIT_LOG_LEVEL"),
 		}
 
-		ctx = internal.ContextWithUtil(
-			context.Background(),
-			wasm.NewUtil(env.logLevel),
-		)
-
+		ctx = context.Background() // TODO: add processor ID to context
 		cmd processorv1.CommandRequest
 	)
+
+	wasm.InitUtils(env.logLevel)
 
 	logger := Logger(ctx)
 	executor := commandExecutor{

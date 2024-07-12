@@ -12,35 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build wasm
-
-package wasm
+// Package global provides the functionality for Conduit to set up utilities
+// for processors. DO NOT use this package directly.
+package global
 
 import (
 	"os"
 
-	"github.com/conduitio/conduit-processor-sdk/conduit/global"
+	"github.com/conduitio/conduit-processor-sdk/conduit"
+
 	"github.com/rs/zerolog"
 )
 
-func InitUtils(logLevel string) {
-	initLogger(logLevel)
-	initSchemaService()
-}
+var (
+	// Logger is the logger for the processor. DO NOT use this logger directly,
+	// instead use the Logger() function in the root of the processor SDK.
+	Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
+		With().
+		Timestamp().
+		Logger()
 
-func initLogger(logLevel string) {
-	logger := zerolog.New(os.Stdout)
-
-	level, err := zerolog.ParseLevel(logLevel)
-	if err != nil {
-		logger.Warn().Err(err).Msg("failed to parse log level, falling back to debug")
-		// fallback to debug level
-		level = zerolog.DebugLevel
-	}
-	logger = logger.Level(level)
-	global.Logger = logger
-}
-
-func initSchemaService() {
-	global.SchemaService = &schemaService{}
-}
+	// TODO by default set to an in-memory schema service
+	SchemaService conduit.SchemaService
+)
