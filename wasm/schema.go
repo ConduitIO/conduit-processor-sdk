@@ -17,36 +17,47 @@
 package wasm
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/conduitio/conduit-processor-sdk/conduit"
+	"github.com/conduitio/conduit-processor-sdk/conduit/v1/fromproto"
+	"github.com/conduitio/conduit-processor-sdk/conduit/v1/toproto"
 
 	conduitv1 "github.com/conduitio/conduit-processor-sdk/proto/conduit/v1"
 	"google.golang.org/protobuf/proto"
 )
 
-func CreateSchema(req *conduitv1.CreateSchemaRequest) (*conduitv1.CreateSchemaResponse, error) {
+type schemaService struct{}
+
+func (*schemaService) CreateSchema(_ context.Context, req conduit.CreateSchemaRequest) (conduit.CreateSchemaResponse, error) {
+	protoReq := toproto.CreateSchemaRequest(req)
+
 	buffer := bufferPool.Get().([]byte)
 	defer bufferPool.Put(buffer)
 
-	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], req)
+	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], protoReq)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling request: %w", err)
+		return conduit.CreateSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
 	}
 
 	buffer, cmdSize, err := hostCall(_createSchema, buffer)
 	if cmdSize >= ErrorCodeStart {
-		return nil, NewErrorFromCode(cmdSize)
+		return conduit.CreateSchemaResponse{}, NewErrorFromCode(cmdSize)
 	}
 
-	var resp conduitv1.CreateSchemaResponse
-	err = proto.Unmarshal(buffer[:cmdSize], &resp)
+	var resp *conduitv1.CreateSchemaResponse
+	err = proto.Unmarshal(buffer[:cmdSize], resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
+		return conduit.CreateSchemaResponse{}, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 	}
-	return &resp, nil
+
+	return fromproto.CreateSchemaResponse(resp), nil
 
 }
 
-func GetSchema(req *conduitv1.GetSchemaRequest) (*conduitv1.GetSchemaResponse, error) {
+// TODO update the same as CreateSchema
+func (*schemaService) GetSchema(_ context.Context, req conduit.GetSchemaRequest) (conduit.GetSchemaResponse, error) {
 	buffer := bufferPool.Get().([]byte)
 	defer bufferPool.Put(buffer)
 

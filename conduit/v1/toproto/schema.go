@@ -12,22 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package schema
+package toproto
 
 import (
 	schemav1 "github.com/conduitio/conduit-commons/proto/schema/v1"
-	cschema "github.com/conduitio/conduit-commons/schema"
+	"github.com/conduitio/conduit-processor-sdk/conduit"
 	conduitv1 "github.com/conduitio/conduit-processor-sdk/proto/conduit/v1"
 )
 
-func GetSchemaRequest(subject string, version int) *conduitv1.GetSchemaRequest {
+func GetSchemaRequest(in conduit.GetSchemaRequest) *conduitv1.GetSchemaRequest {
+	// TODO implement
 	return &conduitv1.GetSchemaRequest{
 		Subject: subject,
 		Version: int32(version),
 	}
 }
 
-func GetSchemaResponse(inst cschema.Schema) *conduitv1.GetSchemaResponse {
+func GetSchemaResponse(in conduit.GetSchemaResponse) *conduitv1.GetSchemaResponse {
+	// TODO implement
 	return &conduitv1.GetSchemaResponse{
 		Schema: &schemav1.Schema{
 			Subject: inst.Subject,
@@ -38,7 +40,8 @@ func GetSchemaResponse(inst cschema.Schema) *conduitv1.GetSchemaResponse {
 	}
 }
 
-func CreateSchemaRequest(subject string, typ cschema.Type, bytes []byte) *conduitv1.CreateSchemaRequest {
+func CreateSchemaRequest(in conduit.CreateSchemaRequest) *conduitv1.CreateSchemaRequest {
+	// TODO implement
 	return &conduitv1.CreateSchemaRequest{
 		Subject: subject,
 		Type:    schemav1.Schema_Type(typ),
@@ -46,7 +49,8 @@ func CreateSchemaRequest(subject string, typ cschema.Type, bytes []byte) *condui
 	}
 }
 
-func CreateSchemaResponse(inst cschema.Schema) *conduitv1.CreateSchemaResponse {
+func CreateSchemaResponse(in conduit.CreateSchemaResponse) *conduitv1.CreateSchemaResponse {
+	// TODO implement
 	return &conduitv1.CreateSchemaResponse{
 		Schema: &schemav1.Schema{
 			Subject: inst.Subject,

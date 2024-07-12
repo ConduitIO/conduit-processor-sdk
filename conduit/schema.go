@@ -12,18 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package conduit provides the functionality for Conduit to set up and run
-// built-in processors. DO NOT use this package directly.
 package conduit
 
 import (
 	"context"
 
-	"github.com/conduitio/conduit-processor-sdk/internal"
+	"github.com/conduitio/conduit-commons/schema"
 )
 
-// ContextWithUtil allows Conduit to set the Util interface for built-in
-// processors. DO NOT use this function in your processor.
-func ContextWithUtil(ctx context.Context, util internal.Util) context.Context {
-	return internal.ContextWithUtil(ctx, util)
+type CreateSchemaRequest struct {
+	Subject string
+	Type    schema.Type
+	Bytes   []byte
+}
+type CreateSchemaResponse struct {
+	Schema schema.Schema
+}
+
+type GetSchemaRequest struct {
+	Subject string
+	Version int
+}
+type GetSchemaResponse struct {
+	Schema schema.Schema
+}
+
+type SchemaService interface {
+	CreateSchema(context.Context, CreateSchemaRequest) (CreateSchemaResponse, error)
+	GetSchema(context.Context, GetSchemaRequest) (GetSchemaResponse, error)
 }

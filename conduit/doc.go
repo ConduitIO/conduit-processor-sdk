@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !wasm
-
-package schema
-
-func Get() {
-	// conduit.SchemaService.Get()
-}
+// Package conduit provides the functionality for Conduit to set up utilities
+// for processors. DO NOT use this package directly.
+package conduit
