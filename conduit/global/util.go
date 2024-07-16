@@ -31,6 +31,6 @@ var (
 		Timestamp().
 		Logger()
 
-	// TODO by default set to an in-memory schema service
+	// TODO by default set to an in-memory schema service.
 	SchemaService conduit.SchemaService
 )

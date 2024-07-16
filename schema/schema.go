@@ -16,6 +16,7 @@ package schema
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/conduitio/conduit-commons/schema"
 	"github.com/conduitio/conduit-processor-sdk/conduit"
@@ -28,7 +29,7 @@ func Get(ctx context.Context, subject string, version int) (schema.Schema, error
 		Version: version,
 	})
 	if err != nil {
-		return schema.Schema{}, err
+		return schema.Schema{}, fmt.Errorf("error getting schema: %w", err)
 	}
 	return resp.Schema, nil
 }
@@ -40,7 +41,7 @@ func Create(ctx context.Context, subject string, typ schema.Type, bytes []byte) 
 		Bytes:   bytes,
 	})
 	if err != nil {
-		return schema.Schema{}, err
+		return schema.Schema{}, fmt.Errorf("error creating schema: %w", err)
 	}
 	return resp.Schema, nil
 }
