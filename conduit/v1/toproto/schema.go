@@ -21,42 +21,38 @@ import (
 )
 
 func GetSchemaRequest(in conduit.GetSchemaRequest) *conduitv1.GetSchemaRequest {
-	// TODO implement
 	return &conduitv1.GetSchemaRequest{
-		Subject: subject,
-		Version: int32(version),
+		Subject: in.Subject,
+		Version: int32(in.Version),
 	}
 }
 
 func GetSchemaResponse(in conduit.GetSchemaResponse) *conduitv1.GetSchemaResponse {
-	// TODO implement
 	return &conduitv1.GetSchemaResponse{
 		Schema: &schemav1.Schema{
-			Subject: inst.Subject,
-			Version: int32(inst.Version),
-			Type:    schemav1.Schema_Type(inst.Type),
-			Bytes:   inst.Bytes,
+			Subject: in.Schema.Subject,
+			Version: int32(in.Schema.Version),
+			Type:    schemav1.Schema_Type(in.Schema.Type),
+			Bytes:   in.Schema.Bytes,
 		},
 	}
 }
 
 func CreateSchemaRequest(in conduit.CreateSchemaRequest) *conduitv1.CreateSchemaRequest {
-	// TODO implement
 	return &conduitv1.CreateSchemaRequest{
-		Subject: subject,
-		Type:    schemav1.Schema_Type(typ),
-		Bytes:   bytes,
+		Subject: in.Subject,
+		Type:    schemav1.Schema_Type(in.Type),
+		Bytes:   in.Bytes,
 	}
 }
 
 func CreateSchemaResponse(in conduit.CreateSchemaResponse) *conduitv1.CreateSchemaResponse {
-	// TODO implement
 	return &conduitv1.CreateSchemaResponse{
 		Schema: &schemav1.Schema{
-			Subject: inst.Subject,
-			Version: int32(inst.Version),
-			Type:    schemav1.Schema_Type(inst.Type),
-			Bytes:   inst.Bytes,
+			Subject: in.Schema.Subject,
+			Version: int32(in.Schema.Version),
+			Type:    schemav1.Schema_Type(in.Schema.Type),
+			Bytes:   in.Schema.Bytes,
 		},
 	}
 }

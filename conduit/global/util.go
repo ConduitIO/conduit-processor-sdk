@@ -20,7 +20,6 @@ import (
 	"os"
 
 	"github.com/conduitio/conduit-processor-sdk/conduit"
-
 	"github.com/rs/zerolog"
 )
 
