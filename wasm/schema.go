@@ -23,7 +23,6 @@ import (
 	"github.com/conduitio/conduit-processor-sdk/conduit"
 	"github.com/conduitio/conduit-processor-sdk/conduit/v1/fromproto"
 	"github.com/conduitio/conduit-processor-sdk/conduit/v1/toproto"
-
 	conduitv1 "github.com/conduitio/conduit-processor-sdk/proto/conduit/v1"
 	"google.golang.org/protobuf/proto"
 )
@@ -42,39 +41,39 @@ func (*schemaService) CreateSchema(_ context.Context, req conduit.CreateSchemaRe
 	}
 
 	buffer, cmdSize, err := hostCall(_createSchema, buffer)
-	if cmdSize >= ErrorCodeStart {
-		return conduit.CreateSchemaResponse{}, NewErrorFromCode(cmdSize)
+	if err != nil {
+		return conduit.CreateSchemaResponse{}, err
 	}
 
-	var resp *conduitv1.CreateSchemaResponse
-	err = proto.Unmarshal(buffer[:cmdSize], resp)
+	var resp conduitv1.CreateSchemaResponse
+	err = proto.Unmarshal(buffer[:cmdSize], &resp)
 	if err != nil {
 		return conduit.CreateSchemaResponse{}, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 	}
 
-	return fromproto.CreateSchemaResponse(resp), nil
+	return fromproto.CreateSchemaResponse(&resp), nil
 
 }
 
-// TODO update the same as CreateSchema
 func (*schemaService) GetSchema(_ context.Context, req conduit.GetSchemaRequest) (conduit.GetSchemaResponse, error) {
+	protoReq := toproto.GetSchemaRequest(req)
+
 	buffer := bufferPool.Get().([]byte)
 	defer bufferPool.Put(buffer)
 
-	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], req)
+	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], protoReq)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling request: %w", err)
+		return conduit.GetSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
 	}
 
 	buffer, cmdSize, err := hostCall(_getSchema, buffer)
-	if cmdSize >= ErrorCodeStart {
-		return nil, NewErrorFromCode(cmdSize)
+	if err != nil {
+		return conduit.GetSchemaResponse{}, err
 	}
-
 	var resp conduitv1.GetSchemaResponse
 	err = proto.Unmarshal(buffer[:cmdSize], &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
+		return conduit.GetSchemaResponse{}, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 	}
-	return &resp, nil
+	return fromproto.GetSchemaResponse(&resp), nil
 }
