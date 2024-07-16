@@ -45,7 +45,7 @@ func hostCall(fn HostFunc, buf []byte) ([]byte, uint32, error) {
 		switch {
 		case cmdSize >= ErrorCodeStart: // error codes
 			return nil, cmdSize, NewErrorFromCode(cmdSize)
-		case cmdSize > uint32(cap(buf)) && i == 0: // not enough memory
+		case cmdSize > uint32(len(buf)) && i == 0: // not enough memory
 			oldSize := uint32(len(buf))
 			buf = append(buf, make([]byte, cmdSize-oldSize)...)
 			continue // try again
