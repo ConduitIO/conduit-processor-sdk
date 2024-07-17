@@ -16,20 +16,20 @@ package fromproto
 
 import (
 	"github.com/conduitio/conduit-commons/schema"
-	"github.com/conduitio/conduit-processor-sdk/conduit"
+	"github.com/conduitio/conduit-processor-sdk/pconduit"
 	conduitv1 "github.com/conduitio/conduit-processor-sdk/proto/conduit/v1"
 )
 
-func CreateSchemaRequest(req *conduitv1.CreateSchemaRequest) conduit.CreateSchemaRequest {
-	return conduit.CreateSchemaRequest{
+func CreateSchemaRequest(req *conduitv1.CreateSchemaRequest) pconduit.CreateSchemaRequest {
+	return pconduit.CreateSchemaRequest{
 		Subject: req.Subject,
 		Type:    schema.Type(req.Type),
 		Bytes:   req.Bytes,
 	}
 }
 
-func CreateSchemaResponse(resp *conduitv1.CreateSchemaResponse) conduit.CreateSchemaResponse {
-	return conduit.CreateSchemaResponse{
+func CreateSchemaResponse(resp *conduitv1.CreateSchemaResponse) pconduit.CreateSchemaResponse {
+	return pconduit.CreateSchemaResponse{
 		Schema: schema.Schema{
 			Subject: resp.Schema.Subject,
 			Version: int(resp.Schema.Version),
@@ -39,8 +39,8 @@ func CreateSchemaResponse(resp *conduitv1.CreateSchemaResponse) conduit.CreateSc
 	}
 }
 
-func GetSchemaResponse(resp *conduitv1.GetSchemaResponse) conduit.GetSchemaResponse {
-	return conduit.GetSchemaResponse{
+func GetSchemaResponse(resp *conduitv1.GetSchemaResponse) pconduit.GetSchemaResponse {
+	return pconduit.GetSchemaResponse{
 		Schema: schema.Schema{
 			Subject: resp.Schema.Subject,
 			Version: int(resp.Schema.Version),

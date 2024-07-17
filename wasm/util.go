@@ -19,7 +19,7 @@ package wasm
 import (
 	"os"
 
-	"github.com/conduitio/conduit-processor-sdk/conduit/global"
+	"github.com/conduitio/conduit-processor-sdk/pconduit/global"
 	"github.com/rs/zerolog"
 )
 

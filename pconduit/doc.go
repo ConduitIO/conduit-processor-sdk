@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package conduit provides the functionality for Conduit to set up utilities
+// Package pconduit provides the functionality for Conduit to set up utilities
 // for processors. DO NOT use this package directly.
-package conduit
+package pconduit

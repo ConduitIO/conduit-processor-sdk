@@ -16,18 +16,18 @@ package toproto
 
 import (
 	schemav1 "github.com/conduitio/conduit-commons/proto/schema/v1"
-	"github.com/conduitio/conduit-processor-sdk/conduit"
+	"github.com/conduitio/conduit-processor-sdk/pconduit"
 	conduitv1 "github.com/conduitio/conduit-processor-sdk/proto/conduit/v1"
 )
 
-func GetSchemaRequest(in conduit.GetSchemaRequest) *conduitv1.GetSchemaRequest {
+func GetSchemaRequest(in pconduit.GetSchemaRequest) *conduitv1.GetSchemaRequest {
 	return &conduitv1.GetSchemaRequest{
 		Subject: in.Subject,
 		Version: int32(in.Version),
 	}
 }
 
-func GetSchemaResponse(in conduit.GetSchemaResponse) *conduitv1.GetSchemaResponse {
+func GetSchemaResponse(in pconduit.GetSchemaResponse) *conduitv1.GetSchemaResponse {
 	return &conduitv1.GetSchemaResponse{
 		Schema: &schemav1.Schema{
 			Subject: in.Schema.Subject,
@@ -38,7 +38,7 @@ func GetSchemaResponse(in conduit.GetSchemaResponse) *conduitv1.GetSchemaRespons
 	}
 }
 
-func CreateSchemaRequest(in conduit.CreateSchemaRequest) *conduitv1.CreateSchemaRequest {
+func CreateSchemaRequest(in pconduit.CreateSchemaRequest) *conduitv1.CreateSchemaRequest {
 	return &conduitv1.CreateSchemaRequest{
 		Subject: in.Subject,
 		Type:    schemav1.Schema_Type(in.Type),
@@ -46,7 +46,7 @@ func CreateSchemaRequest(in conduit.CreateSchemaRequest) *conduitv1.CreateSchema
 	}
 }
 
-func CreateSchemaResponse(in conduit.CreateSchemaResponse) *conduitv1.CreateSchemaResponse {
+func CreateSchemaResponse(in pconduit.CreateSchemaResponse) *conduitv1.CreateSchemaResponse {
 	return &conduitv1.CreateSchemaResponse{
 		Schema: &schemav1.Schema{
 			Subject: in.Schema.Subject,

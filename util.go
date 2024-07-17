@@ -20,8 +20,8 @@ import (
 
 	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
-	"github.com/conduitio/conduit-processor-sdk/conduit/global"
 	"github.com/conduitio/conduit-processor-sdk/internal/reference"
+	"github.com/conduitio/conduit-processor-sdk/pconduit/global"
 	"github.com/rs/zerolog"
 )
 

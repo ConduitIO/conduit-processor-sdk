@@ -19,12 +19,12 @@ import (
 	"fmt"
 
 	"github.com/conduitio/conduit-commons/schema"
-	"github.com/conduitio/conduit-processor-sdk/conduit"
-	"github.com/conduitio/conduit-processor-sdk/conduit/global"
+	"github.com/conduitio/conduit-processor-sdk/pconduit"
+	"github.com/conduitio/conduit-processor-sdk/pconduit/global"
 )
 
 func Get(ctx context.Context, subject string, version int) (schema.Schema, error) {
-	resp, err := global.SchemaService.GetSchema(ctx, conduit.GetSchemaRequest{
+	resp, err := global.SchemaService.GetSchema(ctx, pconduit.GetSchemaRequest{
 		Subject: subject,
 		Version: version,
 	})
@@ -35,7 +35,7 @@ func Get(ctx context.Context, subject string, version int) (schema.Schema, error
 }
 
 func Create(ctx context.Context, subject string, typ schema.Type, bytes []byte) (schema.Schema, error) {
-	resp, err := global.SchemaService.CreateSchema(ctx, conduit.CreateSchemaRequest{
+	resp, err := global.SchemaService.CreateSchema(ctx, pconduit.CreateSchemaRequest{
 		Subject: subject,
 		Type:    typ,
 		Bytes:   bytes,

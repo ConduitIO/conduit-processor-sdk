@@ -12,32 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package conduit
+// Package global provides the functionality for Conduit to set up utilities
+// for processors. DO NOT use this package directly.
+package global
 
 import (
-	"context"
+	"os"
 
-	"github.com/conduitio/conduit-commons/schema"
+	"github.com/conduitio/conduit-processor-sdk/pconduit"
+	"github.com/rs/zerolog"
 )
 
-type CreateSchemaRequest struct {
-	Subject string
-	Type    schema.Type
-	Bytes   []byte
-}
-type CreateSchemaResponse struct {
-	Schema schema.Schema
-}
+var (
+	// Logger is the logger for the processor. DO NOT use this logger directly,
+	// instead use the Logger() function in the root of the processor SDK.
+	Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
+		With().
+		Timestamp().
+		Logger()
 
-type GetSchemaRequest struct {
-	Subject string
-	Version int
-}
-type GetSchemaResponse struct {
-	Schema schema.Schema
-}
-
-type SchemaService interface {
-	CreateSchema(context.Context, CreateSchemaRequest) (CreateSchemaResponse, error)
-	GetSchema(context.Context, GetSchemaRequest) (GetSchemaResponse, error)
-}
+	// TODO by default set to an in-memory schema service.
+	SchemaService pconduit.SchemaService
+)
