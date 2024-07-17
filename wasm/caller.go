@@ -18,6 +18,8 @@ package wasm
 
 import (
 	"unsafe"
+
+	"github.com/conduitio/conduit-processor-sdk/conduit"
 )
 
 // HostFunc is the function type for the imported functions from the host.
@@ -44,7 +46,7 @@ func hostCall(fn HostFunc, buf []byte) ([]byte, uint32, error) {
 		cmdSize := fn(ptr, uint32(len(buf)))
 		switch {
 		case cmdSize >= ErrorCodeStart: // error codes
-			return nil, cmdSize, NewErrorFromCode(cmdSize)
+			return nil, cmdSize, conduit.NewErrorFromCode(cmdSize)
 		case cmdSize > uint32(len(buf)) && i == 0: // not enough memory
 			oldSize := uint32(len(buf))
 			buf = append(buf, make([]byte, cmdSize-oldSize)...)
