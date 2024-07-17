@@ -36,9 +36,9 @@ func NextCommand(cmdReq *processorv1.CommandRequest) error {
 	buffer := bufferPool.Get().([]byte)
 	defer bufferPool.Put(buffer)
 
-	buffer, cmdSize, err := hostCall(_commandRequest, buffer[:cap(buffer)])
-	if err != nil {
-		return err
+	buffer, cmdSize := hostCall(_commandRequest, buffer[:cap(buffer)])
+	if cmdSize >= ErrorCodeStart {
+		return NewErrorFromCode(cmdSize)
 	}
 	// parse the command
 	if err := proto.Unmarshal(buffer[:cmdSize], cmdReq); err != nil {
@@ -55,6 +55,9 @@ func Reply(resp *processorv1.CommandResponse) error {
 	if err != nil {
 		return fmt.Errorf("failed marshalling proto type into bytes: %w", err)
 	}
-	_, _, err = hostCall(_commandResponse, buffer)
-	return err
+	_, cmdSize := hostCall(_commandResponse, buffer)
+	if cmdSize >= ErrorCodeStart {
+		return NewErrorFromCode(cmdSize)
+	}
+	return nil
 }

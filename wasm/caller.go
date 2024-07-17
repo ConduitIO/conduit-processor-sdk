@@ -18,8 +18,6 @@ package wasm
 
 import (
 	"unsafe"
-
-	"github.com/conduitio/conduit-processor-sdk/conduit"
 )
 
 // HostFunc is the function type for the imported functions from the host.
@@ -36,7 +34,7 @@ type HostFunc func(ptr unsafe.Pointer, size uint32) uint32
 // Call calls the function from the host 2 times max, is the buffer size is not
 // enough the first time its called, it will be resized the second call.
 // returns the buffer, command size, and error.
-func hostCall(fn HostFunc, buf []byte) ([]byte, uint32, error) {
+func hostCall(fn HostFunc, buf []byte) ([]byte, uint32) {
 	// 2 tries, 1st try is with the current buffer size, if that's not enough,
 	// then resize the buffer and try again
 	for i := 0; i < 2; i++ {
@@ -45,13 +43,13 @@ func hostCall(fn HostFunc, buf []byte) ([]byte, uint32, error) {
 		cmdSize := fn(ptr, uint32(len(buf)))
 		switch {
 		case cmdSize >= ErrorCodeStart: // error codes
-			return nil, cmdSize, conduit.NewErrorFromCode(cmdSize)
+			return nil, cmdSize
 		case cmdSize > uint32(len(buf)) && i == 0: // not enough memory
 			oldSize := uint32(len(buf))
 			buf = append(buf, make([]byte, cmdSize-oldSize)...)
 			continue // try again
 		}
-		return buf, cmdSize, nil
+		return buf, cmdSize
 	}
 	panic("if this is reached, then the buffer was not resized correctly and we are in an infinite loop")
 }

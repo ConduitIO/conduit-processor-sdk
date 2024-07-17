@@ -40,9 +40,9 @@ func (*schemaService) CreateSchema(_ context.Context, req conduit.CreateSchemaRe
 		return conduit.CreateSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
 	}
 
-	buffer, cmdSize, err := hostCall(_createSchema, buffer)
-	if err != nil {
-		return conduit.CreateSchemaResponse{}, fmt.Errorf("error while creating schema: %w", err)
+	buffer, cmdSize := hostCall(_createSchema, buffer)
+	if cmdSize >= ErrorCodeStart {
+		return conduit.CreateSchemaResponse{}, conduit.NewErrorFromCode(cmdSize)
 	}
 
 	var resp conduitv1.CreateSchemaResponse
@@ -66,10 +66,11 @@ func (*schemaService) GetSchema(_ context.Context, req conduit.GetSchemaRequest)
 		return conduit.GetSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
 	}
 
-	buffer, cmdSize, err := hostCall(_getSchema, buffer)
-	if err != nil {
-		return conduit.GetSchemaResponse{}, fmt.Errorf("error while getting schema: %w", err)
+	buffer, cmdSize := hostCall(_getSchema, buffer)
+	if cmdSize >= ErrorCodeStart {
+		return conduit.GetSchemaResponse{}, conduit.NewErrorFromCode(cmdSize)
 	}
+
 	var resp conduitv1.GetSchemaResponse
 	err = proto.Unmarshal(buffer[:cmdSize], &resp)
 	if err != nil {
