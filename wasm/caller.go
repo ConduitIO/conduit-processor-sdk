@@ -35,8 +35,7 @@ type HostFunc func(ptr unsafe.Pointer, size uint32) uint32
 
 // Call calls the function from the host 2 times max, is the buffer size is not
 // enough the first time its called, it will be resized the second call.
-// returns the buffer and the command size, a command size that
-// is >= math.MaxUint32-100 indicates an error.
+// returns the buffer, command size, and error.
 func hostCall(fn HostFunc, buf []byte) ([]byte, uint32, error) {
 	// 2 tries, 1st try is with the current buffer size, if that's not enough,
 	// then resize the buffer and try again
