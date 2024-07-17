@@ -22,12 +22,22 @@ const (
 	// ErrorCodeStart is the smallest error code which the wasm package can send.
 	ErrorCodeStart = math.MaxUint32 - 100
 
-	ErrorCodeSubjectNotFound = math.MaxUint32 - 100 + iota
+	ErrorCodeNoMoreCommands = math.MaxUint32 - iota
+	ErrorCodeUnknownCommandRequest
+	ErrorCodeUnknownCommandResponse
+	ErrorCodeMemoryOutOfRange
+
+	ErrorCodeSubjectNotFound
 	ErrorCodeVersionNotFound
 	ErrorCodeInvalidSchema
 )
 
 var (
+	ErrNoMoreCommands         = NewError(ErrorCodeNoMoreCommands, "no more commands")
+	ErrUnknownCommandRequest  = NewError(ErrorCodeUnknownCommandRequest, "unknown command request")
+	ErrUnknownCommandResponse = NewError(ErrorCodeUnknownCommandResponse, "unknown command response")
+	ErrMemoryOutOfRange       = NewError(ErrorCodeMemoryOutOfRange, "memory out of range")
+
 	ErrSubjectNotFound = NewError(ErrorCodeSubjectNotFound, "schema subject not found")
 	ErrVersionNotFound = NewError(ErrorCodeVersionNotFound, "schema version not found")
 	ErrInvalidSchema   = NewError(ErrorCodeInvalidSchema, "invalid schema")
@@ -59,6 +69,14 @@ func NewError(code uint32, message string) *Error {
 
 func NewErrorFromCode(code uint32) *Error {
 	switch code {
+	case ErrorCodeNoMoreCommands:
+		return ErrNoMoreCommands
+	case ErrorCodeUnknownCommandRequest:
+		return ErrUnknownCommandRequest
+	case ErrorCodeUnknownCommandResponse:
+		return ErrUnknownCommandResponse
+	case ErrorCodeMemoryOutOfRange:
+		return ErrMemoryOutOfRange
 	case ErrorCodeSubjectNotFound:
 		return ErrSubjectNotFound
 	case ErrorCodeVersionNotFound:

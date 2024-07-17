@@ -40,9 +40,9 @@ func (*schemaService) CreateSchema(_ context.Context, req pconduit.CreateSchemaR
 		return pconduit.CreateSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
 	}
 
-	buffer, cmdSize := hostCall(_createSchema, buffer)
-	if cmdSize >= ErrorCodeStart {
-		return pconduit.CreateSchemaResponse{}, pconduit.NewErrorFromCode(cmdSize)
+	buffer, cmdSize, err := hostCall(_createSchema, buffer)
+	if err != nil {
+		return pconduit.CreateSchemaResponse{}, fmt.Errorf("error calling createSchema: %w", err)
 	}
 
 	var resp conduitv1.CreateSchemaResponse
@@ -66,9 +66,9 @@ func (*schemaService) GetSchema(_ context.Context, req pconduit.GetSchemaRequest
 		return pconduit.GetSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
 	}
 
-	buffer, cmdSize := hostCall(_getSchema, buffer)
-	if cmdSize >= ErrorCodeStart {
-		return pconduit.GetSchemaResponse{}, pconduit.NewErrorFromCode(cmdSize)
+	buffer, cmdSize, err := hostCall(_getSchema, buffer)
+	if err != nil {
+		return pconduit.GetSchemaResponse{}, fmt.Errorf("error calling getSchema: %w", err)
 	}
 
 	var resp conduitv1.GetSchemaResponse
