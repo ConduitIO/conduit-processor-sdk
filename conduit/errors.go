@@ -28,9 +28,9 @@ const (
 )
 
 var (
-	ErrorSubjectNotFound = NewError(ErrorCodeSubjectNotFound, "schema subject not found")
-	ErrorVersionNotFound = NewError(ErrorCodeVersionNotFound, "schema version not found")
-	ErrorInvalidSchema   = NewError(ErrorCodeInvalidSchema, "invalid schema")
+	ErrSubjectNotFound = NewError(ErrorCodeSubjectNotFound, "schema subject not found")
+	ErrVersionNotFound = NewError(ErrorCodeVersionNotFound, "schema version not found")
+	ErrInvalidSchema   = NewError(ErrorCodeInvalidSchema, "invalid schema")
 )
 
 type Error struct {
@@ -60,11 +60,11 @@ func NewError(code uint32, message string) *Error {
 func NewErrorFromCode(code uint32) *Error {
 	switch code {
 	case ErrorCodeSubjectNotFound:
-		return ErrorSubjectNotFound
+		return ErrSubjectNotFound
 	case ErrorCodeVersionNotFound:
-		return ErrorVersionNotFound
+		return ErrVersionNotFound
 	case ErrorCodeInvalidSchema:
-		return ErrorInvalidSchema
+		return ErrInvalidSchema
 	default:
 		return NewError(code, "unknown error code")
 	}
