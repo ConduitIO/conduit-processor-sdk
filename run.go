@@ -25,7 +25,7 @@ import (
 	"github.com/conduitio/conduit-commons/opencdc"
 	configv1 "github.com/conduitio/conduit-commons/proto/config/v1"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
-	"github.com/conduitio/conduit-processor-sdk/internal"
+	"github.com/conduitio/conduit-processor-sdk/pconduit"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"github.com/conduitio/conduit-processor-sdk/wasm"
 	"github.com/rs/zerolog"
@@ -63,13 +63,11 @@ func Run(p Processor) {
 			logLevel:    os.Getenv("CONDUIT_LOG_LEVEL"),
 		}
 
-		ctx = internal.ContextWithUtil(
-			context.Background(),
-			wasm.NewUtil(env.logLevel),
-		)
-
+		ctx = context.Background() // TODO: add processor ID to context
 		cmd processorv1.CommandRequest
 	)
+
+	wasm.InitUtils(env.logLevel)
 
 	logger := Logger(ctx)
 	executor := commandExecutor{
@@ -82,7 +80,7 @@ func Run(p Processor) {
 		cmd.Reset()
 		err := wasm.NextCommand(&cmd)
 		if err != nil {
-			if errors.Is(err, wasm.ErrNoMoreCommands) {
+			if errors.Is(err, pconduit.ErrNoMoreCommands) {
 				os.Exit(0)
 			}
 			_, _ = fmt.Fprintf(os.Stderr, "failed retrieving next command: %v", err)
@@ -142,7 +140,7 @@ func (e commandExecutor) Execute(ctx context.Context, p Processor, cmdReq *proce
 	case *processorv1.CommandRequest_Teardown:
 		resp, err = e.executeTeardown(ctx, p, req.Teardown)
 	default:
-		err = wasm.ErrUnknownCommandRequest
+		err = pconduit.ErrUnknownCommandRequest
 	}
 
 	if err != nil {
@@ -316,7 +314,7 @@ func (c protoConverter) errorRecord(in ErrorRecord) (*processorv1.Process_Proces
 }
 
 func (c protoConverter) error(err error) *processorv1.Error {
-	var wasmErr *wasm.Error
+	var wasmErr *pconduit.Error
 	var code uint32
 	if errors.As(err, &wasmErr) {
 		code = wasmErr.ErrCode

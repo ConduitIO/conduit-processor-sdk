@@ -12,18 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package conduit provides the functionality for Conduit to set up and run
-// built-in processors. DO NOT use this package directly.
-package conduit
+// Package global provides the functionality for Conduit to set up utilities
+// for processors. DO NOT use this package directly.
+package global
 
 import (
-	"context"
+	"os"
 
-	"github.com/conduitio/conduit-processor-sdk/internal"
+	"github.com/conduitio/conduit-processor-sdk/pconduit"
+	"github.com/rs/zerolog"
 )
 
-// ContextWithUtil allows Conduit to set the Util interface for built-in
-// processors. DO NOT use this function in your processor.
-func ContextWithUtil(ctx context.Context, util internal.Util) context.Context {
-	return internal.ContextWithUtil(ctx, util)
-}
+var (
+	// Logger is the logger for the processor. DO NOT use this logger directly,
+	// instead use the Logger() function in the root of the processor SDK.
+	Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
+		With().
+		Timestamp().
+		Logger()
+
+	// TODO by default set to an in-memory schema service.
+	SchemaService pconduit.SchemaService
+)

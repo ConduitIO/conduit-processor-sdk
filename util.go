@@ -20,16 +20,17 @@ import (
 
 	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
-	"github.com/conduitio/conduit-processor-sdk/internal"
 	"github.com/conduitio/conduit-processor-sdk/internal/reference"
+	"github.com/conduitio/conduit-processor-sdk/pconduit/global"
 	"github.com/rs/zerolog"
 )
 
-// Logger returns the logger for the current context. Please provide the context
-// that is passed to any of the processor's methods (Configure, Open, Process,
-// Teardown).
+// Logger returns the logger for the processor. Please provide the context that
+// is passed to any of the processor's methods (Configure, Open, Process,
+// Teardown) to ensure that the log messages include contextual information.
 func Logger(ctx context.Context) *zerolog.Logger {
-	return internal.UtilFromContext(ctx).Logger(ctx)
+	l := global.Logger.With().Ctx(ctx).Logger()
+	return &l
 }
 
 // Reference is an interface that represents a reference to a field in a record.

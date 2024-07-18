@@ -12,24 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wasm
+package pconduit
 
 import (
-	"errors"
 	"math"
 )
 
 const (
-	// ErrorCodeStart is the smallest error code which the host (i.e. Conduit) can send.
-	// The imported function _nextCommand returns an uint32 value
-	// that is either the number of bytes actually written or an error code.
-	// Because of that, we're reserving a range of error codes.
+	// ErrorCodeStart is the smallest error code which the wasm package can send.
 	ErrorCodeStart = math.MaxUint32 - 100
 
 	ErrorCodeNoMoreCommands = math.MaxUint32 - iota
 	ErrorCodeUnknownCommandRequest
 	ErrorCodeUnknownCommandResponse
 	ErrorCodeMemoryOutOfRange
+
+	ErrorCodeSubjectNotFound
+	ErrorCodeVersionNotFound
+	ErrorCodeInvalidSchema
 )
 
 var (
@@ -37,9 +37,12 @@ var (
 	ErrUnknownCommandRequest  = NewError(ErrorCodeUnknownCommandRequest, "unknown command request")
 	ErrUnknownCommandResponse = NewError(ErrorCodeUnknownCommandResponse, "unknown command response")
 	ErrMemoryOutOfRange       = NewError(ErrorCodeMemoryOutOfRange, "memory out of range")
+
+	ErrSubjectNotFound = NewError(ErrorCodeSubjectNotFound, "schema subject not found")
+	ErrVersionNotFound = NewError(ErrorCodeVersionNotFound, "schema version not found")
+	ErrInvalidSchema   = NewError(ErrorCodeInvalidSchema, "invalid schema")
 )
 
-// Error is an error sent to or received from the host (i.e. Conduit).
 type Error struct {
 	ErrCode uint32
 	Message string
@@ -74,15 +77,13 @@ func NewErrorFromCode(code uint32) *Error {
 		return ErrUnknownCommandResponse
 	case ErrorCodeMemoryOutOfRange:
 		return ErrMemoryOutOfRange
+	case ErrorCodeSubjectNotFound:
+		return ErrSubjectNotFound
+	case ErrorCodeVersionNotFound:
+		return ErrVersionNotFound
+	case ErrorCodeInvalidSchema:
+		return ErrInvalidSchema
 	default:
 		return NewError(code, "unknown error code")
 	}
-}
-
-func CodeFromError(err error) uint32 {
-	var wasmErr *Error
-	if errors.As(err, &wasmErr) {
-		return wasmErr.ErrCode
-	}
-	return 0
 }

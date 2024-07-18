@@ -18,54 +18,43 @@ package wasm
 
 import (
 	"fmt"
-	"unsafe"
+	"sync"
 
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"google.golang.org/protobuf/proto"
 )
 
-const defaultCommandSize = 1024 // 1kB
+const defaultBufferSize = 1024 // 1kB
 
-var buffer = make([]byte, defaultCommandSize)
+var bufferPool = sync.Pool{
+	New: func() any {
+		return make([]byte, defaultBufferSize)
+	},
+}
 
-// NextCommand retrieves the next command from Conduit.
 func NextCommand(cmdReq *processorv1.CommandRequest) error {
-	// 2 tries, 1st try is with the current buffer size, if that's not enough,
-	// then resize the buffer and try again
-	for i := 0; i < 2; i++ {
-		// request Conduit to write the command to the given buffer
-		ptr := unsafe.Pointer(&buffer[0])
-		cmdSize := _commandRequest(ptr, uint32(cap(buffer)))
+	buffer := bufferPool.Get().([]byte)
+	defer bufferPool.Put(buffer)
 
-		switch {
-		case cmdSize >= ErrorCodeStart: // error codes
-			return NewErrorFromCode(cmdSize)
-		case cmdSize > uint32(cap(buffer)): // not enough memory
-			buffer = make([]byte, cmdSize) // resize buffer
-			continue                       // try again
-		}
-
-		// parse the command
-		if err := proto.Unmarshal(buffer[:cmdSize], cmdReq); err != nil {
-			return fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
-		}
-		return nil
+	buffer, cmdSize, err := hostCall(_commandRequest, buffer[:cap(buffer)])
+	if err != nil {
+		return err
 	}
-	panic("if this is reached, then the buffer was not resized correctly and we are in an infinite loop")
+	// parse the command
+	if err := proto.Unmarshal(buffer[:cmdSize], cmdReq); err != nil {
+		return fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
+	}
+	return nil
 }
 
 func Reply(resp *processorv1.CommandResponse) error {
-	var err error
-	buffer, err = proto.MarshalOptions{}.MarshalAppend(buffer[:0], resp)
+	buffer := bufferPool.Get().([]byte)
+	defer bufferPool.Put(buffer)
+
+	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], resp)
 	if err != nil {
 		return fmt.Errorf("failed marshalling proto type into bytes: %w", err)
 	}
-
-	ptr := unsafe.Pointer(&buffer[0])
-	errCode := _commandResponse(ptr, uint32(len(buffer)))
-	if errCode != 0 {
-		return NewErrorFromCode(errCode)
-	}
-
-	return nil
+	_, _, err = hostCall(_commandResponse, buffer)
+	return err
 }
