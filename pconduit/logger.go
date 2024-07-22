@@ -20,11 +20,9 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var (
-	// Logger is the logger for the processor. DO NOT use this logger directly,
-	// instead use the Logger() function in the root of the processor SDK.
-	Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
-		With().
-		Timestamp().
-		Logger()
-)
+// Logger is the logger for the processor. DO NOT use this logger directly,
+// instead use the Logger() function in the root of the processor SDK.
+var Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
+	With().
+	Timestamp().
+	Logger()
