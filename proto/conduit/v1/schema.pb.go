@@ -7,11 +7,12 @@
 package conduitv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	v1 "github.com/conduitio/conduit-commons/proto/schema/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

@@ -19,7 +19,8 @@ package wasm
 import (
 	"os"
 
-	"github.com/conduitio/conduit-processor-sdk/pconduit/global"
+	"github.com/conduitio/conduit-processor-sdk/pconduit"
+	"github.com/conduitio/conduit-processor-sdk/schema"
 	"github.com/rs/zerolog"
 )
 
@@ -38,9 +39,9 @@ func initLogger(logLevel string) {
 		level = zerolog.DebugLevel
 	}
 	logger = logger.Level(level)
-	global.Logger = logger
+	pconduit.Logger = logger
 }
 
 func initSchemaService() {
-	global.SchemaService = &schemaService{}
+	schema.SchemaService = &schemaService{}
 }

@@ -7,12 +7,13 @@
 package processorv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	v1 "github.com/conduitio/conduit-commons/proto/config/v1"
 	v11 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
