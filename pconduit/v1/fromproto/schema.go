@@ -28,6 +28,13 @@ func CreateSchemaRequest(req *conduitv1.CreateSchemaRequest) pconduit.CreateSche
 	}
 }
 
+func GetSchemaRequest(req *conduitv1.GetSchemaRequest) pconduit.GetSchemaRequest {
+	return pconduit.GetSchemaRequest{
+		Subject: req.Subject,
+		Version: int(req.Version),
+	}
+}
+
 func CreateSchemaResponse(resp *conduitv1.CreateSchemaResponse) pconduit.CreateSchemaResponse {
 	return pconduit.CreateSchemaResponse{
 		Schema: schema.Schema{
