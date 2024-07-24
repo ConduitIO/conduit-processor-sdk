@@ -20,16 +20,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/conduitio/conduit-processor-sdk/pconduit"
-	"github.com/conduitio/conduit-processor-sdk/pconduit/v1/fromproto"
-	"github.com/conduitio/conduit-processor-sdk/pconduit/v1/toproto"
-	conduitv1 "github.com/conduitio/conduit-processor-sdk/proto/conduit/v1"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils/v1/fromproto"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils/v1/toproto"
+	procutilsv1 "github.com/conduitio/conduit-processor-sdk/proto/procutils/v1"
 	"google.golang.org/protobuf/proto"
 )
 
 type schemaService struct{}
 
-func (*schemaService) CreateSchema(_ context.Context, req pconduit.CreateSchemaRequest) (pconduit.CreateSchemaResponse, error) {
+func (*schemaService) CreateSchema(_ context.Context, req pprocutils.CreateSchemaRequest) (pprocutils.CreateSchemaResponse, error) {
 	protoReq := toproto.CreateSchemaRequest(req)
 
 	buffer := bufferPool.Get().([]byte)
@@ -37,25 +37,25 @@ func (*schemaService) CreateSchema(_ context.Context, req pconduit.CreateSchemaR
 
 	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], protoReq)
 	if err != nil {
-		return pconduit.CreateSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
+		return pprocutils.CreateSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
 	}
 
 	buffer, cmdSize, err := hostCall(_createSchema, buffer)
 	if err != nil {
-		return pconduit.CreateSchemaResponse{}, fmt.Errorf("error calling createSchema: %w", err)
+		return pprocutils.CreateSchemaResponse{}, fmt.Errorf("error calling createSchema: %w", err)
 	}
 
-	var resp conduitv1.CreateSchemaResponse
+	var resp procutilsv1.CreateSchemaResponse
 	err = proto.Unmarshal(buffer[:cmdSize], &resp)
 	if err != nil {
-		return pconduit.CreateSchemaResponse{}, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
+		return pprocutils.CreateSchemaResponse{}, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 	}
 
 	return fromproto.CreateSchemaResponse(&resp), nil
 
 }
 
-func (*schemaService) GetSchema(_ context.Context, req pconduit.GetSchemaRequest) (pconduit.GetSchemaResponse, error) {
+func (*schemaService) GetSchema(_ context.Context, req pprocutils.GetSchemaRequest) (pprocutils.GetSchemaResponse, error) {
 	protoReq := toproto.GetSchemaRequest(req)
 
 	buffer := bufferPool.Get().([]byte)
@@ -63,18 +63,18 @@ func (*schemaService) GetSchema(_ context.Context, req pconduit.GetSchemaRequest
 
 	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], protoReq)
 	if err != nil {
-		return pconduit.GetSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
+		return pprocutils.GetSchemaResponse{}, fmt.Errorf("error marshalling request: %w", err)
 	}
 
 	buffer, cmdSize, err := hostCall(_getSchema, buffer)
 	if err != nil {
-		return pconduit.GetSchemaResponse{}, fmt.Errorf("error calling getSchema: %w", err)
+		return pprocutils.GetSchemaResponse{}, fmt.Errorf("error calling getSchema: %w", err)
 	}
 
-	var resp conduitv1.GetSchemaResponse
+	var resp procutilsv1.GetSchemaResponse
 	err = proto.Unmarshal(buffer[:cmdSize], &resp)
 	if err != nil {
-		return pconduit.GetSchemaResponse{}, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
+		return pprocutils.GetSchemaResponse{}, fmt.Errorf("failed unmarshalling %v bytes into proto type: %w", cmdSize, err)
 	}
 	return fromproto.GetSchemaResponse(&resp), nil
 }

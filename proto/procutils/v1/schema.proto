@@ -4,7 +4,7 @@ package conduit.v1;
 
 import "schema/v1/schema.proto";
 
-option go_package = "github.com/conduitio/conduit-processor-sdk/proto/conduit/v1";
+option go_package = "github.com/conduitio/conduit-processor-sdk/proto/procutils/v1";
 
 message CreateSchemaRequest {
   string subject = 1;
