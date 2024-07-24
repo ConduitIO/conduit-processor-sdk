@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/conduitio/conduit-commons/schema"
-	"github.com/conduitio/conduit-processor-sdk/pconduit"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 )
 
 const TypeAvro = schema.TypeAvro
@@ -27,13 +27,13 @@ const TypeAvro = schema.TypeAvro
 var SchemaService = NewInMemoryService()
 
 var (
-	ErrSubjectNotFound = pconduit.ErrSubjectNotFound
-	ErrVersionNotFound = pconduit.ErrVersionNotFound
-	ErrInvalidSchema   = pconduit.ErrInvalidSchema
+	ErrSubjectNotFound = pprocutils.ErrSubjectNotFound
+	ErrVersionNotFound = pprocutils.ErrVersionNotFound
+	ErrInvalidSchema   = pprocutils.ErrInvalidSchema
 )
 
 func Get(ctx context.Context, subject string, version int) (schema.Schema, error) {
-	resp, err := SchemaService.GetSchema(ctx, pconduit.GetSchemaRequest{
+	resp, err := SchemaService.GetSchema(ctx, pprocutils.GetSchemaRequest{
 		Subject: subject,
 		Version: version,
 	})
@@ -44,7 +44,7 @@ func Get(ctx context.Context, subject string, version int) (schema.Schema, error
 }
 
 func Create(ctx context.Context, typ schema.Type, subject string, bytes []byte) (schema.Schema, error) {
-	resp, err := SchemaService.CreateSchema(ctx, pconduit.CreateSchemaRequest{
+	resp, err := SchemaService.CreateSchema(ctx, pprocutils.CreateSchemaRequest{
 		Subject: subject,
 		Type:    typ,
 		Bytes:   bytes,

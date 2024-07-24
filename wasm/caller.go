@@ -19,7 +19,7 @@ package wasm
 import (
 	"unsafe"
 
-	"github.com/conduitio/conduit-processor-sdk/pconduit"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 )
 
 // HostFunc is the function type for the imported functions from the host.
@@ -44,8 +44,8 @@ func hostCall(fn HostFunc, buf []byte) ([]byte, uint32, error) {
 		ptr := unsafe.Pointer(&buf[0])
 		cmdSize := fn(ptr, uint32(len(buf)))
 		switch {
-		case cmdSize >= pconduit.ErrorCodeStart: // error codes
-			return nil, cmdSize, pconduit.NewErrorFromCode(cmdSize)
+		case cmdSize >= pprocutils.ErrorCodeStart: // error codes
+			return nil, cmdSize, pprocutils.NewErrorFromCode(cmdSize)
 		case cmdSize > uint32(len(buf)) && i == 0: // not enough memory
 			oldSize := uint32(len(buf))
 			buf = append(buf, make([]byte, cmdSize-oldSize)...)

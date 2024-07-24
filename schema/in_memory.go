@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/conduitio/conduit-commons/schema"
-	"github.com/conduitio/conduit-processor-sdk/pconduit"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 )
 
 type InMemoryService struct {
@@ -31,15 +31,15 @@ type InMemoryService struct {
 	m sync.Mutex
 }
 
-func NewInMemoryService() pconduit.SchemaService {
+func NewInMemoryService() pprocutils.SchemaService {
 	return &InMemoryService{
 		schemas: make(map[string][]schema.Schema),
 	}
 }
 
-func (s *InMemoryService) CreateSchema(_ context.Context, request pconduit.CreateSchemaRequest) (pconduit.CreateSchemaResponse, error) {
+func (s *InMemoryService) CreateSchema(_ context.Context, request pprocutils.CreateSchemaRequest) (pprocutils.CreateSchemaResponse, error) {
 	if request.Type != schema.TypeAvro {
-		return pconduit.CreateSchemaResponse{}, pconduit.ErrInvalidSchema
+		return pprocutils.CreateSchemaResponse{}, pprocutils.ErrInvalidSchema
 	}
 
 	s.m.Lock()
@@ -53,21 +53,21 @@ func (s *InMemoryService) CreateSchema(_ context.Context, request pconduit.Creat
 	}
 	s.schemas[request.Subject] = append(s.schemas[request.Subject], inst)
 
-	return pconduit.CreateSchemaResponse{Schema: inst}, nil
+	return pprocutils.CreateSchemaResponse{Schema: inst}, nil
 }
 
-func (s *InMemoryService) GetSchema(_ context.Context, request pconduit.GetSchemaRequest) (pconduit.GetSchemaResponse, error) {
+func (s *InMemoryService) GetSchema(_ context.Context, request pprocutils.GetSchemaRequest) (pprocutils.GetSchemaResponse, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	versions, ok := s.schemas[request.Subject]
 	if !ok {
-		return pconduit.GetSchemaResponse{}, fmt.Errorf("subject %v: %w", request.Subject, pconduit.ErrSubjectNotFound)
+		return pprocutils.GetSchemaResponse{}, fmt.Errorf("subject %v: %w", request.Subject, pprocutils.ErrSubjectNotFound)
 	}
 
 	if len(versions) < request.Version {
-		return pconduit.GetSchemaResponse{}, fmt.Errorf("version %v: %w", request.Version, pconduit.ErrVersionNotFound)
+		return pprocutils.GetSchemaResponse{}, fmt.Errorf("version %v: %w", request.Version, pprocutils.ErrVersionNotFound)
 	}
 
-	return pconduit.GetSchemaResponse{Schema: versions[request.Version-1]}, nil
+	return pprocutils.GetSchemaResponse{Schema: versions[request.Version-1]}, nil
 }

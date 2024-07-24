@@ -12,17 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pconduit
-
-import (
-	"os"
-
-	"github.com/rs/zerolog"
-)
-
-// Logger is the logger for the processor. DO NOT use this logger directly,
-// instead use the Logger() function in the root of the processor SDK.
-var Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
-	With().
-	Timestamp().
-	Logger()
+// Package pprocutils provides the functionality for Conduit to set up utilities
+// for processors. DO NOT use this package directly.
+package pprocutils
