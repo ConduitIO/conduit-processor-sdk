@@ -52,7 +52,6 @@ func (*schemaService) CreateSchema(_ context.Context, req pprocutils.CreateSchem
 	}
 
 	return fromproto.CreateSchemaResponse(&resp), nil
-
 }
 
 func (*schemaService) GetSchema(_ context.Context, req pprocutils.GetSchemaRequest) (pprocutils.GetSchemaResponse, error) {

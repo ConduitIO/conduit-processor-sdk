@@ -26,3 +26,7 @@ generate:
 .PHONY: proto-generate
 proto-generate:
 	cd proto && buf generate
+
+.PHONY: proto-lint
+proto-lint:
+	cd proto && buf lint

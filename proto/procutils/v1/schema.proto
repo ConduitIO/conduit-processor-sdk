@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package conduit.v1;
+package procutils.v1;
 
 import "schema/v1/schema.proto";
 
