@@ -16,19 +16,19 @@ package toproto
 
 import (
 	schemav1 "github.com/conduitio/conduit-commons/proto/schema/v1"
-	"github.com/conduitio/conduit-processor-sdk/pconduit"
-	conduitv1 "github.com/conduitio/conduit-processor-sdk/proto/conduit/v1"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils"
+	procutilsv1 "github.com/conduitio/conduit-processor-sdk/proto/procutils/v1"
 )
 
-func GetSchemaRequest(in pconduit.GetSchemaRequest) *conduitv1.GetSchemaRequest {
-	return &conduitv1.GetSchemaRequest{
+func GetSchemaRequest(in pprocutils.GetSchemaRequest) *procutilsv1.GetSchemaRequest {
+	return &procutilsv1.GetSchemaRequest{
 		Subject: in.Subject,
 		Version: int32(in.Version),
 	}
 }
 
-func GetSchemaResponse(in pconduit.GetSchemaResponse) *conduitv1.GetSchemaResponse {
-	return &conduitv1.GetSchemaResponse{
+func GetSchemaResponse(in pprocutils.GetSchemaResponse) *procutilsv1.GetSchemaResponse {
+	return &procutilsv1.GetSchemaResponse{
 		Schema: &schemav1.Schema{
 			Subject: in.Schema.Subject,
 			Version: int32(in.Schema.Version),
@@ -38,16 +38,16 @@ func GetSchemaResponse(in pconduit.GetSchemaResponse) *conduitv1.GetSchemaRespon
 	}
 }
 
-func CreateSchemaRequest(in pconduit.CreateSchemaRequest) *conduitv1.CreateSchemaRequest {
-	return &conduitv1.CreateSchemaRequest{
+func CreateSchemaRequest(in pprocutils.CreateSchemaRequest) *procutilsv1.CreateSchemaRequest {
+	return &procutilsv1.CreateSchemaRequest{
 		Subject: in.Subject,
 		Type:    schemav1.Schema_Type(in.Type),
 		Bytes:   in.Bytes,
 	}
 }
 
-func CreateSchemaResponse(in pconduit.CreateSchemaResponse) *conduitv1.CreateSchemaResponse {
-	return &conduitv1.CreateSchemaResponse{
+func CreateSchemaResponse(in pprocutils.CreateSchemaResponse) *procutilsv1.CreateSchemaResponse {
+	return &procutilsv1.CreateSchemaResponse{
 		Schema: &schemav1.Schema{
 			Subject: in.Schema.Subject,
 			Version: int32(in.Schema.Version),

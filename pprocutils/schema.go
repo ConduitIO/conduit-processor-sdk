@@ -12,6 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package pconduit provides the functionality for Conduit to set up utilities
-// for processors. DO NOT use this package directly.
-package pconduit
+package pprocutils
+
+import (
+	"context"
+
+	"github.com/conduitio/conduit-commons/schema"
+)
+
+type CreateSchemaRequest struct {
+	Subject string
+	Type    schema.Type
+	Bytes   []byte
+}
+type CreateSchemaResponse struct {
+	Schema schema.Schema
+}
+
+type GetSchemaRequest struct {
+	Subject string
+	Version int
+}
+type GetSchemaResponse struct {
+	Schema schema.Schema
+}
+
+type SchemaService interface {
+	CreateSchema(context.Context, CreateSchemaRequest) (CreateSchemaResponse, error)
+	GetSchema(context.Context, GetSchemaRequest) (GetSchemaResponse, error)
+}

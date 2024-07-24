@@ -21,7 +21,7 @@ import (
 	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/conduitio/conduit-processor-sdk/internal/reference"
-	"github.com/conduitio/conduit-processor-sdk/pconduit"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 	"github.com/rs/zerolog"
 )
 
@@ -29,7 +29,7 @@ import (
 // is passed to any of the processor's methods (Configure, Open, Process,
 // Teardown) to ensure that the log messages include contextual information.
 func Logger(ctx context.Context) *zerolog.Logger {
-	l := pconduit.Logger.With().Ctx(ctx).Logger()
+	l := pprocutils.Logger.With().Ctx(ctx).Logger()
 	return &l
 }
 

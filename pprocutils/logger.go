@@ -12,32 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pconduit
+package pprocutils
 
 import (
-	"context"
+	"os"
 
-	"github.com/conduitio/conduit-commons/schema"
+	"github.com/rs/zerolog"
 )
 
-type CreateSchemaRequest struct {
-	Subject string
-	Type    schema.Type
-	Bytes   []byte
-}
-type CreateSchemaResponse struct {
-	Schema schema.Schema
-}
-
-type GetSchemaRequest struct {
-	Subject string
-	Version int
-}
-type GetSchemaResponse struct {
-	Schema schema.Schema
-}
-
-type SchemaService interface {
-	CreateSchema(context.Context, CreateSchemaRequest) (CreateSchemaResponse, error)
-	GetSchema(context.Context, GetSchemaRequest) (GetSchemaResponse, error)
-}
+// Logger is the logger for the processor. DO NOT use this logger directly,
+// instead use the Logger() function in the root of the processor SDK.
+var Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
+	With().
+	Timestamp().
+	Logger()
