@@ -16,13 +16,13 @@ Note: if you'd like to use another language for writing processors, feel free to
 Create a new folder and initialize a fresh go module:
 
 ```sh
-go mod init example.com/procutils-processor-example
+go mod init example.com/conduit-processor-example
 ```
 
 Add the processor SDK dependency:
 
 ```sh
-go get github.com/conduitio/procutils-processor-sdk
+go get github.com/conduitio/conduit-processor-sdk
 ```
 
 You can now create a new processor by implementing the
