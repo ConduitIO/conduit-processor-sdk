@@ -5,7 +5,7 @@ go 1.21.1
 toolchain go1.21.5
 
 require (
-	github.com/bufbuild/buf v1.35.0
+	github.com/bufbuild/buf v1.35.1
 	github.com/conduitio/conduit-commons v0.2.1-0.20240701165122-3948a38f3667
 	github.com/goccy/go-json v0.10.3
 	github.com/golangci/golangci-lint v1.59.1
