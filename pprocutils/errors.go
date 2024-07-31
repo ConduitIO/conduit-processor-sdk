@@ -26,12 +26,11 @@ const (
 	ErrorCodeUnknownCommandRequest
 	ErrorCodeUnknownCommandResponse
 	ErrorCodeMemoryOutOfRange
+	ErrorCodeInternal
 
 	ErrorCodeSubjectNotFound
 	ErrorCodeVersionNotFound
 	ErrorCodeInvalidSchema
-
-	ErrorCodeInternal
 )
 
 var (
