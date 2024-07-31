@@ -61,12 +61,12 @@ func TestHostCall(t *testing.T) {
 		{
 			name: "host returns error",
 			hostFunc: func(_ unsafe.Pointer, _ uint32) uint32 {
-				return pprocutils.ErrorCodeStart
+				return pprocutils.ErrorCodeInternal
 			},
 			buf:             make([]byte, 10),
 			expectedBuf:     nil,
-			expectedCmdSize: pprocutils.ErrorCodeStart,
-			expectedError:   pprocutils.NewErrorFromCode(pprocutils.ErrorCodeStart),
+			expectedCmdSize: pprocutils.ErrorCodeInternal,
+			expectedError:   pprocutils.NewErrorFromCode(pprocutils.ErrorCodeInternal),
 		},
 	}
 

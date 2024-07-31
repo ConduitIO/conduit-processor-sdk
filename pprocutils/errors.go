@@ -26,6 +26,7 @@ const (
 	ErrorCodeUnknownCommandRequest
 	ErrorCodeUnknownCommandResponse
 	ErrorCodeMemoryOutOfRange
+	ErrorCodeInternal
 
 	ErrorCodeSubjectNotFound
 	ErrorCodeVersionNotFound
@@ -41,6 +42,8 @@ var (
 	ErrSubjectNotFound = NewError(ErrorCodeSubjectNotFound, "schema subject not found")
 	ErrVersionNotFound = NewError(ErrorCodeVersionNotFound, "schema version not found")
 	ErrInvalidSchema   = NewError(ErrorCodeInvalidSchema, "invalid schema")
+
+	ErrInternal = NewError(ErrorCodeInternal, "internal error")
 )
 
 type Error struct {
@@ -83,6 +86,8 @@ func NewErrorFromCode(code uint32) *Error {
 		return ErrVersionNotFound
 	case ErrorCodeInvalidSchema:
 		return ErrInvalidSchema
+	case ErrorCodeInternal:
+		return ErrInternal
 	default:
 		return NewError(code, "unknown error code")
 	}
