@@ -30,6 +30,7 @@ func GetSchemaRequest(in pprocutils.GetSchemaRequest) *procutilsv1.GetSchemaRequ
 func GetSchemaResponse(in pprocutils.GetSchemaResponse) *procutilsv1.GetSchemaResponse {
 	return &procutilsv1.GetSchemaResponse{
 		Schema: &schemav1.Schema{
+			Id:      int32(in.Schema.ID),
 			Subject: in.Schema.Subject,
 			Version: int32(in.Schema.Version),
 			Type:    schemav1.Schema_Type(in.Schema.Type),
@@ -49,6 +50,7 @@ func CreateSchemaRequest(in pprocutils.CreateSchemaRequest) *procutilsv1.CreateS
 func CreateSchemaResponse(in pprocutils.CreateSchemaResponse) *procutilsv1.CreateSchemaResponse {
 	return &procutilsv1.CreateSchemaResponse{
 		Schema: &schemav1.Schema{
+			Id:      int32(in.Schema.ID),
 			Subject: in.Schema.Subject,
 			Version: int32(in.Schema.Version),
 			Type:    schemav1.Schema_Type(in.Schema.Type),

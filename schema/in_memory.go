@@ -29,6 +29,8 @@ type InMemoryService struct {
 	schemas map[string][]schema.Schema
 	// m guards access to schemas
 	m sync.Mutex
+	// idSequence is used to generate unique schema IDs
+	idSequence int
 }
 
 func NewInMemoryService() pprocutils.SchemaService {
@@ -46,6 +48,7 @@ func (s *InMemoryService) CreateSchema(_ context.Context, request pprocutils.Cre
 	defer s.m.Unlock()
 
 	inst := schema.Schema{
+		ID:      s.nextID(),
 		Subject: request.Subject,
 		Version: len(s.schemas[request.Subject]) + 1,
 		Type:    request.Type,
@@ -70,4 +73,9 @@ func (s *InMemoryService) GetSchema(_ context.Context, request pprocutils.GetSch
 	}
 
 	return pprocutils.GetSchemaResponse{Schema: versions[request.Version-1]}, nil
+}
+
+func (s *InMemoryService) nextID() int {
+	s.idSequence++
+	return s.idSequence
 }
