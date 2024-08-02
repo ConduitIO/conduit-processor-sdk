@@ -28,16 +28,22 @@ import (
 	procschema "github.com/conduitio/conduit-processor-sdk/schema"
 )
 
+// ProcessorMiddleware wraps a Processor and adds functionality to it.
+type ProcessorMiddleware interface {
+	Wrap(Processor) Processor
+}
+
 // ProcessorMiddlewareOption is a function that can be used to configure a
 // ProcessorMiddleware.
 type ProcessorMiddlewareOption interface {
 	Apply(ProcessorMiddleware)
 }
 
-// ProcessorMiddleware wraps a Processor and adds functionality to it.
-type ProcessorMiddleware interface {
-	Wrap(Processor) Processor
-}
+// Available middleware options.
+var (
+	_ ProcessorMiddlewareOption = ProcessorWithSchemaEncodeConfig{}
+	_ ProcessorMiddlewareOption = ProcessorWithSchemaDecodeConfig{}
+)
 
 // DefaultProcessorMiddleware returns a slice of middleware that is added to all
 // processors by default.
