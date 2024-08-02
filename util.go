@@ -106,3 +106,18 @@ func ParseConfig(
 	//nolint:wrapcheck // error is already wrapped by DecodeInto
 	return c.DecodeInto(target)
 }
+
+func mergeParameters(p1 config.Parameters, p2 config.Parameters) config.Parameters {
+	params := make(config.Parameters, len(p1)+len(p2))
+	for k, v := range p1 {
+		params[k] = v
+	}
+	for k, v := range p2 {
+		_, ok := params[k]
+		if ok {
+			panic(fmt.Errorf("parameter %q declared twice", k))
+		}
+		params[k] = v
+	}
+	return params
+}

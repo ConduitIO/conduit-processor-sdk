@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
 )
 
@@ -30,7 +31,7 @@ func (UnimplementedProcessor) Specification() (Specification, error) {
 }
 
 // Configure is optional and can be overridden in the actual implementation.
-func (UnimplementedProcessor) Configure(context.Context, map[string]string) error {
+func (UnimplementedProcessor) Configure(context.Context, config.Config) error {
 	return nil
 }
 
