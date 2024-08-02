@@ -169,7 +169,7 @@ type processorWithSchemaDecode struct {
 func (p *processorWithSchemaDecode) Specification() (Specification, error) {
 	spec, err := p.Processor.Specification()
 	if err != nil {
-		return spec, err
+		return spec, err //nolint:wrapcheck // middleware shouldn't wrap errors
 	}
 
 	// merge parameters from the processor and the schema decode middleware
@@ -180,7 +180,7 @@ func (p *processorWithSchemaDecode) Specification() (Specification, error) {
 func (p *processorWithSchemaDecode) Configure(ctx context.Context, config config.Config) error {
 	err := p.Processor.Configure(ctx, config)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // middleware shouldn't wrap errors
 	}
 
 	p.keyEnabled = *p.defaults.KeyEnabled
@@ -462,7 +462,7 @@ type processorWithSchemaEncode struct {
 func (p *processorWithSchemaEncode) Specification() (Specification, error) {
 	spec, err := p.Processor.Specification()
 	if err != nil {
-		return spec, err
+		return spec, err //nolint:wrapcheck // middleware shouldn't wrap errors
 	}
 
 	// merge parameters from the processor and the schema decode middleware
@@ -473,7 +473,7 @@ func (p *processorWithSchemaEncode) Specification() (Specification, error) {
 func (p *processorWithSchemaEncode) Configure(ctx context.Context, config config.Config) error {
 	err := p.Processor.Configure(ctx, config)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // middleware shouldn't wrap errors
 	}
 
 	p.schemaType = p.defaults.SchemaType
@@ -578,7 +578,11 @@ func (p *processorWithSchemaEncode) schemaForKey(ctx context.Context, rec opencd
 	case subject != "" && version > 0:
 		// The connector has attached the schema subject and version, we can use
 		// it to retrieve the schema from the schema service.
-		return procschema.Get(ctx, subject, version)
+		sch, err := procschema.Get(ctx, subject, version)
+		if err != nil {
+			return schema.Schema{}, fmt.Errorf("failed to get schema for key: %w", err)
+		}
+		return sch, nil
 	case subject != "" || version > 0:
 		// The connector has attached either the schema subject or version, but
 		// not both, this isn't valid.
@@ -656,7 +660,11 @@ func (p *processorWithSchemaEncode) schemaForPayload(ctx context.Context, rec op
 	case subject != "" && version > 0:
 		// The connector has attached the schema subject and version, we can use
 		// it to retrieve the schema from the schema service.
-		return procschema.Get(ctx, subject, version)
+		sch, err := procschema.Get(ctx, subject, version)
+		if err != nil {
+			return schema.Schema{}, fmt.Errorf("failed to get schema for payload: %w", err)
+		}
+		return sch, nil
 	case subject != "" || version > 0:
 		// The connector has attached either the schema subject or version, but
 		// not both, this isn't valid.

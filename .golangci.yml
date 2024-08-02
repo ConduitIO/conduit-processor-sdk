@@ -37,8 +37,8 @@ issues:
         - errcheck
         - forcetypeassert
         - funlen
-        - err113
         - dupl
+        - maintidx
 
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.
@@ -74,7 +74,7 @@ linters:
     - goconst
     - gocritic
     - godot
-    - err113
+    # - err113
     - gofmt
     - gofumpt
     - goheader
