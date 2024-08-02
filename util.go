@@ -87,14 +87,14 @@ func NewReferenceResolver(input string) (ReferenceResolver, error) {
 //     be a pointer to a struct.
 func ParseConfig(
 	ctx context.Context,
-	cfg map[string]string,
+	cfg config.Config,
 	target any,
 	params config.Parameters,
 ) error {
 	logger := Logger(ctx)
 
 	logger.Debug().Msg("sanitizing configuration and applying defaults")
-	c := config.Config(cfg).Sanitize().ApplyDefaults(params)
+	c := cfg.Sanitize().ApplyDefaults(params)
 
 	logger.Debug().Msg("validating configuration according to the specifications")
 	err := c.Validate(params)
