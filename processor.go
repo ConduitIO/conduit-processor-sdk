@@ -55,6 +55,10 @@ type Processor interface {
 	// the processor will be discarded.
 	Teardown(context.Context) error
 
+	// MiddlewareOptions returns a list of ProcessorMiddlewareOption that can be
+	// used to configure the default middleware for this processor.
+	MiddlewareOptions() []ProcessorMiddlewareOption
+
 	mustEmbedUnimplementedProcessor()
 }
 

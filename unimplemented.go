@@ -49,4 +49,9 @@ func (UnimplementedProcessor) Teardown(context.Context) error {
 	return nil
 }
 
+// MiddlewareOptions is optional and can be overridden in the actual implementation.
+func (UnimplementedProcessor) MiddlewareOptions() []ProcessorMiddlewareOption {
+	return nil
+}
+
 func (UnimplementedProcessor) mustEmbedUnimplementedProcessor() {}
