@@ -53,7 +53,7 @@ func (c *cachedSchemaService) GetSchema(ctx context.Context, request pprocutils.
 	resp, err, _ := c.getSchemaCache.Get(request, func() (pprocutils.GetSchemaResponse, error) {
 		return c.SchemaService.GetSchema(ctx, request)
 	})
-	return resp, err
+	return resp, err //nolint:wrapcheck // cached service should not wrap errors
 }
 
 func (c *cachedSchemaService) CreateSchema(ctx context.Context, request pprocutils.CreateSchemaRequest) (pprocutils.CreateSchemaResponse, error) {
@@ -65,5 +65,5 @@ func (c *cachedSchemaService) CreateSchema(ctx context.Context, request pprocuti
 	resp, err, _ := c.createSchemaCache.Get(creq, func() (pprocutils.CreateSchemaResponse, error) {
 		return c.SchemaService.CreateSchema(ctx, request)
 	})
-	return resp, err
+	return resp, err //nolint:wrapcheck // cached service should not wrap errors
 }
