@@ -87,7 +87,7 @@ type ProcessorWithSchemaDecodeConfig struct {
 	// Whether to decode the record payload with a schema.
 	// If unset, defaults to true.
 	PayloadEnabled *bool
-	// Whether to decode and decode the record key with a schema.
+	// Whether to decode the record key with a schema.
 	// If unset, defaults to true.
 	KeyEnabled *bool
 }
@@ -131,10 +131,10 @@ func (c ProcessorWithSchemaDecodeConfig) parameters() config.Parameters {
 // useful when the source connector sends the data with the schema attached.
 //
 // It adds two parameters to the processor config:
-//   - `sdk.schema.decode.key.enabled` - Whether to decode and decode the
-//     record key with a schema.
-//   - `sdk.schema.decode.payload.enabled` - Whether to decode and decode the
-//     record payload with a schema.
+//   - `sdk.schema.decode.key.enabled` - Whether to decode the record key with a
+//     schema.
+//   - `sdk.schema.decode.payload.enabled` - Whether to decode the record payload
+//     with a schema.
 type ProcessorWithSchemaDecode struct {
 	Config ProcessorWithSchemaDecodeConfig
 }
