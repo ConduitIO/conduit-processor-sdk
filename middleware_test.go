@@ -477,29 +477,42 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 	err := s.Configure(ctx, config.Config{})
 	is.NoErr(err)
 
-	testStructuredData := opencdc.StructuredData{
+	prepareTestData := func(data opencdc.StructuredData, avroSchema string) (schema.Schema, opencdc.RawData) {
+		sch, err := sdkschema.Create(ctx, schema.TypeAvro, "custom-test-schema", []byte(avroSchema))
+		is.NoErr(err)
+
+		encoded, err := sch.Marshal(data)
+		is.NoErr(err)
+
+		return sch, encoded
+	}
+
+	structuredData1 := opencdc.StructuredData{
 		"foo":   "bar",
 		"long":  int64(1),
 		"float": 2.34,
 		"time":  time.Now().UTC().Truncate(time.Microsecond), // avro precision is microseconds
 	}
-	wantSchema := `{"name":"record","type":"record","fields":[{"name":"float","type":"double"},{"name":"foo","type":"string"},{"name":"long","type":"long"},{"name":"time","type":{"type":"long","logicalType":"timestamp-micros"}}]}`
+	avroSchema1 := `{"name":"record","type":"record","fields":[{"name":"float","type":"double"},{"name":"foo","type":"string"},{"name":"long","type":"long"},{"name":"time","type":{"type":"long","logicalType":"timestamp-micros"}}]}`
+	schema1, rawData1 := prepareTestData(structuredData1, avroSchema1)
 
-	customTestSchema, err := sdkschema.Create(ctx, schema.TypeAvro, "custom-test-schema", []byte(wantSchema))
-	is.NoErr(err)
-
-	encoded, err := customTestSchema.Marshal(testStructuredData)
-	is.NoErr(err)
-
-	testRawData := opencdc.RawData(encoded)
+	structuredData2 := opencdc.StructuredData{
+		"foo":   true,
+		"long":  int64(1),
+		"float": 2.34,
+		"time":  time.Now().UTC().Truncate(time.Microsecond), // avro precision is microseconds
+	}
+	avroSchema2 := `{"name":"record","type":"record","fields":[{"name":"float","type":"double"},{"name":"foo","type":"boolean"},{"name":"long","type":"long"},{"name":"time","type":{"type":"long","logicalType":"timestamp-micros"}}]}`
+	schema2, rawData2 := prepareTestData(structuredData2, avroSchema2)
 
 	testCases := []struct {
 		name       string
-		haveRecord opencdc.Record
+		inRecord   opencdc.Record // record to process
+		outRecord  SingleRecord   // record returned by processor (if empty, inRecord is used)
 		wantRecord SingleRecord
 	}{{
 		name: "no key, no payload, no metadata",
-		haveRecord: opencdc.Record{
+		inRecord: opencdc.Record{
 			Key: nil,
 			Payload: opencdc.Change{
 				Before: nil,
@@ -515,7 +528,7 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 		},
 	}, {
 		name: "raw key, raw payload, no metadata",
-		haveRecord: opencdc.Record{
+		inRecord: opencdc.Record{
 			Key: opencdc.RawData("this should not be encoded"),
 			Payload: opencdc.Change{
 				Before: opencdc.RawData("this should not be encoded"),
@@ -531,12 +544,12 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 		},
 	}, {
 		name: "raw key, raw payload, with metadata",
-		haveRecord: opencdc.Record{
+		inRecord: opencdc.Record{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataKeySchemaSubject:     customTestSchema.Subject,
-				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(customTestSchema.Version),
-				opencdc.MetadataPayloadSchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
 			},
 			Key: opencdc.RawData("this should not be encoded"),
 			Payload: opencdc.Change{
@@ -546,10 +559,10 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 		},
 		wantRecord: SingleRecord{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataKeySchemaSubject:     customTestSchema.Subject,
-				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(customTestSchema.Version),
-				opencdc.MetadataPayloadSchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
 			},
 			Key: opencdc.RawData("this should not be encoded"),
 			Payload: opencdc.Change{
@@ -559,28 +572,28 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 		},
 	}, {
 		name: "structured key, structured payload, no metadata",
-		haveRecord: opencdc.Record{
-			Key: testStructuredData.Clone(),
+		inRecord: opencdc.Record{
+			Key: structuredData1.Clone(),
 			Payload: opencdc.Change{
-				Before: testStructuredData.Clone(),
-				After:  testStructuredData.Clone(),
+				Before: structuredData1.Clone(),
+				After:  structuredData1.Clone(),
 			},
 		},
 		wantRecord: SingleRecord{
-			Key: testStructuredData.Clone(),
+			Key: structuredData1.Clone(),
 			Payload: opencdc.Change{
-				Before: testStructuredData.Clone(),
-				After:  testStructuredData.Clone(),
+				Before: structuredData1.Clone(),
+				After:  structuredData1.Clone(),
 			},
 		},
 	}, {
 		name: "structured key",
-		haveRecord: opencdc.Record{
+		inRecord: opencdc.Record{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataKeySchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataKeySchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataKeySchemaSubject: schema1.Subject,
+				opencdc.MetadataKeySchemaVersion: strconv.Itoa(schema1.Version),
 			},
-			Key: testStructuredData.Clone(),
+			Key: structuredData1.Clone(),
 			Payload: opencdc.Change{
 				Before: nil,
 				After:  nil,
@@ -588,10 +601,10 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 		},
 		wantRecord: SingleRecord{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataKeySchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataKeySchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataKeySchemaSubject: schema1.Subject,
+				opencdc.MetadataKeySchemaVersion: strconv.Itoa(schema1.Version),
 			},
-			Key: testRawData.Clone(),
+			Key: rawData1.Clone(),
 			Payload: opencdc.Change{
 				Before: nil,
 				After:  nil,
@@ -599,87 +612,169 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 		},
 	}, {
 		name: "structured payload before",
-		haveRecord: opencdc.Record{
+		inRecord: opencdc.Record{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataPayloadSchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
 			},
 			Key: nil,
 			Payload: opencdc.Change{
-				Before: testStructuredData.Clone(),
+				Before: structuredData1.Clone(),
 				After:  nil,
 			},
 		},
 		wantRecord: SingleRecord{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataPayloadSchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
 			},
 			Key: nil,
 			Payload: opencdc.Change{
-				Before: testRawData.Clone(),
+				Before: rawData1.Clone(),
 				After:  nil,
 			},
 		},
 	}, {
 		name: "structured payload after",
-		haveRecord: opencdc.Record{
+		inRecord: opencdc.Record{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataPayloadSchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
 			},
 			Key: nil,
 			Payload: opencdc.Change{
 				Before: nil,
-				After:  testStructuredData.Clone(),
+				After:  structuredData1.Clone(),
 			},
 		},
 		wantRecord: SingleRecord{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataPayloadSchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
 			},
 			Key: nil,
 			Payload: opencdc.Change{
 				Before: nil,
-				After:  testRawData.Clone(),
+				After:  rawData1.Clone(),
 			},
 		},
 	}, {
 		name: "all structured",
-		haveRecord: opencdc.Record{
+		inRecord: opencdc.Record{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataKeySchemaSubject:     customTestSchema.Subject,
-				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(customTestSchema.Version),
-				opencdc.MetadataPayloadSchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
 			},
-			Key: testStructuredData.Clone(),
+			Key: structuredData1.Clone(),
 			Payload: opencdc.Change{
-				Before: testStructuredData.Clone(),
-				After:  testStructuredData.Clone(),
+				Before: structuredData1.Clone(),
+				After:  structuredData1.Clone(),
 			},
 		},
 		wantRecord: SingleRecord{
 			Metadata: opencdc.Metadata{
-				opencdc.MetadataKeySchemaSubject:     customTestSchema.Subject,
-				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(customTestSchema.Version),
-				opencdc.MetadataPayloadSchemaSubject: customTestSchema.Subject,
-				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(customTestSchema.Version),
+				opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
 			},
-			Key: testRawData.Clone(),
+			Key: rawData1.Clone(),
 			Payload: opencdc.Change{
-				Before: testRawData.Clone(),
-				After:  testRawData.Clone(),
+				Before: rawData1.Clone(),
+				After:  rawData1.Clone(),
+			},
+		},
+	}, {
+		name: "metadata removed",
+		inRecord: opencdc.Record{
+			Metadata: opencdc.Metadata{
+				opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
+			},
+			Key: structuredData1.Clone(),
+			Payload: opencdc.Change{
+				Before: structuredData1.Clone(),
+				After:  structuredData1.Clone(),
+			},
+		},
+		outRecord: SingleRecord{
+			Metadata: opencdc.Metadata{},
+			Key:      structuredData1.Clone(),
+			Payload: opencdc.Change{
+				Before: structuredData1.Clone(),
+				After:  structuredData1.Clone(),
+			},
+		},
+		wantRecord: SingleRecord{
+			Metadata: opencdc.Metadata{},
+			Key:      structuredData1.Clone(),
+			Payload: opencdc.Change{
+				Before: structuredData1.Clone(),
+				After:  structuredData1.Clone(),
+			},
+		},
+	}, {
+		name: "metadata changed",
+		inRecord: opencdc.Record{
+			Metadata: opencdc.Metadata{
+				opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
+			},
+			Key: structuredData1.Clone(),
+			Payload: opencdc.Change{
+				Before: structuredData1.Clone(),
+				After:  structuredData1.Clone(),
+			},
+		},
+		outRecord: SingleRecord{
+			Metadata: opencdc.Metadata{
+				opencdc.MetadataKeySchemaSubject:     schema2.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema2.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema2.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema2.Version),
+			},
+			Key: structuredData2.Clone(),
+			Payload: opencdc.Change{
+				Before: structuredData2.Clone(),
+				After:  structuredData2.Clone(),
+			},
+		},
+		wantRecord: SingleRecord{
+			Metadata: opencdc.Metadata{
+				opencdc.MetadataKeySchemaSubject:     schema2.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema2.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema2.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema2.Version),
+			},
+			Key: rawData2.Clone(),
+			Payload: opencdc.Change{
+				Before: rawData2.Clone(),
+				After:  rawData2.Clone(),
 			},
 		},
 	}}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			proc.EXPECT().Process(ctx, []opencdc.Record{tc.haveRecord}).Return([]ProcessedRecord{SingleRecord(tc.haveRecord)})
+			outRecord := tc.outRecord
+			if outRecord.Key == nil &&
+				tc.outRecord.Payload == (opencdc.Change{}) &&
+				tc.outRecord.Metadata == nil &&
+				tc.outRecord.Position == nil &&
+				tc.outRecord.Operation == 0 {
+				// if tc.outRecord is empty use tc.inRecord (easier to write tests)
+				outRecord = SingleRecord(tc.inRecord)
+			}
 
-			gotRecs := s.Process(ctx, []opencdc.Record{tc.haveRecord})
+			proc.EXPECT().Process(ctx, []opencdc.Record{tc.inRecord}).Return([]ProcessedRecord{outRecord})
+
+			gotRecs := s.Process(ctx, []opencdc.Record{tc.inRecord})
 			is.Equal(len(gotRecs), 1)
 
 			got, ok := gotRecs[0].(SingleRecord)

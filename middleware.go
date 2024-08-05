@@ -528,33 +528,53 @@ func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec *opencdc.
 		return nil
 	}
 
-	sv, err := p.keySubjectVersion(*rec)
+	outgoingSubjectVersion, err := p.keySubjectVersion(*rec)
 	if err != nil {
 		return err // already wrapped
 	}
-	oldSchema, err := sdkschema.Get(ctx, sv.subject, sv.version)
-	if err != nil {
-		return fmt.Errorf("failed to get schema for key: %w", err)
-	}
-	if sv != incomingSubjectVersion {
-		return nil // key schema subject or version changed, skip encoding
+
+	var newSchema schema.Schema
+	switch {
+	case outgoingSubjectVersion == (subjectVersion{}):
+		// key schema subject and version not found, skip encoding
+		// log warning once, to avoid spamming the logs
+		p.keyWarnOnce.Do(func() {
+			Logger(ctx).Warn().Msgf(`outgoing record does not have an attached schema for the key, consider disabling the processor schema key encoding using "%s: false"`, configProcessorSchemaEncodeKeyEnabled)
+		})
+		return nil
+	case incomingSubjectVersion == outgoingSubjectVersion:
+		// key schema subject and version didn't change, extract schema and encode the data
+
+		// first fetch old schema to determine the schema type
+		oldSchema, err := sdkschema.Get(ctx, incomingSubjectVersion.subject, incomingSubjectVersion.version)
+		if err != nil {
+			return fmt.Errorf("failed to get schema for key: %w", err)
+		}
+
+		// extract the schema, since the data might have changed
+		newSchema, err = p.schemaForType(ctx, oldSchema.Type, outgoingSubjectVersion.subject, rec.Key)
+		if err != nil {
+			return fmt.Errorf("failed to extract schema for key: %w", err)
+		}
+	default:
+		// key schema subject or version changed, fetch the schema and encode the data
+		newSchema, err = sdkschema.Get(ctx, outgoingSubjectVersion.subject, outgoingSubjectVersion.version)
+		if err != nil {
+			return fmt.Errorf("failed to get schema for key: %w", err)
+		}
 	}
 
-	sch, err := p.schemaForType(ctx, oldSchema.Type, sv.subject, rec.Key)
-	if err != nil {
-		return fmt.Errorf("failed to extract schema for key: %w", err)
-	}
-
-	encoded, err := p.encodeWithSchema(sch, rec.Key)
+	encoded, err := p.encodeWithSchema(newSchema, rec.Key)
 	if err != nil {
 		return fmt.Errorf("failed to encode key: %w", err)
 	}
 
 	rec.Key = opencdc.RawData(encoded)
-	schema.AttachKeySchemaToRecord(*rec, sch)
+	schema.AttachKeySchemaToRecord(*rec, newSchema)
 	return nil
 }
 
+//nolint:funlen // maybe refactor in the future
 func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec *opencdc.Record, incomingSubjectVersion subjectVersion) error {
 	if !p.payloadEnabled {
 		return nil // payload schema encoding is disabled
@@ -569,45 +589,64 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec *open
 		return nil
 	}
 
-	sv, err := p.payloadSubjectVersion(*rec)
+	outgoingSubjectVersion, err := p.payloadSubjectVersion(*rec)
 	if err != nil {
 		return err // already wrapped
 	}
-	oldSchema, err := sdkschema.Get(ctx, sv.subject, sv.version)
-	if err != nil {
-		return fmt.Errorf("failed to get schema for payload: %w", err)
-	}
-	if sv != incomingSubjectVersion {
-		return nil // key schema subject or version changed, skip encoding
+
+	var newSchema schema.Schema
+	switch {
+	case outgoingSubjectVersion == (subjectVersion{}):
+		// payload schema subject and version not found, skip encoding
+		// log warning once, to avoid spamming the logs
+		p.payloadWarnOnce.Do(func() {
+			Logger(ctx).Warn().Msgf(`outgoing record does not have an attached schema for the payload, consider disabling the processor schema payload encoding using "%s: false"`, configProcessorSchemaEncodePayloadEnabled)
+		})
+		return nil
+	case incomingSubjectVersion == outgoingSubjectVersion:
+		// payload schema subject and version didn't change, extract schema and encode the data
+
+		// first fetch old schema to determine the schema type
+		oldSchema, err := sdkschema.Get(ctx, incomingSubjectVersion.subject, incomingSubjectVersion.version)
+		if err != nil {
+			return fmt.Errorf("failed to get schema for payload: %w", err)
+		}
+
+		// extract the schema, since the data might have changed
+		val := rec.Payload.After
+		if _, ok := val.(opencdc.StructuredData); !ok {
+			// use before as a fallback
+			val = rec.Payload.Before
+		}
+
+		newSchema, err = p.schemaForType(ctx, oldSchema.Type, outgoingSubjectVersion.subject, val)
+		if err != nil {
+			return fmt.Errorf("failed to extract schema for payload: %w", err)
+		}
+	default:
+		// payload schema subject or version changed, fetch the schema and encode the data
+		newSchema, err = sdkschema.Get(ctx, outgoingSubjectVersion.subject, outgoingSubjectVersion.version)
+		if err != nil {
+			return fmt.Errorf("failed to get schema for payload: %w", err)
+		}
 	}
 
-	val := rec.Payload.After
-	if _, ok := val.(opencdc.StructuredData); !ok {
-		// use before as a fallback
-		val = rec.Payload.Before
-	}
-
-	sch, err := p.schemaForType(ctx, oldSchema.Type, sv.subject, val)
-	if err != nil {
-		return fmt.Errorf("failed to extract schema for payload: %w", err)
-	}
-
-	// encode both before and after with the encoded schema
+	// encode both before and after with the extracted schema
 	if beforeIsStructured {
-		encoded, err := p.encodeWithSchema(sch, rec.Payload.Before)
+		encoded, err := p.encodeWithSchema(newSchema, rec.Payload.Before)
 		if err != nil {
 			return fmt.Errorf("failed to encode before payload: %w", err)
 		}
 		rec.Payload.Before = opencdc.RawData(encoded)
 	}
 	if afterIsStructured {
-		encoded, err := p.encodeWithSchema(sch, rec.Payload.After)
+		encoded, err := p.encodeWithSchema(newSchema, rec.Payload.After)
 		if err != nil {
 			return fmt.Errorf("failed to encode after payload: %w", err)
 		}
 		rec.Payload.After = opencdc.RawData(encoded)
 	}
-	schema.AttachPayloadSchemaToRecord(*rec, sch)
+	schema.AttachPayloadSchemaToRecord(*rec, newSchema)
 	return nil
 }
 
