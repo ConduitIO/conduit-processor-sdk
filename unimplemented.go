@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
 )
 
@@ -30,7 +31,7 @@ func (UnimplementedProcessor) Specification() (Specification, error) {
 }
 
 // Configure is optional and can be overridden in the actual implementation.
-func (UnimplementedProcessor) Configure(context.Context, map[string]string) error {
+func (UnimplementedProcessor) Configure(context.Context, config.Config) error {
 	return nil
 }
 
@@ -46,6 +47,11 @@ func (UnimplementedProcessor) Process(context.Context, []opencdc.Record) []Proce
 
 // Teardown is optional and can be overridden in the actual implementation.
 func (UnimplementedProcessor) Teardown(context.Context) error {
+	return nil
+}
+
+// MiddlewareOptions is optional and can be overridden in the actual implementation.
+func (UnimplementedProcessor) MiddlewareOptions() []ProcessorMiddlewareOption {
 	return nil
 }
 

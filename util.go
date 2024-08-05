@@ -87,14 +87,14 @@ func NewReferenceResolver(input string) (ReferenceResolver, error) {
 //     be a pointer to a struct.
 func ParseConfig(
 	ctx context.Context,
-	cfg map[string]string,
+	cfg config.Config,
 	target any,
 	params config.Parameters,
 ) error {
 	logger := Logger(ctx)
 
 	logger.Debug().Msg("sanitizing configuration and applying defaults")
-	c := config.Config(cfg).Sanitize().ApplyDefaults(params)
+	c := cfg.Sanitize().ApplyDefaults(params)
 
 	logger.Debug().Msg("validating configuration according to the specifications")
 	err := c.Validate(params)
@@ -105,4 +105,19 @@ func ParseConfig(
 	logger.Debug().Type("target", target).Msg("decoding configuration into the target object")
 	//nolint:wrapcheck // error is already wrapped by DecodeInto
 	return c.DecodeInto(target)
+}
+
+func mergeParameters(p1 config.Parameters, p2 config.Parameters) config.Parameters {
+	params := make(config.Parameters, len(p1)+len(p2))
+	for k, v := range p1 {
+		params[k] = v
+	}
+	for k, v := range p2 {
+		_, ok := params[k]
+		if ok {
+			panic(fmt.Errorf("parameter %q declared twice", k))
+		}
+		params[k] = v
+	}
+	return params
 }

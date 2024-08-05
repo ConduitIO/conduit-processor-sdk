@@ -33,7 +33,7 @@ type InMemoryService struct {
 	idSequence int
 }
 
-func NewInMemoryService() pprocutils.SchemaService {
+func NewInMemoryService() *InMemoryService {
 	return &InMemoryService{
 		schemas: make(map[string][]schema.Schema),
 	}

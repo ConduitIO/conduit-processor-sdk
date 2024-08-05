@@ -15,14 +15,17 @@
 package pprocutils
 
 import (
-	"os"
-
 	"github.com/rs/zerolog"
 )
 
 // Logger is the logger for the processor. DO NOT use this logger directly,
 // instead use the Logger() function in the root of the processor SDK.
-var Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
-	With().
+var Logger = zerolog.New(
+	zerolog.NewConsoleWriter(
+		func(w *zerolog.ConsoleWriter) {
+			w.TimeFormat = "2006-01-02T15:04:05+00:00"
+		},
+	),
+).With().
 	Timestamp().
 	Logger()

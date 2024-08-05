@@ -24,7 +24,7 @@ import (
 
 const TypeAvro = schema.TypeAvro
 
-var SchemaService = NewInMemoryService()
+var SchemaService pprocutils.SchemaService = newCachedSchemaService(NewInMemoryService())
 
 var (
 	ErrSubjectNotFound = pprocutils.ErrSubjectNotFound

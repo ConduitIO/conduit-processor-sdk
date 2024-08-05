@@ -63,11 +63,13 @@ func Run(p Processor) {
 			logLevel:    os.Getenv("CONDUIT_LOG_LEVEL"),
 		}
 
-		ctx = context.Background() // TODO: add processor ID to context
+		ctx = context.Background()
 		cmd processorv1.CommandRequest
 	)
 
 	wasm.InitUtils(env.logLevel)
+
+	p = ProcessorWithMiddleware(p, DefaultProcessorMiddleware(p.MiddlewareOptions()...)...)
 
 	logger := Logger(ctx)
 	executor := commandExecutor{

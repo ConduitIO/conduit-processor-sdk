@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -typed -destination=mock_destination_test.go -self_package=github.com/conduitio/conduit-processor-sdk -package=sdk -write_package_comment=false . Processor
+
 package sdk
 
 import (
@@ -34,7 +36,7 @@ type Processor interface {
 	// In case the configuration is not valid it should return an error.
 	// Configure should not open connections or any other resources. It should solely
 	// focus on parsing and validating the configuration itself.
-	Configure(context.Context, map[string]string) error
+	Configure(context.Context, config.Config) error
 
 	// Open is called after Configure to signal the processor it can prepare to
 	// start writing records. If needed, the processor should open connections and
@@ -54,6 +56,10 @@ type Processor interface {
 	// there will be no more calls to any other function. After Teardown returns,
 	// the processor will be discarded.
 	Teardown(context.Context) error
+
+	// MiddlewareOptions returns a list of ProcessorMiddlewareOption that can be
+	// used to configure the default middleware for this processor.
+	MiddlewareOptions() []ProcessorMiddlewareOption
 
 	mustEmbedUnimplementedProcessor()
 }
