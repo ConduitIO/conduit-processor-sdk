@@ -365,10 +365,10 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 }
 
 // ProcessorWithSchemaEncode is a middleware that encodes the record
-// payload and key with a schema. It only encodes the record key/payload if the
+// payload and/or key with a schema. It only encodes the record key/payload if the
 // schema subject and version in the record metadata match the schema subject and
 // version of the incoming record. If the schema subject and version is not found
-// in the record metadata or it was changedb y the processor, it will log a
+// in the record metadata or it was changed by the processor, it will log a
 // warning and skip the encoding.
 type ProcessorWithSchemaEncode struct {
 	Config ProcessorWithSchemaEncodeConfig
