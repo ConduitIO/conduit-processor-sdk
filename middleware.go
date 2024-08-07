@@ -84,10 +84,10 @@ const (
 //
 // ProcessorWithSchemaDecodeConfig can be used as a ProcessorMiddlewareOption.
 type ProcessorWithSchemaDecodeConfig struct {
-	// Whether to decode the record payload with a schema.
+	// Whether to decode the record payload using its corresponding schema from the schema registry.
 	// If unset, defaults to true.
 	PayloadEnabled *bool
-	// Whether to decode the record key with a schema.
+	// Whether to decode the record key using its corresponding schema from the schema registry.
 	// If unset, defaults to true.
 	KeyEnabled *bool
 }
@@ -112,12 +112,12 @@ func (c ProcessorWithSchemaDecodeConfig) parameters() config.Parameters {
 		configProcessorWithSchemaDecodeKeyEnabled: {
 			Default:     strconv.FormatBool(*c.KeyEnabled),
 			Type:        config.ParameterTypeBool,
-			Description: "Whether to decode the record key with a schema.",
+			Description: "Whether to decode the record key using its corresponding schema from the schema registry.",
 		},
 		configProcessorWithSchemaDecodePayloadEnabled: {
 			Default:     strconv.FormatBool(*c.PayloadEnabled),
 			Type:        config.ParameterTypeBool,
-			Description: "Whether to decode the record payload with a schema.",
+			Description: "Whether to decode the record payload using its corresponding schema from the schema registry.",
 		},
 	}
 }
@@ -131,10 +131,10 @@ func (c ProcessorWithSchemaDecodeConfig) parameters() config.Parameters {
 // useful when the source connector sends the data with the schema attached.
 //
 // It adds two parameters to the processor config:
-//   - `sdk.schema.decode.key.enabled` - Whether to decode the record key with a
-//     schema.
+//   - `sdk.schema.decode.key.enabled` - Whether to decode the record key using its
+//     corresponding schema from the schema registry.
 //   - `sdk.schema.decode.payload.enabled` - Whether to decode the record payload
-//     with a schema.
+//     using its corresponding schema from the schema registry.
 type ProcessorWithSchemaDecode struct {
 	Config ProcessorWithSchemaDecodeConfig
 }
@@ -326,10 +326,10 @@ const (
 //
 // ProcessorWithSchemaEncodeConfig can be used as a ProcessorMiddlewareOption.
 type ProcessorWithSchemaEncodeConfig struct {
-	// Whether to encode the record payload with a schema.
+	// Whether to encode the record payload using its corresponding schema from the schema registry.
 	// If unset, defaults to true.
 	PayloadEnabled *bool
-	// Whether to encode the record key with a schema.
+	// Whether to encode the record key using its corresponding schema from the schema registry.
 	// If unset, defaults to true.
 	KeyEnabled *bool
 }
@@ -354,12 +354,12 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 		configProcessorSchemaEncodePayloadEnabled: {
 			Default:     strconv.FormatBool(*c.PayloadEnabled),
 			Type:        config.ParameterTypeBool,
-			Description: "Whether to encode the record payload with a schema.",
+			Description: "Whether to encode the record payload using its corresponding schema from the schema registry.",
 		},
 		configProcessorSchemaEncodeKeyEnabled: {
 			Default:     strconv.FormatBool(*c.KeyEnabled),
 			Type:        config.ParameterTypeBool,
-			Description: "Whether to encode the record key with a schema.",
+			Description: "Whether to encode the record key using its corresponding schema from the schema registry.",
 		},
 	}
 }
