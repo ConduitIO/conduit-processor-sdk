@@ -3,7 +3,7 @@ module github.com/conduitio/conduit-processor-sdk
 go 1.22.5
 
 require (
-	github.com/bufbuild/buf v1.35.1
+	github.com/bufbuild/buf v1.36.0
 	github.com/conduitio/conduit-commons v0.3.0
 	github.com/goccy/go-json v0.10.3
 	github.com/golangci/golangci-lint v1.59.1
