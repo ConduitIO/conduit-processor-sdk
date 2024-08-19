@@ -27,6 +27,10 @@ generate:
 proto-generate:
 	cd proto && buf generate
 
+.PHONY: proto-update
+proto-update:
+	cd proto && buf dep update
+
 .PHONY: proto-lint
 proto-lint:
 	cd proto && buf lint
