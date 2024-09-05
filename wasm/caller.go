@@ -40,12 +40,14 @@ func hostCall(fn HostFunc, buf []byte) ([]byte, uint32, error) {
 	for i := 0; i < 2; i++ {
 		// request the host to write the response to the given buffer address
 		ptr := unsafe.Pointer(&buf[0])
-		cmdSize := fn(ptr, uint32(len(buf)))
+		cmdSize := fn(ptr, uint32(len(buf))) //nolint:gosec // no risk of overflow
 		switch {
-		case cmdSize >= pprocutils.ErrorCodeStart: // error codes
+		case cmdSize >= pprocutils.ErrorCodeStart:
+			// error codes
 			return nil, cmdSize, pprocutils.NewErrorFromCode(cmdSize)
-		case cmdSize > uint32(len(buf)) && i == 0: // not enough memory
-			oldSize := uint32(len(buf))
+		case cmdSize > uint32(len(buf)) && i == 0: //nolint:gosec // no risk of overflow
+			// not enough memory, resize the buffer and try again
+			oldSize := uint32(len(buf)) //nolint:gosec // no risk of overflow
 			buf = append(buf, make([]byte, cmdSize-oldSize)...)
 			continue // try again
 		}
