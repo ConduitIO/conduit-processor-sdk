@@ -23,16 +23,16 @@ import (
 func GetSchemaRequest(in pprocutils.GetSchemaRequest) *procutilsv1.GetSchemaRequest {
 	return &procutilsv1.GetSchemaRequest{
 		Subject: in.Subject,
-		Version: int32(in.Version),
+		Version: int32(in.Version), //nolint:gosec // no risk of overflow
 	}
 }
 
 func GetSchemaResponse(in pprocutils.GetSchemaResponse) *procutilsv1.GetSchemaResponse {
 	return &procutilsv1.GetSchemaResponse{
 		Schema: &schemav1.Schema{
-			Id:      int32(in.Schema.ID),
+			Id:      int32(in.Schema.ID), //nolint:gosec // no risk of overflow
 			Subject: in.Schema.Subject,
-			Version: int32(in.Schema.Version),
+			Version: int32(in.Schema.Version), //nolint:gosec // no risk of overflow
 			Type:    schemav1.Schema_Type(in.Schema.Type),
 			Bytes:   in.Schema.Bytes,
 		},
@@ -50,9 +50,9 @@ func CreateSchemaRequest(in pprocutils.CreateSchemaRequest) *procutilsv1.CreateS
 func CreateSchemaResponse(in pprocutils.CreateSchemaResponse) *procutilsv1.CreateSchemaResponse {
 	return &procutilsv1.CreateSchemaResponse{
 		Schema: &schemav1.Schema{
-			Id:      int32(in.Schema.ID),
+			Id:      int32(in.Schema.ID), //nolint:gosec // no risk of overflow
 			Subject: in.Schema.Subject,
-			Version: int32(in.Schema.Version),
+			Version: int32(in.Schema.Version), //nolint:gosec // no risk of overflow
 			Type:    schemav1.Schema_Type(in.Schema.Type),
 			Bytes:   in.Schema.Bytes,
 		},
