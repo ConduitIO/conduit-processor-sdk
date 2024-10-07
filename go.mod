@@ -12,7 +12,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/twmb/go-cache v1.2.1
 	go.uber.org/mock v0.4.0
-	google.golang.org/protobuf v1.34.3-0.20240906163944-03df6c145d96
+	google.golang.org/protobuf v1.35.1
 	mvdan.cc/gofumpt v0.7.0
 )
 
