@@ -1,7 +1,6 @@
 module github.com/conduitio/conduit-processor-sdk
 
-go 1.22.5
-toolchain go1.23.2
+go 1.23
 
 require (
 	github.com/bufbuild/buf v1.45.0
