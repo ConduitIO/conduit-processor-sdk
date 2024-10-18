@@ -34,7 +34,9 @@ var bufferPool = sync.Pool{
 
 func NextCommand(cmdReq *processorv1.CommandRequest) error {
 	buffer := bufferPool.Get().([]byte)
-	defer bufferPool.Put(buffer)
+	defer func() {
+		bufferPool.Put(buffer)
+	}()
 
 	buffer, cmdSize, err := hostCall(_commandRequest, buffer[:cap(buffer)])
 	if err != nil {
@@ -49,12 +51,14 @@ func NextCommand(cmdReq *processorv1.CommandRequest) error {
 
 func Reply(resp *processorv1.CommandResponse) error {
 	buffer := bufferPool.Get().([]byte)
-	defer bufferPool.Put(buffer)
+	defer func() {
+		bufferPool.Put(buffer)
+	}()
 
 	buffer, err := proto.MarshalOptions{}.MarshalAppend(buffer[:0], resp)
 	if err != nil {
 		return fmt.Errorf("failed marshalling proto type into bytes: %w", err)
 	}
-	_, _, err = hostCall(_commandResponse, buffer)
+	buffer, _, err = hostCall(_commandResponse, buffer)
 	return err
 }
