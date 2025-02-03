@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/bufbuild/buf v1.50.0
 	github.com/conduitio/conduit-commons v0.5.0
-	github.com/goccy/go-json v0.10.4
+	github.com/goccy/go-json v0.10.5
 	github.com/golangci/golangci-lint v1.63.4
 	github.com/google/go-cmp v0.6.0
 	github.com/matryer/is v1.4.1
