@@ -168,12 +168,12 @@ func (l *lexer) Next() item {
 
 // lexReference scans a reference: .Alphanumeric or $.Alphanumeric.
 func (l *lexer) lexReference() stateFn {
-	switch r := l.next(); {
-	case r == eof:
+	switch r := l.next(); r {
+	case eof:
 		return l.emit(itemEOF)
-	case r == '$':
+	case '$':
 		return (*lexer).lexVariable
-	case r == '.':
+	case '.':
 		// special look-ahead for ".field" so we don't break l.backup().
 		if l.pos < len(l.input) {
 			r := l.input[l.pos]
@@ -182,11 +182,11 @@ func (l *lexer) lexReference() stateFn {
 			}
 		}
 		return (*lexer).lexField
-	case r == '[':
+	case '[':
 		return l.emit(itemLeftBracket)
-	case r == ']':
+	case ']':
 		return l.emit(itemRightBracket)
-	case r == '"':
+	case '"':
 		return (*lexer).lexQuote
 	default:
 		return l.errorf("unrecognized character in reference: %#U", r)
