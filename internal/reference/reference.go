@@ -100,7 +100,6 @@ func NewResolver(input string) (Resolver, error) {
 	}
 
 	if i.typ == itemError {
-		//nolint:goerr113 // i.val contains the error string, we need to create a new error
 		return Resolver{}, fmt.Errorf("invalid reference %q: %s", input, i.val)
 	}
 
