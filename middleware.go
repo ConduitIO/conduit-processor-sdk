@@ -197,6 +197,7 @@ func (p *processorWithSchemaDecode) Configure(ctx context.Context, config config
 		delete(config, configProcessorWithSchemaDecodePayloadEnabled)
 	}
 
+	//nolint:wrapcheck // middleware shouldn't wrap errors
 	return p.Processor.Configure(ctx, config)
 }
 
@@ -432,6 +433,7 @@ func (p *processorWithSchemaEncode) Configure(ctx context.Context, config config
 	p.keyEnabled = encodeKey
 	p.payloadEnabled = encodePayload
 
+	//nolint:wrapcheck // middleware shouldn't wrap errors
 	return p.Processor.Configure(ctx, config)
 }
 
