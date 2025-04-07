@@ -9,7 +9,7 @@ require (
 	github.com/matryer/is v1.4.1
 	github.com/rs/zerolog v1.34.0
 	github.com/twmb/go-cache v1.2.1
-	go.uber.org/mock v0.5.0
+	go.uber.org/mock v0.5.1
 	google.golang.org/protobuf v1.36.6
 )
 
