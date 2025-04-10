@@ -68,10 +68,19 @@ func Run(p Processor) {
 	)
 
 	wasm.InitUtils(env.logLevel)
+	logger := Logger(ctx)
 
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error().Msgf("Processor run panicked: %v", r)
+		} else {
+			logger.Info().Msg("Processor run completed.")
+		}
+	}()
+
+	logger.Debug().Msg("wrapping processor with middleware")
 	p = ProcessorWithMiddleware(p, DefaultProcessorMiddleware(p.MiddlewareOptions()...)...)
 
-	logger := Logger(ctx)
 	executor := commandExecutor{
 		protoconv: protoConverter{},
 		logger:    logger,
