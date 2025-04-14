@@ -178,17 +178,14 @@ func (p *processorWithSchemaDecode) Specification() (Specification, error) {
 }
 
 func (p *processorWithSchemaDecode) Configure(ctx context.Context, config config.Config) error {
-	err := p.Processor.Configure(ctx, config)
-	if err != nil {
-		return err //nolint:wrapcheck // middleware shouldn't wrap errors
-	}
-
+	var err error
 	p.keyEnabled = *p.defaults.KeyEnabled
 	if val, ok := config[configProcessorWithSchemaDecodeKeyEnabled]; ok {
 		p.keyEnabled, err = strconv.ParseBool(val)
 		if err != nil {
 			return fmt.Errorf("invalid %s: failed to parse boolean: %w", configProcessorWithSchemaDecodeKeyEnabled, err)
 		}
+		delete(config, configProcessorWithSchemaDecodeKeyEnabled)
 	}
 
 	p.payloadEnabled = *p.defaults.PayloadEnabled
@@ -197,9 +194,11 @@ func (p *processorWithSchemaDecode) Configure(ctx context.Context, config config
 		if err != nil {
 			return fmt.Errorf("invalid %s: failed to parse boolean: %w", configProcessorWithSchemaDecodePayloadEnabled, err)
 		}
+		delete(config, configProcessorWithSchemaDecodePayloadEnabled)
 	}
 
-	return nil
+	//nolint:wrapcheck // middleware shouldn't wrap errors
+	return p.Processor.Configure(ctx, config)
 }
 
 func (p *processorWithSchemaDecode) Process(ctx context.Context, records []opencdc.Record) []ProcessedRecord {
@@ -414,17 +413,14 @@ func (p *processorWithSchemaEncode) Specification() (Specification, error) {
 }
 
 func (p *processorWithSchemaEncode) Configure(ctx context.Context, config config.Config) error {
-	err := p.Processor.Configure(ctx, config)
-	if err != nil {
-		return err //nolint:wrapcheck // middleware shouldn't wrap errors
-	}
-
+	var err error
 	encodeKey := *p.defaults.KeyEnabled
 	if val, ok := config[configProcessorSchemaEncodeKeyEnabled]; ok {
 		encodeKey, err = strconv.ParseBool(val)
 		if err != nil {
 			return fmt.Errorf("invalid %s: failed to parse boolean: %w", configProcessorSchemaEncodeKeyEnabled, err)
 		}
+		delete(config, configProcessorSchemaEncodeKeyEnabled)
 	}
 
 	encodePayload := *p.defaults.PayloadEnabled
@@ -433,12 +429,14 @@ func (p *processorWithSchemaEncode) Configure(ctx context.Context, config config
 		if err != nil {
 			return fmt.Errorf("invalid %s: failed to parse boolean: %w", configProcessorSchemaEncodePayloadEnabled, err)
 		}
+		delete(config, configProcessorSchemaEncodePayloadEnabled)
 	}
 
 	p.keyEnabled = encodeKey
 	p.payloadEnabled = encodePayload
 
-	return nil
+	//nolint:wrapcheck // middleware shouldn't wrap errors
+	return p.Processor.Configure(ctx, config)
 }
 
 type subjectVersion struct {
