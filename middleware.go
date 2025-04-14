@@ -420,6 +420,7 @@ func (p *processorWithSchemaEncode) Configure(ctx context.Context, config config
 		if err != nil {
 			return fmt.Errorf("invalid %s: failed to parse boolean: %w", configProcessorSchemaEncodeKeyEnabled, err)
 		}
+		delete(config, configProcessorSchemaEncodeKeyEnabled)
 	}
 
 	encodePayload := *p.defaults.PayloadEnabled
@@ -428,6 +429,7 @@ func (p *processorWithSchemaEncode) Configure(ctx context.Context, config config
 		if err != nil {
 			return fmt.Errorf("invalid %s: failed to parse boolean: %w", configProcessorSchemaEncodePayloadEnabled, err)
 		}
+		delete(config, configProcessorSchemaEncodePayloadEnabled)
 	}
 
 	p.keyEnabled = encodeKey

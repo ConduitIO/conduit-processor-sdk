@@ -135,6 +135,11 @@ func TestProcessorWithSchemaDecode_Configure(t *testing.T) {
 
 			is.Equal(s.payloadEnabled, tt.wantPayloadEnabled)
 			is.Equal(s.keyEnabled, tt.wantKeyEnabled)
+
+			_, decodeKeyEnabled := tt.have[configProcessorWithSchemaDecodeKeyEnabled]
+			is.True(!decodeKeyEnabled) // expected sdk.schema.decode.key.enabled to be removed
+			_, payloadKeyEnabled := tt.have[configProcessorWithSchemaDecodePayloadEnabled]
+			is.True(!payloadKeyEnabled) // expected sdk.schema.decode.payload.enabled to be removed
 		})
 	}
 }
@@ -461,6 +466,10 @@ func TestProcessorWithSchemaEncode_Configure(t *testing.T) {
 
 			is.Equal(s.payloadEnabled, tt.wantPayloadEnabled)
 			is.Equal(s.keyEnabled, tt.wantKeyEnabled)
+			_, decodeKeyEnabled := tt.have[configProcessorSchemaEncodeKeyEnabled]
+			is.True(!decodeKeyEnabled) // expected sdk.schema.encode.key.enabled to be removed
+			_, payloadKeyEnabled := tt.have[configProcessorSchemaEncodePayloadEnabled]
+			is.True(!payloadKeyEnabled) // expected sdk.schema.encode.payload.enabled to be removed
 		})
 	}
 }
