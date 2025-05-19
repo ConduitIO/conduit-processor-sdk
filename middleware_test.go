@@ -841,7 +841,7 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 	}}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(_ *testing.T) {
 			outRecord := tc.outRecord
 			if outRecord == nil {
 				// if tc.outRecord is empty use tc.inRecord (easier to write tests)
