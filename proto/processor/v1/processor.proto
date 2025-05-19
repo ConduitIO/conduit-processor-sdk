@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package processor.v1;
 
-import "opencdc/v1/opencdc.proto";
 import "config/v1/parameter.proto";
+import "opencdc/v1/opencdc.proto";
 
 message CommandRequest {
   oneof request {
