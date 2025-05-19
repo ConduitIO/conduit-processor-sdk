@@ -119,6 +119,8 @@ func (e ErrorRecord) MarshalJSON() ([]byte, error) {
 	return json.Marshal(anon) //nolint:wrapcheck // no need to wrap error
 }
 
-// Support for MultiRecord will be added in the future.
-// type MultiRecord []opencdc.Record
-// func (MultiRecord) isProcessedRecord() {}
+// MultiRecord is a record that contains multiple records. It is used to split a
+// record into multiple records in processors.
+type MultiRecord []opencdc.Record
+
+func (MultiRecord) isProcessedRecord() {}
