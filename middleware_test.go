@@ -516,9 +516,9 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 
 	testCases := []struct {
 		name       string
-		inRecord   opencdc.Record // record to process
-		outRecord  SingleRecord   // record returned by processor (if empty, inRecord is used)
-		wantRecord SingleRecord
+		inRecord   opencdc.Record  // record to process
+		outRecord  ProcessedRecord // record returned by processor (if empty, inRecord is used)
+		wantRecord ProcessedRecord
 	}{{
 		name: "no key, no payload, no metadata",
 		inRecord: opencdc.Record{
@@ -767,16 +767,83 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 				After:  rawData2.Clone(),
 			},
 		},
+	}, {
+		name: "multi-record",
+		inRecord: opencdc.Record{
+			Metadata: opencdc.Metadata{
+				opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+				opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+				opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+				opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
+			},
+			Key: structuredData1.Clone(),
+			Payload: opencdc.Change{
+				Before: structuredData1.Clone(),
+				After:  structuredData1.Clone(),
+			},
+		},
+		outRecord: MultiRecord{
+			opencdc.Record{
+				Metadata: opencdc.Metadata{
+					opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+					opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+					opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+					opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
+				},
+				Key: structuredData1.Clone(),
+				Payload: opencdc.Change{
+					Before: structuredData1.Clone(),
+					After:  structuredData1.Clone(),
+				},
+			},
+			opencdc.Record{
+				Metadata: opencdc.Metadata{
+					opencdc.MetadataKeySchemaSubject:     schema2.Subject,
+					opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema2.Version),
+					opencdc.MetadataPayloadSchemaSubject: schema2.Subject,
+					opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema2.Version),
+				},
+				Key: structuredData2.Clone(),
+				Payload: opencdc.Change{
+					Before: structuredData2.Clone(),
+					After:  structuredData2.Clone(),
+				},
+			},
+		},
+		wantRecord: MultiRecord{
+			opencdc.Record{
+				Metadata: opencdc.Metadata{
+					opencdc.MetadataKeySchemaSubject:     schema1.Subject,
+					opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema1.Version),
+					opencdc.MetadataPayloadSchemaSubject: schema1.Subject,
+					opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema1.Version),
+				},
+				Key: rawData1.Clone(),
+				Payload: opencdc.Change{
+					Before: rawData1.Clone(),
+					After:  rawData1.Clone(),
+				},
+			},
+			opencdc.Record{
+				Metadata: opencdc.Metadata{
+					opencdc.MetadataKeySchemaSubject:     schema2.Subject,
+					opencdc.MetadataKeySchemaVersion:     strconv.Itoa(schema2.Version),
+					opencdc.MetadataPayloadSchemaSubject: schema2.Subject,
+					opencdc.MetadataPayloadSchemaVersion: strconv.Itoa(schema2.Version),
+				},
+				Key: rawData2.Clone(),
+				Payload: opencdc.Change{
+					Before: rawData2.Clone(),
+					After:  rawData2.Clone(),
+				},
+			},
+		},
 	}}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(_ *testing.T) {
 			outRecord := tc.outRecord
-			if outRecord.Key == nil &&
-				tc.outRecord.Payload == (opencdc.Change{}) &&
-				tc.outRecord.Metadata == nil &&
-				tc.outRecord.Position == nil &&
-				tc.outRecord.Operation == 0 {
+			if outRecord == nil {
 				// if tc.outRecord is empty use tc.inRecord (easier to write tests)
 				outRecord = SingleRecord(tc.inRecord)
 			}
@@ -786,12 +853,14 @@ func TestProcessorWithSchemaEncode_Process(t *testing.T) {
 			gotRecs := s.Process(ctx, []opencdc.Record{tc.inRecord})
 			is.Equal(len(gotRecs), 1)
 
-			got, ok := gotRecs[0].(SingleRecord)
-			if !ok {
-				t.Fatalf("expected SingleRecord, got %+v", gotRecs[0])
-			}
-
-			is.Equal("", cmp.Diff(tc.wantRecord, got, cmp.AllowUnexported(SingleRecord{})))
+			is.Equal(
+				"",
+				cmp.Diff(
+					tc.wantRecord,
+					gotRecs[0],
+					cmp.AllowUnexported(SingleRecord{}), cmp.AllowUnexported(opencdc.Record{}),
+				),
+			)
 		})
 	}
 }

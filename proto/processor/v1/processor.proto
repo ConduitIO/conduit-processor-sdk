@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package processor.v1;
 
-import "opencdc/v1/opencdc.proto";
 import "config/v1/parameter.proto";
+import "opencdc/v1/opencdc.proto";
 
 message CommandRequest {
   oneof request {
@@ -75,12 +75,16 @@ message Process {
       opencdc.v1.Record single_record = 1;
       FilterRecord filter_record = 2;
       ErrorRecord error_record = 3;
+      MultiRecord multi_record = 4;
     }
   }
 
   message FilterRecord {}
   message ErrorRecord {
     Error error = 1;
+  }
+  message MultiRecord {
+    repeated opencdc.v1.Record records = 1;
   }
 }
 

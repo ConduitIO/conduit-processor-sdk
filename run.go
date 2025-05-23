@@ -288,6 +288,8 @@ func (c protoConverter) processedRecord(in ProcessedRecord) (*processorv1.Proces
 		return c.filterRecord(v)
 	case ErrorRecord:
 		return c.errorRecord(v)
+	case MultiRecord:
+		return c.multiRecord(v)
 	default:
 		return nil, fmt.Errorf("unknown processed record type: %T", in)
 	}
@@ -319,6 +321,25 @@ func (c protoConverter) errorRecord(in ErrorRecord) (*processorv1.Process_Proces
 		Record: &processorv1.Process_ProcessedRecord_ErrorRecord{
 			ErrorRecord: &processorv1.Process_ErrorRecord{
 				Error: c.error(in.Error),
+			},
+		},
+	}, nil
+}
+
+func (c protoConverter) multiRecord(in MultiRecord) (*processorv1.Process_ProcessedRecord, error) {
+	protoRecords := make([]*opencdcv1.Record, len(in))
+	for i, v := range in {
+		protoRecord := &opencdcv1.Record{}
+		err := v.ToProto(protoRecord)
+		if err != nil {
+			return nil, err
+		}
+		protoRecords[i] = protoRecord
+	}
+	return &processorv1.Process_ProcessedRecord{
+		Record: &processorv1.Process_ProcessedRecord_MultiRecord{
+			MultiRecord: &processorv1.Process_MultiRecord{
+				Records: protoRecords,
 			},
 		},
 	}, nil
