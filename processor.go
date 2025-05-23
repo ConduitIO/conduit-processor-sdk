@@ -121,6 +121,10 @@ func (e ErrorRecord) MarshalJSON() ([]byte, error) {
 
 // MultiRecord is a record that contains multiple records. It is used to split a
 // record into multiple records in processors.
+// If the processor returns a MultiRecord with 0 records, it is the same as
+// returning a FilterRecord.
+// If the processor returns a MultiRecord with 1 record, it is the same as
+// returning a SingleRecord.
 type MultiRecord []opencdc.Record
 
 func (MultiRecord) isProcessedRecord() {}
