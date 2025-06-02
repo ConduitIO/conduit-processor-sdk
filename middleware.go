@@ -508,11 +508,7 @@ func (p *processorWithSchemaEncode) encodeRecord(
 	if err != nil {
 		return opencdc.Record{}, err
 	}
-	rec, err = p.encodePayload(ctx, rec, payloadSubjectVersion)
-	if err != nil {
-		return opencdc.Record{}, err
-	}
-	return rec, nil
+	return p.encodePayload(ctx, rec, payloadSubjectVersion)
 }
 
 func (p *processorWithSchemaEncode) keySubjectVersion(rec opencdc.Record) (subjectVersion, error) {
