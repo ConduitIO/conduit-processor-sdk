@@ -470,24 +470,45 @@ func (p *processorWithSchemaEncode) Process(ctx context.Context, records []openc
 	recsOut := p.Processor.Process(ctx, records)
 
 	// encode key and payload with schema if subject and version didn't change
-	for i, rec := range recsOut {
+	for i, processedRec := range recsOut {
 		if i >= len(keySubjectVersions) {
-			break // should not happen, if the processor respects the input length
+			break // should not happen if the processor respects the input length
 		}
 
-		singleRec, ok := rec.(SingleRecord)
-		if !ok {
-			continue
+		switch processedRec := processedRec.(type) {
+		case SingleRecord:
+			encodedRecord, err := p.encodeRecord(ctx, (opencdc.Record)(processedRec), keySubjectVersions[i], payloadSubjectVersions[i])
+			if err != nil {
+				recsOut[i] = ErrorRecord{Error: err}
+				continue
+			}
+			recsOut[i] = (SingleRecord)(encodedRecord)
+		case MultiRecord:
+			for j, rec := range processedRec {
+				encodedRecord, err := p.encodeRecord(ctx, rec, keySubjectVersions[i], payloadSubjectVersions[i])
+				if err != nil {
+					recsOut[i] = ErrorRecord{Error: err}
+					break
+				}
+				processedRec[j] = encodedRecord
+			}
+		default:
+			continue // skip if not a single or multi record
 		}
-		if err := p.encodeKey(ctx, (*opencdc.Record)(&singleRec), keySubjectVersions[i]); err != nil {
-			recsOut[i] = ErrorRecord{Error: err}
-		}
-		if err := p.encodePayload(ctx, (*opencdc.Record)(&singleRec), payloadSubjectVersions[i]); err != nil {
-			recsOut[i] = ErrorRecord{Error: err}
-		}
-		recsOut[i] = singleRec
 	}
 	return recsOut
+}
+
+func (p *processorWithSchemaEncode) encodeRecord(
+	ctx context.Context,
+	rec opencdc.Record,
+	keySubjectVersion, payloadSubjectVersion subjectVersion,
+) (opencdc.Record, error) {
+	rec, err := p.encodeKey(ctx, rec, keySubjectVersion)
+	if err != nil {
+		return opencdc.Record{}, err
+	}
+	return p.encodePayload(ctx, rec, payloadSubjectVersion)
 }
 
 func (p *processorWithSchemaEncode) keySubjectVersion(rec opencdc.Record) (subjectVersion, error) {
@@ -514,21 +535,21 @@ func (p *processorWithSchemaEncode) payloadSubjectVersion(rec opencdc.Record) (s
 	return subjectVersion{subject: subject, version: version}, nil
 }
 
-func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec *opencdc.Record, incomingSubjectVersion subjectVersion) error {
+func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec opencdc.Record, incomingSubjectVersion subjectVersion) (opencdc.Record, error) {
 	if !p.keyEnabled {
-		return nil // key schema encoding is disabled
+		return rec, nil // key schema encoding is disabled
 	}
 	if _, ok := rec.Key.(opencdc.StructuredData); !ok {
 		// log warning once, to avoid spamming the logs
 		p.keyWarnOnce.Do(func() {
 			Logger(ctx).Warn().Msgf(`record key is not structured, consider disabling the processor schema key encoding using "%s: false"`, configProcessorSchemaEncodeKeyEnabled)
 		})
-		return nil
+		return rec, nil
 	}
 
-	outgoingSubjectVersion, err := p.keySubjectVersion(*rec)
+	outgoingSubjectVersion, err := p.keySubjectVersion(rec)
 	if err != nil {
-		return err // already wrapped
+		return opencdc.Record{}, err // already wrapped
 	}
 
 	var newSchema schema.Schema
@@ -539,43 +560,43 @@ func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec *opencdc.
 		p.keyWarnOnce.Do(func() {
 			Logger(ctx).Warn().Msgf(`outgoing record does not have an attached schema for the key, consider disabling the processor schema key encoding using "%s: false"`, configProcessorSchemaEncodeKeyEnabled)
 		})
-		return nil
+		return rec, nil
 	case incomingSubjectVersion == outgoingSubjectVersion:
 		// key schema subject and version didn't change, extract schema and encode the data
 
 		// first fetch old schema to determine the schema type
 		oldSchema, err := sdkschema.Get(ctx, incomingSubjectVersion.subject, incomingSubjectVersion.version)
 		if err != nil {
-			return fmt.Errorf("failed to get schema for key: %w", err)
+			return opencdc.Record{}, fmt.Errorf("failed to get schema for key: %w", err)
 		}
 
 		// extract the schema, since the data might have changed
 		newSchema, err = p.schemaForType(ctx, oldSchema.Type, outgoingSubjectVersion.subject, rec.Key)
 		if err != nil {
-			return fmt.Errorf("failed to extract schema for key: %w", err)
+			return opencdc.Record{}, fmt.Errorf("failed to extract schema for key: %w", err)
 		}
 	default:
 		// key schema subject or version changed, fetch the schema and encode the data
 		newSchema, err = sdkschema.Get(ctx, outgoingSubjectVersion.subject, outgoingSubjectVersion.version)
 		if err != nil {
-			return fmt.Errorf("failed to get schema for key: %w", err)
+			return opencdc.Record{}, fmt.Errorf("failed to get schema for key: %w", err)
 		}
 	}
 
 	encoded, err := p.encodeWithSchema(newSchema, rec.Key)
 	if err != nil {
-		return fmt.Errorf("failed to encode key: %w", err)
+		return opencdc.Record{}, fmt.Errorf("failed to encode key: %w", err)
 	}
 
 	rec.Key = opencdc.RawData(encoded)
-	schema.AttachKeySchemaToRecord(*rec, newSchema)
-	return nil
+	schema.AttachKeySchemaToRecord(rec, newSchema)
+	return rec, nil
 }
 
 //nolint:funlen // maybe refactor in the future
-func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec *opencdc.Record, incomingSubjectVersion subjectVersion) error {
+func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec opencdc.Record, incomingSubjectVersion subjectVersion) (opencdc.Record, error) {
 	if !p.payloadEnabled {
-		return nil // payload schema encoding is disabled
+		return rec, nil // payload schema encoding is disabled
 	}
 	_, beforeIsStructured := rec.Payload.Before.(opencdc.StructuredData)
 	_, afterIsStructured := rec.Payload.After.(opencdc.StructuredData)
@@ -584,12 +605,12 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec *open
 		p.payloadWarnOnce.Do(func() {
 			Logger(ctx).Warn().Msgf(`record payload is not structured, consider disabling the processor schema payload encoding using "%s: false"`, configProcessorSchemaEncodePayloadEnabled)
 		})
-		return nil
+		return rec, nil
 	}
 
-	outgoingSubjectVersion, err := p.payloadSubjectVersion(*rec)
+	outgoingSubjectVersion, err := p.payloadSubjectVersion(rec)
 	if err != nil {
-		return err // already wrapped
+		return opencdc.Record{}, err // already wrapped
 	}
 
 	var newSchema schema.Schema
@@ -600,14 +621,14 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec *open
 		p.payloadWarnOnce.Do(func() {
 			Logger(ctx).Warn().Msgf(`outgoing record does not have an attached schema for the payload, consider disabling the processor schema payload encoding using "%s: false"`, configProcessorSchemaEncodePayloadEnabled)
 		})
-		return nil
+		return rec, nil
 	case incomingSubjectVersion == outgoingSubjectVersion:
 		// payload schema subject and version didn't change, extract schema and encode the data
 
 		// first fetch old schema to determine the schema type
 		oldSchema, err := sdkschema.Get(ctx, incomingSubjectVersion.subject, incomingSubjectVersion.version)
 		if err != nil {
-			return fmt.Errorf("failed to get schema for payload: %w", err)
+			return opencdc.Record{}, fmt.Errorf("failed to get schema for payload: %w", err)
 		}
 
 		// extract the schema, since the data might have changed
@@ -619,13 +640,13 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec *open
 
 		newSchema, err = p.schemaForType(ctx, oldSchema.Type, outgoingSubjectVersion.subject, val)
 		if err != nil {
-			return fmt.Errorf("failed to extract schema for payload: %w", err)
+			return opencdc.Record{}, fmt.Errorf("failed to extract schema for payload: %w", err)
 		}
 	default:
 		// payload schema subject or version changed, fetch the schema and encode the data
 		newSchema, err = sdkschema.Get(ctx, outgoingSubjectVersion.subject, outgoingSubjectVersion.version)
 		if err != nil {
-			return fmt.Errorf("failed to get schema for payload: %w", err)
+			return opencdc.Record{}, fmt.Errorf("failed to get schema for payload: %w", err)
 		}
 	}
 
@@ -633,19 +654,19 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec *open
 	if beforeIsStructured {
 		encoded, err := p.encodeWithSchema(newSchema, rec.Payload.Before)
 		if err != nil {
-			return fmt.Errorf("failed to encode before payload: %w", err)
+			return opencdc.Record{}, fmt.Errorf("failed to encode before payload: %w", err)
 		}
 		rec.Payload.Before = opencdc.RawData(encoded)
 	}
 	if afterIsStructured {
 		encoded, err := p.encodeWithSchema(newSchema, rec.Payload.After)
 		if err != nil {
-			return fmt.Errorf("failed to encode after payload: %w", err)
+			return opencdc.Record{}, fmt.Errorf("failed to encode after payload: %w", err)
 		}
 		rec.Payload.After = opencdc.RawData(encoded)
 	}
-	schema.AttachPayloadSchemaToRecord(*rec, newSchema)
-	return nil
+	schema.AttachPayloadSchemaToRecord(rec, newSchema)
+	return rec, nil
 }
 
 func (p *processorWithSchemaEncode) schemaForType(ctx context.Context, schemaType schema.Type, subject string, data any) (schema.Schema, error) {
