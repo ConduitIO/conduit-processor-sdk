@@ -15,10 +15,12 @@
 package wasm
 
 import (
+	"fmt"
 	"testing"
 	"unsafe"
 
 	"github.com/conduitio/conduit-processor-sdk/pprocutils"
+	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"github.com/matryer/is"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -111,12 +113,11 @@ func TestBuffer_PointerAndSize(t *testing.T) {
 	})
 }
 
-func TestHostCall(t *testing.T) {
+func TestHandleImportedCall(t *testing.T) {
+	is := is.New(t)
 	responseMsg := &anypb.Any{Value: []byte("response")}
 	responseBytes, err := proto.Marshal(responseMsg)
-	if err != nil {
-		panic(err)
-	}
+	is.NoErr(err)
 	responseLen := len(responseBytes)
 
 	tests := []struct {
@@ -169,10 +170,10 @@ func TestHostCall(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			is := is.New(t)
 			if tt.buffer != nil {
-				oldBuffer := importBuffer
-				importBuffer = tt.buffer
+				oldBuffer := importCallBuffer
+				importCallBuffer = tt.buffer
 				defer func() {
-					importBuffer = oldBuffer // Restore the original buffer after the test
+					importCallBuffer = oldBuffer // Restore the original buffer after the test
 				}()
 			}
 
@@ -184,4 +185,75 @@ func TestHostCall(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleExportedCall(t *testing.T) {
+	is := is.New(t)
+
+	// Prepare a request and response
+	reqMsg := &anypb.Any{Value: []byte("request")}
+	respMsg := &anypb.Any{Value: []byte("response")}
+	reqBytes, err := proto.Marshal(reqMsg)
+	is.NoErr(err)
+
+	// Handler that returns a valid response
+	handler := func(r *anypb.Any) (*anypb.Any, error) {
+		is.Equal(r.Value, reqMsg.Value)
+		return respMsg, nil
+	}
+
+	// Handler that returns an error
+	errorHandler := func(*anypb.Any) (*anypb.Any, error) {
+		return nil, fmt.Errorf("handler error")
+	}
+
+	t.Run("success", func(t *testing.T) {
+		is := is.New(t)
+		// Prepare buffer for request
+		buf := newBuffer(len(reqBytes))
+		copy(*buf, reqBytes)
+
+		// Call handleExportedCall
+		result := handleExportedCall(buf.Pointer(), uint32(len(*buf)), handler, &anypb.Any{})
+		// Unpack pointer and size
+		respPtr := uint32(result >> 32)
+		respSize := uint32(result)
+		if respPtr == 0 || respSize == 0 {
+			t.Fatalf("expected non-zero pointer and size")
+		}
+		// Read response from exportCallBuffer
+		got := &anypb.Any{}
+		err := proto.Unmarshal((*exportCallBuffer)[:respSize], got)
+		is.NoErr(err)
+		is.Equal(got.Value, respMsg.Value)
+	})
+
+	t.Run("handler error", func(t *testing.T) {
+		is := is.New(t)
+		buf := newBuffer(len(reqBytes))
+		copy(*buf, reqBytes)
+
+		result := handleExportedCall(buf.Pointer(), uint32(len(*buf)), errorHandler, &anypb.Any{})
+		respSize := uint32(result)
+		got := &processorv1.Error{}
+		err := proto.Unmarshal((*exportCallBuffer)[:respSize], got)
+		is.NoErr(err)
+		is.Equal(int(got.Code), pprocutils.ErrorCodeInternal)
+		is.True(len(got.Message) > 0)
+	})
+
+	t.Run("unmarshal error", func(t *testing.T) {
+		is := is.New(t)
+		// Pass invalid proto bytes
+		buf := newBuffer(len("not a proto"))
+		copy(*buf, "not a proto")
+
+		result := handleExportedCall(buf.Pointer(), uint32(len(*buf)), handler, &anypb.Any{})
+		respSize := uint32(result)
+		got := &processorv1.Error{}
+		err := proto.Unmarshal((*exportCallBuffer)[:respSize], got)
+		is.NoErr(err)
+		is.Equal(int(got.Code), pprocutils.ErrorCodeInternal)
+		is.True(len(got.Message) > 0)
+	})
 }

@@ -22,11 +22,13 @@ import (
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 )
 
+var mallocBuffer = newBuffer(1024) // 1kB buffer for malloc
+
 //go:wasmexport conduit.processor.v1.malloc
 func malloc(size uint32) unsafe.Pointer {
 	// Allocate a buffer of the specified size.
-	exportReqBuffer.Grow(int(size))
-	return exportReqBuffer.Pointer()
+	mallocBuffer.Grow(int(size))
+	return mallocBuffer.Pointer()
 }
 
 //go:wasmexport conduit.processor.v1.specification

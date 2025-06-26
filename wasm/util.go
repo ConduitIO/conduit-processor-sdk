@@ -65,7 +65,7 @@ func (b *buffer) PointerAndSize() uint64 {
 
 // -- Imported Function Utilities ----------------------------------------------
 
-var importBuffer = newBuffer(1024) // 1kB buffer for requests and responses
+var importCallBuffer = newBuffer(1024) // 1kB buffer for requests and responses
 
 // hostFunc is the function type for the imported functions from the host.
 //
@@ -82,29 +82,29 @@ type hostFunc func(ptr unsafe.Pointer, size uint32) uint32
 // size is not enough the first time its called, it will be resized the second call.
 // Returns the buffer, command size, and error.
 func handleImportedCall[REQ, RESP proto.Message](fn hostFunc, req REQ, resp RESP) error {
-	reqData, err := proto.MarshalOptions{}.MarshalAppend((*importBuffer)[:0], req)
+	reqData, err := proto.MarshalOptions{}.MarshalAppend((*importCallBuffer)[:0], req)
 	if err != nil {
 		return fmt.Errorf("error marshalling proto type %T: %w", req, err)
 	}
-	*importBuffer = reqData
+	*importCallBuffer = reqData
 
 	// 2 tries, 1st try is with the current buffer size, if that's not enough,
 	// then resize the buffer and try again
 	for i := 0; i < 2; i++ {
 		// request the host to write the response to the given buffer address
-		cmdSize := fn(importBuffer.Pointer(), uint32(len(*importBuffer))) //nolint:gosec // no risk of overflow
+		cmdSize := fn(importCallBuffer.Pointer(), uint32(len(*importCallBuffer))) //nolint:gosec // no risk of overflow
 		switch {
 		case cmdSize >= pprocutils.ErrorCodeStart:
 			// error codes
 			return pprocutils.NewErrorFromCode(cmdSize)
-		case cmdSize > uint32(len(*importBuffer)): //nolint:gosec // no risk of overflow
+		case cmdSize > uint32(len(*importCallBuffer)): //nolint:gosec // no risk of overflow
 			// not enough memory, resize the buffer and try again
-			importBuffer.Grow(int(cmdSize))
+			importCallBuffer.Grow(int(cmdSize))
 			continue // try again
 		}
 
 		// we have a valid response, unmarshal it
-		err = proto.Unmarshal((*importBuffer)[:cmdSize], resp)
+		err = proto.Unmarshal((*importCallBuffer)[:cmdSize], resp)
 		if err != nil {
 			return fmt.Errorf("failed unmarshalling %v bytes into proto type %T: %w", cmdSize, resp, err)
 		}
@@ -116,10 +116,7 @@ func handleImportedCall[REQ, RESP proto.Message](fn hostFunc, req REQ, resp RESP
 
 // -- Exported Function Utilities ----------------------------------------------
 
-var (
-	exportReqBuffer  = newBuffer(1024) // 1kB buffer for export requests
-	exportRespBuffer = newBuffer(1024) // 1kB buffer for export responses
-)
+var exportCallBuffer = newBuffer(1024) // 1kB buffer for export responses
 
 // handleExportedCall handles the exported call from the host.
 func handleExportedCall[REQ, RESP proto.Message](
@@ -139,12 +136,12 @@ func handleExportedCall[REQ, RESP proto.Message](
 		return handleExportedCallError(fmt.Errorf("failed to handle command: %w", err))
 	}
 
-	outData, err := proto.MarshalOptions{}.MarshalAppend((*exportRespBuffer)[:0], resp)
+	outData, err := proto.MarshalOptions{}.MarshalAppend((*exportCallBuffer)[:0], resp)
 	if err != nil {
 		return handleExportedCallError(fmt.Errorf("failed marshalling proto type %T into bytes: %w", resp, err))
 	}
-	*exportRespBuffer = outData
-	return exportRespBuffer.PointerAndSize()
+	*exportCallBuffer = outData
+	return exportCallBuffer.PointerAndSize()
 }
 
 func handleExportedCallError(err error) uint64 {
@@ -152,11 +149,11 @@ func handleExportedCallError(err error) uint64 {
 		Code:    pprocutils.ErrorCodeInternal,
 		Message: fmt.Sprintf("error handling command: %v", err),
 	}
-	outData, err := proto.MarshalOptions{}.MarshalAppend((*exportRespBuffer)[:0], protoErr)
+	outData, err := proto.MarshalOptions{}.MarshalAppend((*exportCallBuffer)[:0], protoErr)
 	if err != nil {
 		// If we fail to marshal the error, we panic because we can't return an error to the host.
 		panic(fmt.Sprintf("failed to marshal error response: %v", err))
 	}
-	*exportRespBuffer = outData
-	return exportRespBuffer.PointerAndSize()
+	*exportCallBuffer = outData
+	return exportCallBuffer.PointerAndSize()
 }
