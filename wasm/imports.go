@@ -18,30 +18,6 @@ package wasm
 
 import "unsafe"
 
-// Imports `command_request` from the host, which retrieves
-// the next command for a processor.
-//
-// The arguments are:
-// (1) a pointer to the address where the command should be written
-// (2) the size of allocated memory.
-//
-// The return value indicates the size of the allocated request in bytes. If the
-// command is larger than the allocated memory, the caller should reallocate the
-// memory and call `command_request` again.
-//
-//go:wasmimport conduit command_request
-func _commandRequest(ptr unsafe.Pointer, size uint32) uint32
-
-// Imports `command_response` from the host, which informs
-// the host about the response for the previous command.
-//
-// The arguments are:
-// (1) a pointer to the address where the reply was written
-// (2) the size of allocated memory.
-//
-//go:wasmimport conduit command_response
-func _commandResponse(ptr unsafe.Pointer, size uint32) uint32
-
 // Imports `create_schema` from the host, which creates a schema
 //
 // The arguments are:
