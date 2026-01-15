@@ -109,6 +109,7 @@ linters:
           - gocognit
           - gosec
           - maintidx
+          - unparam
         path: _test\.go
       - linters:
           - goconst
