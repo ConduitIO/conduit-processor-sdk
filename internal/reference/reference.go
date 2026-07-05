@@ -21,6 +21,14 @@ import (
 	"github.com/conduitio/conduit-commons/opencdc"
 )
 
+const (
+	refKey           = ".Key"
+	refPosition      = ".Position"
+	refOperation     = ".Operation"
+	refPayloadBefore = ".Payload.Before"
+	refPayloadAfter  = ".Payload.After"
+)
+
 // Reference is an interface that represents a reference to a field in a record.
 // It can be used to get and set the value of the field dynamically using input
 // provided by the user.
@@ -120,15 +128,15 @@ func cleanInput(input string) string {
 	}
 	input = replacePrefix(input, map[string]string{
 		".payload":   ".Payload",
-		".key":       ".Key",
+		".key":       refKey,
 		".metadata":  ".Metadata",
-		".position":  ".Position",
-		".operation": ".Operation",
+		".position":  refPosition,  //nolint:goconst // canonicalization token, clearest inline
+		".operation": refOperation, //nolint:goconst // canonicalization token, clearest inline
 	})
 	if strings.HasPrefix(input, ".Payload") {
 		input = replacePrefix(input, map[string]string{
-			".Payload.before": ".Payload.Before",
-			".Payload.after":  ".Payload.After",
+			".Payload.before": refPayloadBefore,
+			".Payload.after":  refPayloadAfter,
 		})
 	}
 	return input
@@ -393,7 +401,7 @@ func (r keyReference) walk(field string) (Reference, error) {
 	return dataFieldReference{
 		data:  r.rec.Key.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
 		field: field,
-		path:  ".Key",
+		path:  refKey,
 	}, nil
 }
 
@@ -483,7 +491,7 @@ func (r payloadBeforeReference) walk(field string) (Reference, error) {
 	return dataFieldReference{
 		data:  r.rec.Payload.Before.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
 		field: field,
-		path:  ".Payload.Before",
+		path:  refPayloadBefore,
 	}, nil
 }
 
@@ -535,7 +543,7 @@ func (r payloadAfterReference) walk(field string) (Reference, error) {
 	return dataFieldReference{
 		data:  r.rec.Payload.After.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
 		field: field,
-		path:  ".Payload.After",
+		path:  refPayloadAfter,
 	}, nil
 }
 
