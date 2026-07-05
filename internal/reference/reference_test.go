@@ -65,14 +65,14 @@ func TestReference_Get_RawData(t *testing.T) {
 	}{
 		// uppercase
 		{".", rec},
-		{".Position", rec.Position},
-		{".Operation", rec.Operation},
+		{refPosition, rec.Position},
+		{refOperation, rec.Operation},
 		{".Metadata.foo", rec.Metadata["foo"]},
 		{".Metadata.bar", nil},
-		{".Key", rec.Key},
+		{refKey, rec.Key},
 		{".Payload", rec.Payload},
-		{".Payload.Before", rec.Payload.Before},
-		{".Payload.After", rec.Payload.After},
+		{refPayloadBefore, rec.Payload.Before},
+		{refPayloadAfter, rec.Payload.After},
 		// lowercase
 		{".position", rec.Position},
 		{".operation", rec.Operation},
@@ -164,8 +164,8 @@ func TestReference_Get_NoData(t *testing.T) {
 		want      any
 	}{
 		// uppercase
-		{".Position", nil},
-		{".Operation", opencdc.Operation(0)},
+		{refPosition, nil},
+		{refOperation, opencdc.Operation(0)},
 		{".Metadata.foo", nil},
 		{".Metadata.bar", nil},
 		{".Key.foo1", nil},
@@ -284,7 +284,7 @@ func TestReference_Position(t *testing.T) {
 
 	is := is.New(t)
 	resolvers := map[string]Resolver{
-		"uppercase": MustResolver(is)(NewResolver(".Position")),
+		"uppercase": MustResolver(is)(NewResolver(refPosition)),
 		"lowercase": MustResolver(is)(NewResolver(".position")),
 	}
 
@@ -341,7 +341,7 @@ func TestReference_Operation(t *testing.T) {
 
 	is := is.New(t)
 	resolvers := map[string]Resolver{
-		"uppercase": MustResolver(is)(NewResolver(".Operation")),
+		"uppercase": MustResolver(is)(NewResolver(refOperation)),
 		"lowercase": MustResolver(is)(NewResolver(".operation")),
 	}
 
@@ -531,7 +531,7 @@ func TestReference_Key(t *testing.T) {
 
 	is := is.New(t)
 	resolvers := map[string]Resolver{
-		"uppercase": MustResolver(is)(NewResolver(".Key")),
+		"uppercase": MustResolver(is)(NewResolver(refKey)),
 		"lowercase": MustResolver(is)(NewResolver(".key")),
 	}
 
@@ -673,7 +673,7 @@ func TestReference_PayloadBefore(t *testing.T) {
 	is := is.New(t)
 	resolvers := map[string]Resolver{
 		"uppercase1": MustResolver(is)(NewResolver(".payload.Before")),
-		"uppercase2": MustResolver(is)(NewResolver(".Payload.Before")),
+		"uppercase2": MustResolver(is)(NewResolver(refPayloadBefore)),
 		"lowercase1": MustResolver(is)(NewResolver(".payload.before")),
 		"lowercase2": MustResolver(is)(NewResolver(".Payload.before")),
 	}
@@ -820,7 +820,7 @@ func TestReference_PayloadAfter(t *testing.T) {
 	is := is.New(t)
 	resolvers := map[string]Resolver{
 		"uppercase1": MustResolver(is)(NewResolver(".payload.After")),
-		"uppercase2": MustResolver(is)(NewResolver(".Payload.After")),
+		"uppercase2": MustResolver(is)(NewResolver(refPayloadAfter)),
 		"lowercase1": MustResolver(is)(NewResolver(".payload.after")),
 		"lowercase2": MustResolver(is)(NewResolver(".Payload.after")),
 	}
