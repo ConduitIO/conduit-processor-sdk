@@ -23,6 +23,11 @@ import (
 	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 )
 
+// InMemoryService is a non-persistent [pprocutils.SchemaService] that keeps all
+// schemas in memory. It is the default backing store for tests and built-in
+// processors; it is safe for concurrent use but its contents are lost when the
+// process exits and are not shared with a real schema registry. Versions per
+// subject start at 1 and increment on each [InMemoryService.CreateSchema] call.
 type InMemoryService struct {
 	// schemas is a map of schema subjects to all the versions of that schema
 	// versioning starts at 1, newer versions are appended to the end of the versions slice.
@@ -33,6 +38,7 @@ type InMemoryService struct {
 	idSequence int
 }
 
+// NewInMemoryService returns an empty [InMemoryService] ready for use.
 func NewInMemoryService() *InMemoryService {
 	return &InMemoryService{
 		schemas: make(map[string][]schema.Schema),

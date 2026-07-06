@@ -23,5 +23,9 @@ var (
 		"this action, please check the source code of the processor and make sure " +
 		"all required processor methods are implemented")
 
+	// ErrFilterRecord is a sentinel error a function passed to
+	// [NewProcessorFunc] can return to filter a record out of the pipeline
+	// instead of failing it. The record is acked and dropped ([FilterRecord]),
+	// not nacked. Returning any other error yields an [ErrorRecord].
 	ErrFilterRecord = errors.New("filter out this record")
 )
