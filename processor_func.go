@@ -47,6 +47,12 @@ func NewProcessorFunc(specs Specification, f func(context.Context, opencdc.Recor
 
 func (f ProcessorFunc) Specification() (Specification, error) { return f.specs, nil }
 
+// Process applies the wrapped function to each record in order. A record for
+// which the function returns [ErrFilterRecord] becomes a [FilterRecord]; any
+// other error becomes an [ErrorRecord] and processing stops there, so the
+// returned slice is truncated at the first failing record and is shorter than
+// the input. Records before the error are returned as [SingleRecord] values;
+// records after it are left for Conduit to reprocess.
 func (f ProcessorFunc) Process(ctx context.Context, records []opencdc.Record) []ProcessedRecord {
 	outRecs := make([]ProcessedRecord, len(records))
 	for i, inRec := range records {
