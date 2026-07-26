@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package procutils.v1;
+
+option go_package = "github.com/conduitio/conduit-processor-sdk/proto/procutils/v1";
+
+// HTTPHeader is a single HTTP header with one or more values. Headers are
+// modelled as a repeated message (not a proto map) so multi-valued headers
+// round-trip exactly.
+message HTTPHeader {
+  string key = 1;
+  repeated string values = 2;
+}
+
+// HTTPRequest is the guest-marshalled request for the host-mediated egress
+// capability (host function `http_request`). The host validates and performs
+// the call; the guest never gets a socket. See the WASM host-egress design doc.
+message HTTPRequest {
+  string method = 1;
+  string url = 2;
+  repeated HTTPHeader headers = 3;
+  bytes body = 4;
+  // auth_secret_ref names a secret the HOST resolves and injects as the
+  // Authorization header. The guest never supplies the credential value; a
+  // guest-set Authorization header is rejected host-side.
+  string auth_secret_ref = 5;
+}
+
+// HTTPResponse is the host-produced, fully-buffered, size-capped response
+// written back into the guest-owned buffer.
+message HTTPResponse {
+  int32 status_code = 1;
+  repeated HTTPHeader headers = 2;
+  bytes body = 3;
+}

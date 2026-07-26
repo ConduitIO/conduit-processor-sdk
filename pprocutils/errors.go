@@ -31,6 +31,17 @@ const (
 	ErrorCodeSubjectNotFound
 	ErrorCodeVersionNotFound
 	ErrorCodeInvalidSchema
+
+	// HTTP host-egress capability error codes (host function http_request).
+	// Appended to the same iota band so existing codes keep their stable
+	// numeric values — never renumber the codes above.
+	ErrorCodeHTTPEgressDisabled
+	ErrorCodeHTTPForbidden
+	ErrorCodeHTTPInvalidRequest
+	ErrorCodeHTTPDNS
+	ErrorCodeHTTPTimeout
+	ErrorCodeHTTPResponseTooLarge
+	ErrorCodeHTTPTransport
 )
 
 var (
@@ -44,6 +55,14 @@ var (
 	ErrInvalidSchema   = NewError(ErrorCodeInvalidSchema, "invalid schema")
 
 	ErrInternal = NewError(ErrorCodeInternal, "internal error")
+
+	ErrHTTPEgressDisabled   = NewError(ErrorCodeHTTPEgressDisabled, "http egress is not enabled for this processor")
+	ErrHTTPForbidden        = NewError(ErrorCodeHTTPForbidden, "http egress destination is forbidden by policy")
+	ErrHTTPInvalidRequest   = NewError(ErrorCodeHTTPInvalidRequest, "invalid http egress request")
+	ErrHTTPDNS              = NewError(ErrorCodeHTTPDNS, "http egress DNS resolution failed")
+	ErrHTTPTimeout          = NewError(ErrorCodeHTTPTimeout, "http egress call timed out")
+	ErrHTTPResponseTooLarge = NewError(ErrorCodeHTTPResponseTooLarge, "http egress response exceeded the size cap")
+	ErrHTTPTransport        = NewError(ErrorCodeHTTPTransport, "http egress transport error")
 )
 
 type Error struct {
@@ -88,6 +107,20 @@ func NewErrorFromCode(code uint32) *Error {
 		return ErrInvalidSchema
 	case ErrorCodeInternal:
 		return ErrInternal
+	case ErrorCodeHTTPEgressDisabled:
+		return ErrHTTPEgressDisabled
+	case ErrorCodeHTTPForbidden:
+		return ErrHTTPForbidden
+	case ErrorCodeHTTPInvalidRequest:
+		return ErrHTTPInvalidRequest
+	case ErrorCodeHTTPDNS:
+		return ErrHTTPDNS
+	case ErrorCodeHTTPTimeout:
+		return ErrHTTPTimeout
+	case ErrorCodeHTTPResponseTooLarge:
+		return ErrHTTPResponseTooLarge
+	case ErrorCodeHTTPTransport:
+		return ErrHTTPTransport
 	default:
 		return NewError(code, "unknown error code")
 	}
