@@ -19,6 +19,7 @@ package wasm
 import (
 	"os"
 
+	"github.com/conduitio/conduit-processor-sdk/egress"
 	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 	"github.com/conduitio/conduit-processor-sdk/schema"
 	"github.com/rs/zerolog"
@@ -27,6 +28,7 @@ import (
 func InitUtils(logLevel string) {
 	initLogger(logLevel)
 	initSchemaService()
+	initHTTPService()
 }
 
 func initLogger(logLevel string) {
@@ -44,4 +46,8 @@ func initLogger(logLevel string) {
 
 func initSchemaService() {
 	schema.SchemaService = &schemaService{}
+}
+
+func initHTTPService() {
+	egress.HTTPService = &httpService{}
 }

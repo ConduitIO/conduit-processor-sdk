@@ -67,3 +67,25 @@ func _createSchema(ptr unsafe.Pointer, size uint32) uint32
 //
 //go:wasmimport conduit get_schema
 func _getSchema(ptr unsafe.Pointer, size uint32) uint32
+
+// Imports `http_request` from the host, which performs a host-mediated,
+// allowlisted outbound HTTP call on the guest's behalf. The guest never gets a
+// socket: the host validates the request against this processor's resolved
+// egress policy (allowlist, resolved-IP dial-time gate, no-proxy transport,
+// redirect suppression, per-call timeout, response-size cap, host-injected
+// credentials — see docs/design-documents/20260726-wasm-host-egress-capability.md
+// in ConduitIO/conduit) and performs the I/O itself.
+//
+// The arguments are:
+// (1) a pointer to the address where the marshalled HTTPRequest was written;
+// the host writes the marshalled HTTPResponse back into the same address.
+// (2) the size of allocated memory.
+//
+// The return value indicates the size of the written response in bytes, or a
+// value >= pprocutils.ErrorCodeStart on failure (see pprocutils/errors.go for
+// the ErrorCodeHTTP* band). If the response is larger than the allocated
+// memory, the caller should reallocate the memory and call `http_request`
+// again — identical to `create_schema`/`get_schema`.
+//
+//go:wasmimport conduit http_request
+func _httpRequest(ptr unsafe.Pointer, size uint32) uint32
