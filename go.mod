@@ -8,7 +8,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/matryer/is v1.4.1
 	github.com/rs/zerolog v1.35.1
-	github.com/twmb/go-cache v1.3.0
+	github.com/twmb/go-cache v1.4.0
 	go.uber.org/mock v0.6.0
 	google.golang.org/protobuf v1.36.12
 )
