@@ -64,6 +64,22 @@ func checkNoDroppedFields(sch schema.Schema, data any) error {
 	return nil
 }
 
+// checkPayloadNoDroppedFields runs checkNoDroppedFields on the structured
+// parts of payload.
+func checkPayloadNoDroppedFields(sch schema.Schema, payload opencdc.Change) error {
+	if before, ok := payload.Before.(opencdc.StructuredData); ok {
+		if err := checkNoDroppedFields(sch, before); err != nil {
+			return fmt.Errorf("failed to encode before payload: %w", err)
+		}
+	}
+	if after, ok := payload.After.(opencdc.StructuredData); ok {
+		if err := checkNoDroppedFields(sch, after); err != nil {
+			return fmt.Errorf("failed to encode after payload: %w", err)
+		}
+	}
+	return nil
+}
+
 // findDroppedField walks data along s and returns the path of the first map
 // key that is not a field of the record schema it is encoded with. It only
 // reports a field when it is certain the encoder would drop it: where the

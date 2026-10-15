@@ -635,14 +635,9 @@ func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec opencdc.R
 		}
 	default:
 		// key schema subject or version changed, fetch the schema and encode the data
-		newSchema, err = sdkschema.Get(ctx, outgoingSubjectVersion.subject, outgoingSubjectVersion.version)
+		newSchema, err = attachedKeySchema(ctx, outgoingSubjectVersion, rec.Key)
 		if err != nil {
-			return opencdc.Record{}, fmt.Errorf("failed to get schema for key: %w", err)
-		}
-		// Invariant 6: the processor chose this schema, so the key must fit
-		// it. A field the schema lacks would be dropped without an error.
-		if err := checkNoDroppedFields(newSchema, rec.Key); err != nil {
-			return opencdc.Record{}, fmt.Errorf("failed to encode key: %w", err)
+			return opencdc.Record{}, err // already wrapped
 		}
 	}
 
@@ -654,6 +649,21 @@ func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec opencdc.R
 	rec.Key = opencdc.RawData(encoded)
 	schema.AttachKeySchemaToRecord(rec, newSchema)
 	return rec, nil
+}
+
+// attachedKeySchema fetches the key schema a processor attached and checks
+// that the key fits it.
+func attachedKeySchema(ctx context.Context, sv subjectVersion, key opencdc.Data) (schema.Schema, error) {
+	sch, err := sdkschema.Get(ctx, sv.subject, sv.version)
+	if err != nil {
+		return schema.Schema{}, fmt.Errorf("failed to get schema for key: %w", err)
+	}
+	// Invariant 6: the processor chose this schema, so the key must fit it. A
+	// field the schema lacks would be dropped without an error.
+	if err := checkNoDroppedFields(sch, key); err != nil {
+		return schema.Schema{}, fmt.Errorf("failed to encode key: %w", err)
+	}
+	return sch, nil
 }
 
 //nolint:funlen // maybe refactor in the future
@@ -729,15 +739,8 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec openc
 		// Invariant 6: the processor chose this schema, so before and after
 		// must fit it. A field the schema lacks would be dropped without an
 		// error. Times finer than the schema's precision are still truncated.
-		if beforeIsStructured {
-			if err := checkNoDroppedFields(newSchema, rec.Payload.Before); err != nil {
-				return opencdc.Record{}, fmt.Errorf("failed to encode before payload: %w", err)
-			}
-		}
-		if afterIsStructured {
-			if err := checkNoDroppedFields(newSchema, rec.Payload.After); err != nil {
-				return opencdc.Record{}, fmt.Errorf("failed to encode after payload: %w", err)
-			}
+		if err := checkPayloadNoDroppedFields(newSchema, rec.Payload); err != nil {
+			return opencdc.Record{}, err // already wrapped
 		}
 	}
 
