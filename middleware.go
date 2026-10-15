@@ -363,12 +363,24 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 	}
 }
 
-// ProcessorWithSchemaEncode is a middleware that encodes the record
-// payload and/or key with a schema. It only encodes the record key/payload if the
-// schema subject and version in the record metadata match the schema subject and
-// version of the incoming record. If the schema subject and version is not found
-// in the record metadata or it was changed by the processor, it will log a
-// warning and skip the encoding.
+// ProcessorWithSchemaEncode is a middleware that encodes the structured record
+// payload and/or key returned by the processor with a schema, and attaches that
+// schema to the record. Which schema it uses depends on the schema subject and
+// version in the metadata of the processed record:
+//
+//   - Not set: the data is left structured and a warning is logged once.
+//   - Changed by the processor: the schema registered under the new subject and
+//     version is used. If the data does not fit it, the record fails.
+//   - Unchanged: the schema the record came in with is used, as long as the
+//     data still fits it exactly, meaning decoding the encoded bytes gives back
+//     the same values (no dropped fields, no truncated times or numbers). Data a
+//     processor returns unchanged always fits, so it keeps its exact bytes and
+//     schema. If the data no longer fits, for example because the processor
+//     added a field, a schema is extracted from the values, registered as a new
+//     version of the same subject, and a warning is logged once. An extracted
+//     schema does not keep Avro logical types, enums or named types, and widens
+//     int to long, so processors that change the shape of their data and care
+//     about exact types should attach the intended schema themselves.
 type ProcessorWithSchemaEncode struct {
 	Config ProcessorWithSchemaEncodeConfig
 }
@@ -399,7 +411,17 @@ type processorWithSchemaEncode struct {
 
 	payloadWarnOnce sync.Once
 	keyWarnOnce     sync.Once
+
+	payloadMismatchWarnOnce sync.Once
+	keyMismatchWarnOnce     sync.Once
 }
+
+// schemaMismatchWarning is logged once per middleware instance and data kind
+// (key or payload) when a processor kept the schema subject and version but
+// returned data that no longer fits that schema.
+const schemaMismatchWarning = "processed record %s no longer fits its schema %s:%d, so a schema is extracted from the values " +
+	"and registered as a new version; extracted schemas do not keep Avro logical types, enums, named types or int vs long. " +
+	"To keep exact types, attach the intended schema to the record in the processor"
 
 func (p *processorWithSchemaEncode) Specification() (Specification, error) {
 	spec, err := p.Processor.Specification()
@@ -477,12 +499,12 @@ func (p *processorWithSchemaEncode) Process(ctx context.Context, records []openc
 
 		switch processedRec := processedRec.(type) {
 		case SingleRecord:
-			encodedRecord, err := p.encodeRecord(ctx, (opencdc.Record)(processedRec), keySubjectVersions[i], payloadSubjectVersions[i])
+			encodedRecord, err := p.encodeRecord(ctx, opencdc.Record(processedRec), keySubjectVersions[i], payloadSubjectVersions[i])
 			if err != nil {
 				recsOut[i] = ErrorRecord{Error: err}
 				continue
 			}
-			recsOut[i] = (SingleRecord)(encodedRecord)
+			recsOut[i] = SingleRecord(encodedRecord)
 		case MultiRecord:
 			for j, rec := range processedRec {
 				encodedRecord, err := p.encodeRecord(ctx, rec, keySubjectVersions[i], payloadSubjectVersions[i])
@@ -562,15 +584,32 @@ func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec opencdc.R
 		})
 		return rec, nil
 	case incomingSubjectVersion == outgoingSubjectVersion:
-		// key schema subject and version didn't change, extract schema and encode the data
-
-		// first fetch old schema to determine the schema type
+		// key schema subject and version didn't change
 		oldSchema, err := sdkschema.Get(ctx, incomingSubjectVersion.subject, incomingSubjectVersion.version)
 		if err != nil {
 			return opencdc.Record{}, fmt.Errorf("failed to get schema for key: %w", err)
 		}
 
-		// extract the schema, since the data might have changed
+		// Invariant 6: encode with the schema the record came in with whenever
+		// the key still fits it losslessly. A schema extracted from the decoded
+		// values loses types (date becomes timestamp-micros, enum becomes
+		// string, int becomes long, ...).
+		encoded, err := encodeLossless(oldSchema, rec.Key.(opencdc.StructuredData)) //nolint:forcetypeassert // checked above
+		switch {
+		case err == nil:
+			rec.Key = opencdc.RawData(encoded)
+			schema.AttachKeySchemaToRecord(rec, oldSchema)
+			return rec, nil
+		case !errors.Is(err, errSchemaMismatch):
+			return opencdc.Record{}, fmt.Errorf("failed to encode key: %w", err)
+		}
+
+		// The processor changed the key so that it no longer fits the schema
+		// (for example it added a field). Extract a new schema from the values
+		// and register it as a new version of the subject.
+		p.keyMismatchWarnOnce.Do(func() {
+			Logger(ctx).Warn().Err(err).Msgf(schemaMismatchWarning, "key", oldSchema.Subject, oldSchema.Version)
+		})
 		newSchema, err = p.schemaForType(ctx, oldSchema.Type, outgoingSubjectVersion.subject, rec.Key)
 		if err != nil {
 			return opencdc.Record{}, fmt.Errorf("failed to extract schema for key: %w", err)
@@ -623,15 +662,32 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec openc
 		})
 		return rec, nil
 	case incomingSubjectVersion == outgoingSubjectVersion:
-		// payload schema subject and version didn't change, extract schema and encode the data
-
-		// first fetch old schema to determine the schema type
+		// payload schema subject and version didn't change
 		oldSchema, err := sdkschema.Get(ctx, incomingSubjectVersion.subject, incomingSubjectVersion.version)
 		if err != nil {
 			return opencdc.Record{}, fmt.Errorf("failed to get schema for payload: %w", err)
 		}
 
-		// extract the schema, since the data might have changed
+		// Invariant 6: encode with the schema the record came in with whenever
+		// both before and after still fit it losslessly. A schema extracted
+		// from the decoded values loses types (date becomes timestamp-micros,
+		// enum becomes string, int becomes long, ...).
+		fitted, err := encodePayloadLossless(oldSchema, rec.Payload)
+		switch {
+		case err == nil:
+			rec.Payload = fitted
+			schema.AttachPayloadSchemaToRecord(rec, oldSchema)
+			return rec, nil
+		case !errors.Is(err, errSchemaMismatch):
+			return opencdc.Record{}, err // already wrapped
+		}
+
+		// The processor changed the payload so that it no longer fits the
+		// schema (for example it added a field). Extract a new schema from the
+		// values and register it as a new version of the subject.
+		p.payloadMismatchWarnOnce.Do(func() {
+			Logger(ctx).Warn().Err(err).Msgf(schemaMismatchWarning, "payload", oldSchema.Subject, oldSchema.Version)
+		})
 		val := rec.Payload.After
 		if _, ok := val.(opencdc.StructuredData); !ok {
 			// use before as a fallback
@@ -667,6 +723,28 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec openc
 	}
 	schema.AttachPayloadSchemaToRecord(rec, newSchema)
 	return rec, nil
+}
+
+// encodePayloadLossless encodes the structured parts of payload with sch, if
+// all of them fit it exactly (see encodeLossless). It returns the payload with
+// the encoded bytes, or an error wrapping errSchemaMismatch if any part does
+// not fit. The input payload is not modified.
+func encodePayloadLossless(sch schema.Schema, payload opencdc.Change) (opencdc.Change, error) {
+	if before, ok := payload.Before.(opencdc.StructuredData); ok {
+		encoded, err := encodeLossless(sch, before)
+		if err != nil {
+			return opencdc.Change{}, fmt.Errorf("failed to encode before payload: %w", err)
+		}
+		payload.Before = opencdc.RawData(encoded)
+	}
+	if after, ok := payload.After.(opencdc.StructuredData); ok {
+		encoded, err := encodeLossless(sch, after)
+		if err != nil {
+			return opencdc.Change{}, fmt.Errorf("failed to encode after payload: %w", err)
+		}
+		payload.After = opencdc.RawData(encoded)
+	}
+	return payload, nil
 }
 
 func (p *processorWithSchemaEncode) schemaForType(ctx context.Context, schemaType schema.Type, subject string, data any) (schema.Schema, error) {
