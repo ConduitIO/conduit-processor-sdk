@@ -266,3 +266,113 @@ func TestProcessorWithSchemaEncode_Process_WrappedStopsEarly(t *testing.T) {
 	_, ok := out[0].(SingleRecord)
 	is.True(ok)
 }
+
+// processorReturning returns a mock processor whose Process returns out
+// regardless of input, and asserts it was given wantIn records.
+func processorReturning(t *testing.T, wantIn int, out []ProcessedRecord) *MockProcessor {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	proc := NewMockProcessor(ctrl)
+	proc.EXPECT().Configure(gomock.Any(), gomock.Any()).Return(nil)
+	proc.EXPECT().Process(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, recs []opencdc.Record) []ProcessedRecord {
+			if len(recs) != wantIn {
+				t.Errorf("wrapped processor got %d records, want %d", len(recs), wantIn)
+			}
+			return out
+		},
+	)
+	return proc
+}
+
+// middlewareFailingAt2 returns the decode and encode middleware around proc, configured,
+// together with an input batch that fails in that middleware at index 2.
+func middlewareFailingAt2(t *testing.T, proc Processor) map[string]struct {
+	p       Processor
+	records []opencdc.Record
+} {
+	t.Helper()
+	badKeyVersion := plainRecord(2)
+	badKeyVersion.Metadata = opencdc.Metadata{
+		opencdc.MetadataKeySchemaSubject: "s",
+		opencdc.MetadataKeySchemaVersion: "not-a-number",
+	}
+	d := (&ProcessorWithSchemaDecode{}).Wrap(proc)
+	e := (&ProcessorWithSchemaEncode{}).Wrap(proc)
+	return map[string]struct {
+		p       Processor
+		records []opencdc.Record
+	}{
+		"decode": {d, []opencdc.Record{plainRecord(0), plainRecord(1), undecodablePayload(2), plainRecord(3)}},
+		"encode": {e, []opencdc.Record{plainRecord(0), plainRecord(1), badKeyVersion, plainRecord(3)}},
+	}
+}
+
+func TestSchemaMiddleware_ErrorAtFailingIndex_Edges(t *testing.T) {
+	ctx := context.Background()
+	extra := SingleRecord(plainRecord(99))
+
+	testCases := []struct {
+		name    string
+		wrapped []ProcessedRecord // what the wrapped processor returns for records[:2]
+		want    func(t *testing.T, out []ProcessedRecord)
+	}{{
+		// A wrapped processor that breaks the contract by returning more
+		// results than inputs must not push the error past index 2.
+		name:    "more results than inputs are cut back",
+		wrapped: []ProcessedRecord{SingleRecord(plainRecord(0)), SingleRecord(plainRecord(1)), extra, extra},
+		want: func(t *testing.T, out []ProcessedRecord) {
+			t.Helper()
+			if len(out) != 3 {
+				t.Fatalf("got %d results, want 3", len(out))
+			}
+			if _, ok := out[2].(ErrorRecord); !ok {
+				t.Fatalf("result 2: got %T, want ErrorRecord", out[2])
+			}
+		},
+	}, {
+		name:    "FilterRecord and MultiRecord before the failing index are kept",
+		wrapped: []ProcessedRecord{FilterRecord{}, MultiRecord{plainRecord(10), plainRecord(11)}},
+		want: func(t *testing.T, out []ProcessedRecord) {
+			t.Helper()
+			if len(out) != 3 {
+				t.Fatalf("got %d results, want 3", len(out))
+			}
+			if _, ok := out[0].(FilterRecord); !ok {
+				t.Fatalf("result 0: got %T, want FilterRecord", out[0])
+			}
+			if m, ok := out[1].(MultiRecord); !ok || len(m) != 2 {
+				t.Fatalf("result 1: got %#v, want MultiRecord of 2", out[1])
+			}
+			if _, ok := out[2].(ErrorRecord); !ok {
+				t.Fatalf("result 2: got %T, want ErrorRecord", out[2])
+			}
+		},
+	}, {
+		// The wrapped processor returned nothing for a non-empty batch. That
+		// is its own contract violation; the middleware passes the empty
+		// result through rather than put its error at index 0, and Conduit
+		// (arch v2) rejects the batch with "processor didn't return any
+		// records".
+		name:    "zero results at i > 0 pass through empty",
+		wrapped: []ProcessedRecord{},
+		want: func(t *testing.T, out []ProcessedRecord) {
+			t.Helper()
+			if len(out) != 0 {
+				t.Fatalf("got %d results (%#v), want 0", len(out), out)
+			}
+		},
+	}}
+
+	for _, tc := range testCases {
+		for _, name := range []string{"decode", "encode"} {
+			t.Run(name+"/"+tc.name, func(t *testing.T) {
+				is := is.New(t)
+				proc := processorReturning(t, 2, tc.wrapped)
+				mw := middlewareFailingAt2(t, proc)[name]
+				is.NoErr(mw.p.Configure(ctx, config.Config{}))
+				tc.want(t, mw.p.Process(ctx, mw.records))
+			})
+		}
+	}
+}
