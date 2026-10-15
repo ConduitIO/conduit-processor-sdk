@@ -201,29 +201,59 @@ func (p *processorWithSchemaDecode) Configure(ctx context.Context, config config
 	return p.Processor.Configure(ctx, config)
 }
 
+// Process decodes each record's key and payload, then hands the batch to the
+// wrapped processor. If record i fails to decode, records 0..i-1 are still
+// processed and the result carries the ErrorRecord at index i, so Conduit
+// nacks the record that failed and not the first one in the batch. Records
+// after i are not decoded and get no result; Conduit retries them.
 func (p *processorWithSchemaDecode) Process(ctx context.Context, records []opencdc.Record) []ProcessedRecord {
-	if p.keyEnabled {
-		for i := range records {
-			if err := p.decodeKey(ctx, &records[i]); err != nil {
-				if len(records) > 0 {
-					err = fmt.Errorf("record %d: %w", i, err)
-				}
-				return []ProcessedRecord{ErrorRecord{Error: err}}
-			}
-		}
-	}
-	if p.payloadEnabled {
-		for i := range records {
-			if err := p.decodePayload(ctx, &records[i]); err != nil {
-				if len(records) > 0 {
-					err = fmt.Errorf("record %d: %w", i, err)
-				}
-				return []ProcessedRecord{ErrorRecord{Error: err}}
-			}
+	for i := range records {
+		if err := p.decodeRecord(ctx, &records[i]); err != nil {
+			return processThenFailAt(ctx, p.Processor, records, i, fmt.Errorf("record %d: %w", i, err))
 		}
 	}
 
 	return p.Processor.Process(ctx, records)
+}
+
+func (p *processorWithSchemaDecode) decodeRecord(ctx context.Context, rec *opencdc.Record) error {
+	if p.keyEnabled {
+		if err := p.decodeKey(ctx, rec); err != nil {
+			return err
+		}
+	}
+	if p.payloadEnabled {
+		if err := p.decodePayload(ctx, rec); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// processThenFailAt is the result of a batch whose record i failed before it
+// reached the wrapped processor. It runs the wrapped processor on
+// records[:i] and puts an ErrorRecord with err at index i.
+//
+// Conduit matches results to input records by index (Processor.Process), so
+// the error must sit at i. Returning it alone at index 0 nacks record 0 with
+// record i's error, and on arch v2 every good record ahead of i is
+// dead-lettered in turn while the batch is retried (conduit#2968).
+//
+// If the wrapped processor returns fewer than i results, it stopped early
+// on its own. The ErrorRecord is then dropped instead of being placed at the
+// wrong index: Conduit retries everything past the returned results, record
+// i included, and record i fails again at the right index.
+// Invariant 3: every record still gets a result or a retry; none is dropped.
+func processThenFailAt(ctx context.Context, next Processor, records []opencdc.Record, i int, err error) []ProcessedRecord {
+	var out []ProcessedRecord
+	if i > 0 {
+		out = next.Process(ctx, records[:i])
+		if len(out) < i {
+			return out
+		}
+		out = out[:i] // more results than inputs breaks the contract; never let them shift index i
+	}
+	return append(out, ErrorRecord{Error: err})
 }
 
 func (p *processorWithSchemaDecode) decodeKey(ctx context.Context, rec *opencdc.Record) error {
@@ -513,29 +543,22 @@ func (p *processorWithSchemaEncode) Process(ctx context.Context, records []openc
 		return p.Processor.Process(ctx, records) // middleware is fully disabled
 	}
 
-	// first store incoming subject and version values
-	keySubjectVersions := make([]subjectVersion, len(records))
-	payloadSubjectVersions := make([]subjectVersion, len(records))
-	for i, rec := range records {
-		sv, err := p.keySubjectVersion(rec)
-		if err != nil {
-			return []ProcessedRecord{ErrorRecord{Error: fmt.Errorf("record %d: %w", i, err)}}
-		}
-		keySubjectVersions[i] = sv
-
-		sv, err = p.payloadSubjectVersion(rec)
-		if err != nil {
-			return []ProcessedRecord{ErrorRecord{Error: fmt.Errorf("record %d: %w", i, err)}}
-		}
-		payloadSubjectVersions[i] = sv
-	}
+	// First store incoming subject and version values. If record n has
+	// unreadable schema metadata, only records[:n] are processed and the
+	// ErrorRecord goes at index n (see processThenFailAt for why the index
+	// matters, conduit#2968).
+	keySubjectVersions, payloadSubjectVersions, failErr := p.subjectVersions(records)
+	n := len(keySubjectVersions)
 
 	// process records
-	recsOut := p.Processor.Process(ctx, records)
+	var recsOut []ProcessedRecord
+	if failErr == nil || n > 0 {
+		recsOut = p.Processor.Process(ctx, records[:n])
+	}
 
 	// encode key and payload with schema if subject and version didn't change
 	for i, processedRec := range recsOut {
-		if i >= len(keySubjectVersions) {
+		if i >= n {
 			break // should not happen if the processor respects the input length
 		}
 
@@ -560,7 +583,37 @@ func (p *processorWithSchemaEncode) Process(ctx context.Context, records []openc
 			continue // skip if not a single or multi record
 		}
 	}
+	if failErr != nil {
+		if len(recsOut) < n {
+			// The wrapped processor stopped early; Conduit retries the rest,
+			// record n included (Invariant 3: retried, not dropped).
+			return recsOut
+		}
+		recsOut = append(recsOut[:n], ErrorRecord{Error: failErr})
+	}
 	return recsOut
+}
+
+// subjectVersions reads the incoming key and payload schema subject and
+// version of each record. It stops at the first record whose metadata cannot
+// be read: the returned slices then cover only the records before it, and err
+// names that record's index, which is len(keys).
+func (p *processorWithSchemaEncode) subjectVersions(records []opencdc.Record) (keys, payloads []subjectVersion, err error) {
+	keys = make([]subjectVersion, 0, len(records))
+	payloads = make([]subjectVersion, 0, len(records))
+	for i, rec := range records {
+		ksv, err := p.keySubjectVersion(rec)
+		if err != nil {
+			return keys, payloads, fmt.Errorf("record %d: %w", i, err)
+		}
+		psv, err := p.payloadSubjectVersion(rec)
+		if err != nil {
+			return keys, payloads, fmt.Errorf("record %d: %w", i, err)
+		}
+		keys = append(keys, ksv)
+		payloads = append(payloads, psv)
+	}
+	return keys, payloads, nil
 }
 
 func (p *processorWithSchemaEncode) encodeRecord(
