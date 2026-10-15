@@ -33,10 +33,11 @@ import (
 // by removing the field from the record in the processor.
 var ErrFieldNotInSchema = errors.New("field is not in the attached schema and would be dropped by the encoder")
 
-// parsedAvroSchemas caches a fieldWalker per schema fingerprint for
-// checkNoDroppedFields. The number of distinct schemas a pipeline sees is
-// bounded by what is registered, so the cache is not evicted.
-var parsedAvroSchemas sync.Map // map[uint64]*fieldWalker
+// parsedAvroSchemas caches a fieldWalker per schema, keyed by the schema's
+// full bytes (see [schemaCacheKey]), for checkNoDroppedFields. The number of
+// distinct schemas a pipeline sees is bounded by what is registered, so the
+// cache is not evicted.
+var parsedAvroSchemas sync.Map // map[string]*fieldWalker
 
 // fieldWalker is a parsed Avro schema plus the field names of every record
 // schema in it, built once per schema so the walk does not rebuild them for
@@ -89,15 +90,15 @@ func checkNoDroppedFields(sch schema.Schema, data any) error {
 	if sch.Type != schema.TypeAvro {
 		return nil
 	}
-	fp := sch.Fingerprint()
-	cached, ok := parsedAvroSchemas.Load(fp)
+	key := schemaCacheKey(sch)
+	cached, ok := parsedAvroSchemas.Load(key)
 	if !ok {
 		// A private cache keeps named types of unrelated schemas apart.
 		s, err := avro.ParseBytesWithCache(sch.Bytes, "", &avro.SchemaCache{}) //nolint:forbidigo // fresh cache owned by this one schema; parsed only to walk field names, never to encode
 		if err != nil {
 			return fmt.Errorf("failed to parse schema %s:%d: %w", sch.Subject, sch.Version, err)
 		}
-		cached, _ = parsedAvroSchemas.LoadOrStore(fp, newFieldWalker(s))
+		cached, _ = parsedAvroSchemas.LoadOrStore(key, newFieldWalker(s))
 	}
 	w := cached.(*fieldWalker) //nolint:forcetypeassert // only *fieldWalker is stored
 	if path, dropped := w.find(w.root, reflect.ValueOf(data), ""); dropped {
@@ -243,4 +244,18 @@ func joinFieldPath(path, key string) string {
 		return key
 	}
 	return path + "." + key
+}
+
+// schemaCacheKey returns the key under which per-schema derived state is
+// cached. It is the full schema text, so two different schemas can never share
+// an entry.
+//
+// Do not use [schema.Schema.Fingerprint] here: it is a 64-bit Rabin CRC, which
+// is affine, so a pair of schemas that differ only in a doc string and share a
+// fingerprint is cheap to construct. A cache hit would then apply one schema's
+// field set to another and the Avro encoder would drop a field without an error
+// (invariant 6). The subject and version are left out on purpose, because the
+// parsed state depends on the bytes alone.
+func schemaCacheKey(sch schema.Schema) string {
+	return string(sch.Bytes)
 }
