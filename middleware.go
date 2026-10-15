@@ -639,6 +639,11 @@ func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec opencdc.R
 		if err != nil {
 			return opencdc.Record{}, fmt.Errorf("failed to get schema for key: %w", err)
 		}
+		// Invariant 6: the processor chose this schema, so the key must fit
+		// it. A field the schema lacks would be dropped without an error.
+		if err := checkNoDroppedFields(newSchema, rec.Key); err != nil {
+			return opencdc.Record{}, fmt.Errorf("failed to encode key: %w", err)
+		}
 	}
 
 	encoded, err := p.encodeWithSchema(newSchema, rec.Key)
@@ -720,6 +725,19 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec openc
 		newSchema, err = sdkschema.Get(ctx, outgoingSubjectVersion.subject, outgoingSubjectVersion.version)
 		if err != nil {
 			return opencdc.Record{}, fmt.Errorf("failed to get schema for payload: %w", err)
+		}
+		// Invariant 6: the processor chose this schema, so before and after
+		// must fit it. A field the schema lacks would be dropped without an
+		// error. Times finer than the schema's precision are still truncated.
+		if beforeIsStructured {
+			if err := checkNoDroppedFields(newSchema, rec.Payload.Before); err != nil {
+				return opencdc.Record{}, fmt.Errorf("failed to encode before payload: %w", err)
+			}
+		}
+		if afterIsStructured {
+			if err := checkNoDroppedFields(newSchema, rec.Payload.After); err != nil {
+				return opencdc.Record{}, fmt.Errorf("failed to encode after payload: %w", err)
+			}
 		}
 	}
 
