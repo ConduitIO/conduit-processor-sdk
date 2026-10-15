@@ -93,7 +93,7 @@ func checkNoDroppedFields(sch schema.Schema, data any) error {
 	cached, ok := parsedAvroSchemas.Load(fp)
 	if !ok {
 		// A private cache keeps named types of unrelated schemas apart.
-		s, err := avro.ParseBytesWithCache(sch.Bytes, "", &avro.SchemaCache{})
+		s, err := avro.ParseBytesWithCache(sch.Bytes, "", &avro.SchemaCache{}) //nolint:forbidigo // fresh cache owned by this one schema; parsed only to walk field names, never to encode
 		if err != nil {
 			return fmt.Errorf("failed to parse schema %s:%d: %w", sch.Subject, sch.Version, err)
 		}
