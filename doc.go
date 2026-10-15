@@ -120,6 +120,16 @@
 // with schema resolution. A processor tunes this via [Processor.MiddlewareOptions]
 // (see [ProcessorWithSchemaDecodeConfig] and [ProcessorWithSchemaEncodeConfig]).
 //
+// Invariant (schema fidelity): when a processor keeps the schema subject and
+// version of a record, the encode middleware re-encodes with that same schema
+// whenever the data still fits it exactly, so a record the processor did not
+// change leaves with its original bytes and schema. The exception is a field
+// typed ["null", record] or ["null", map], which does not re-encode from its
+// decoded form (conduit-commons#306). Data that does not fit (an added field, a
+// value outside the type, or that exception) gets a schema extracted from its
+// values; see [ProcessorWithSchemaEncode] for what that loses, including time
+// precision finer than a microsecond.
+//
 // # Neighboring packages
 //
 //   - github.com/conduitio/conduit-commons/opencdc defines the Record type that
