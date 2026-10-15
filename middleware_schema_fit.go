@@ -82,10 +82,11 @@ func encodeLossless(sch schema.Schema, data opencdc.StructuredData) ([]byte, err
 	return encoded, nil
 }
 
-// recordFields caches topLevelFields results by schema fingerprint. A nil
-// value means the schema is not an Avro record. The number of distinct schemas
-// is bounded by what is registered, so the cache is not evicted.
-var recordFields sync.Map // map[uint64]map[string]struct{}
+// recordFields caches topLevelFields results, keyed by the schema's full bytes
+// (see [schemaCacheKey]). A nil value means the schema is not an Avro record.
+// The number of distinct schemas is bounded by what is registered, so the
+// cache is not evicted.
+var recordFields sync.Map // map[string]map[string]struct{}
 
 // topLevelFields returns the field names of sch if it is an Avro record
 // schema. ok is false for anything else, and the pre-check is then skipped.
@@ -93,8 +94,8 @@ func topLevelFields(sch schema.Schema) (map[string]struct{}, bool) {
 	if sch.Type != schema.TypeAvro {
 		return nil, false
 	}
-	fp := sch.Fingerprint()
-	if v, ok := recordFields.Load(fp); ok {
+	key := schemaCacheKey(sch)
+	if v, ok := recordFields.Load(key); ok {
 		fields, _ := v.(map[string]struct{})
 		return fields, fields != nil
 	}
@@ -111,7 +112,7 @@ func topLevelFields(sch schema.Schema) (map[string]struct{}, bool) {
 			fields[f.Name] = struct{}{}
 		}
 	}
-	recordFields.Store(fp, fields)
+	recordFields.Store(key, fields)
 	return fields, fields != nil
 }
 
