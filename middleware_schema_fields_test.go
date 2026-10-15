@@ -17,6 +17,7 @@ package sdk
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -188,4 +189,65 @@ func TestCheckNoDroppedFields(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+// TestCheckNoDroppedFields_TypedContainers: the encoder accepts typed Go
+// slices and string-keyed maps for Avro arrays and maps of records, and drops
+// unknown keys of the records inside them just as it does for []any and
+// map[string]any. The walk must descend into them too.
+func TestCheckNoDroppedFields_TypedContainers(t *testing.T) {
+	const rec = `{"type":"record","name":"R","fields":[{"name":"a","type":"long"}]}`
+	extra := func() map[string]any { return map[string]any{"a": int64(1), "x": 1} }
+	testCases := []struct {
+		name, field string
+		value       any
+		dropped     string
+	}{
+		{"[]map[string]any of a record", `{"type":"array","items":` + rec + `}`, []map[string]any{extra()}, "v[0].x"},
+		{"[]StructuredData of a record", `{"type":"array","items":` + rec + `}`, []opencdc.StructuredData{extra()}, "v[0].x"},
+		{"map[string]map[string]any of a record", `{"type":"map","values":` + rec + `}`, map[string]map[string]any{"k": extra()}, "v.k.x"},
+		{"map[string]StructuredData of a record", `{"type":"map","values":` + rec + `}`, map[string]opencdc.StructuredData{"k": extra()}, "v.k.x"},
+		{"typed slice nested in []any", `{"type":"array","items":{"type":"array","items":` + rec + `}}`, []any{[]map[string]any{extra()}}, "v[0][0].x"},
+		{"typed slice in a nullable array", `["null",{"type":"array","items":` + rec + `}]`, []map[string]any{extra()}, "v[0].x"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			sch := schema.Schema{
+				Subject: "typed", Version: 1, Type: schema.TypeAvro,
+				Bytes: []byte(`{"type":"record","name":"P","namespace":"sdk.test","fields":[{"name":"v","type":` + tc.field + `}]}`),
+			}
+			data := opencdc.StructuredData{"v": tc.value}
+
+			// the encoder accepts the value and drops the key: the premise
+			encoded, err := sch.Marshal(data)
+			is.NoErr(err)
+			var decoded opencdc.StructuredData
+			is.NoErr(sch.Unmarshal(encoded, &decoded))
+			is.True(!strings.Contains(fmt.Sprintf("%v", decoded), "x:"))
+
+			err = checkNoDroppedFields(sch, data)
+			if !errors.Is(err, ErrFieldNotInSchema) {
+				t.Fatalf("expected ErrFieldNotInSchema for %q, got %v", tc.dropped, err)
+			}
+			is.True(strings.Contains(err.Error(), `"`+tc.dropped+`"`))
+		})
+	}
+}
+
+// TestCheckNoDroppedFields_UnionShortName: a union branch given by its short
+// name is not a dropped field; the codec rejects it with its own error, so the
+// walk must not report the branch name as a field.
+func TestCheckNoDroppedFields_UnionShortName(t *testing.T) {
+	sch := schema.Schema{
+		Subject: "short", Version: 1, Type: schema.TypeAvro,
+		Bytes: []byte(`{"type":"record","name":"P","namespace":"sdk.test","fields":[{"name":"v","type":["null",{"type":"record","name":"Opt","fields":[{"name":"s","type":"string"}]}]}]}`),
+	}
+	data := opencdc.StructuredData{"v": map[string]any{"Opt": map[string]any{"s": "x"}}}
+	if err := checkNoDroppedFields(sch, data); err != nil {
+		t.Fatalf("expected the codec to report this, got %v", err)
+	}
+	if _, err := sch.Marshal(data); err == nil {
+		t.Fatal("expected the codec to reject a union branch given by its short name")
+	}
 }
