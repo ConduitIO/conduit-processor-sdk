@@ -369,17 +369,26 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 // version in the metadata of the processed record:
 //
 //   - Not set: the data is left structured and a warning is logged once.
+//
 //   - Changed by the processor: the schema registered under the new subject and
 //     version is used. If the data does not fit it, the record fails.
+//
 //   - Unchanged: the schema the record came in with is used, as long as the
 //     data still fits it exactly, meaning decoding the encoded bytes gives back
 //     the same values (no dropped fields, no truncated times or numbers). Data a
-//     processor returns unchanged always fits, so it keeps its exact bytes and
-//     schema. If the data no longer fits, for example because the processor
-//     added a field, a schema is extracted from the values, registered as a new
-//     version of the same subject, and a warning is logged once. An extracted
-//     schema does not keep Avro logical types, enums or named types, and widens
-//     int to long, so processors that change the shape of their data and care
+//     processor returns unchanged fits, so it keeps its exact bytes and schema,
+//     with one exception: a field typed ["null", record] or ["null", map] does
+//     not re-encode from its decoded form (conduit-commons#306), so such a
+//     record takes the fallback below, and if that nullable record mixes field
+//     types the extraction fails and the record becomes an error record.
+//
+//     If the data no longer fits, for example because the processor added a
+//     field, a schema is extracted from the values, registered as a new version
+//     of the same subject, and a warning is logged once per subject and
+//     version. An extracted schema does not keep Avro logical types, enums or
+//     named types, widens int to long, and stores times as timestamp-micros or
+//     time-micros, so time precision finer than a microsecond is truncated
+//     without an error. Processors that change the shape of their data and care
 //     about exact types should attach the intended schema themselves.
 type ProcessorWithSchemaEncode struct {
 	Config ProcessorWithSchemaEncodeConfig
@@ -412,16 +421,28 @@ type processorWithSchemaEncode struct {
 	payloadWarnOnce sync.Once
 	keyWarnOnce     sync.Once
 
-	payloadMismatchWarnOnce sync.Once
-	keyMismatchWarnOnce     sync.Once
+	// mismatchWarned holds the "kind subject:version" keys a schema mismatch
+	// warning was already logged for, so each schema warns once.
+	mismatchWarned sync.Map
 }
 
-// schemaMismatchWarning is logged once per middleware instance and data kind
-// (key or payload) when a processor kept the schema subject and version but
-// returned data that no longer fits that schema.
+// schemaMismatchWarning is logged once per middleware instance, data kind (key
+// or payload) and schema subject:version when a processor kept the schema
+// subject and version but returned data that no longer fits that schema.
 const schemaMismatchWarning = "processed record %s no longer fits its schema %s:%d, so a schema is extracted from the values " +
-	"and registered as a new version; extracted schemas do not keep Avro logical types, enums, named types or int vs long. " +
+	"and registered as a new version; extracted schemas do not keep Avro logical types, enums, named types or int vs long, " +
+	"and store times as timestamp-micros or time-micros, so time precision finer than a microsecond is truncated. " +
 	"To keep exact types, attach the intended schema to the record in the processor"
+
+// warnSchemaMismatch logs schemaMismatchWarning the first time a mismatch is
+// seen for kind and sch.
+func (p *processorWithSchemaEncode) warnSchemaMismatch(ctx context.Context, kind string, sch schema.Schema, err error) {
+	key := kind + " " + sch.Subject + ":" + strconv.Itoa(sch.Version)
+	if _, warned := p.mismatchWarned.LoadOrStore(key, struct{}{}); warned {
+		return
+	}
+	Logger(ctx).Warn().Err(err).Msgf(schemaMismatchWarning, kind, sch.Subject, sch.Version)
+}
 
 func (p *processorWithSchemaEncode) Specification() (Specification, error) {
 	spec, err := p.Processor.Specification()
@@ -607,9 +628,7 @@ func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec opencdc.R
 		// The processor changed the key so that it no longer fits the schema
 		// (for example it added a field). Extract a new schema from the values
 		// and register it as a new version of the subject.
-		p.keyMismatchWarnOnce.Do(func() {
-			Logger(ctx).Warn().Err(err).Msgf(schemaMismatchWarning, "key", oldSchema.Subject, oldSchema.Version)
-		})
+		p.warnSchemaMismatch(ctx, "key", oldSchema, err)
 		newSchema, err = p.schemaForType(ctx, oldSchema.Type, outgoingSubjectVersion.subject, rec.Key)
 		if err != nil {
 			return opencdc.Record{}, fmt.Errorf("failed to extract schema for key: %w", err)
@@ -685,9 +704,7 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec openc
 		// The processor changed the payload so that it no longer fits the
 		// schema (for example it added a field). Extract a new schema from the
 		// values and register it as a new version of the subject.
-		p.payloadMismatchWarnOnce.Do(func() {
-			Logger(ctx).Warn().Err(err).Msgf(schemaMismatchWarning, "payload", oldSchema.Subject, oldSchema.Version)
-		})
+		p.warnSchemaMismatch(ctx, "payload", oldSchema, err)
 		val := rec.Payload.After
 		if _, ok := val.(opencdc.StructuredData); !ok {
 			// use before as a fallback

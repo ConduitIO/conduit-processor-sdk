@@ -27,8 +27,10 @@ import (
 	"github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/conduitio/conduit-commons/schema"
+	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 	sdkschema "github.com/conduitio/conduit-processor-sdk/schema"
 	"github.com/matryer/is"
+	"github.com/rs/zerolog"
 )
 
 // schemaFidelityCase is one Avro schema plus a value that conforms to it. The
@@ -358,6 +360,21 @@ func TestSchemaMiddleware_NullableRecordBranch(t *testing.T) {
 		t.Fatalf("value changed at %q: got %#v", path, decoded)
 	}
 	is.True(outSch.Version != sch.Version) // documents the known commons limitation
+
+	// A nullable record whose fields mix types cannot be extracted either, so
+	// the fallback fails and the record becomes an error record. main does the
+	// same; the data is not lost, the record fails loudly.
+	mixed := schemaFidelityCase{
+		name:  "nullable nested record, mixed types",
+		field: `["null",{"type":"record","name":"Opt","fields":[{"name":"n","type":"int"},{"name":"d","type":{"type":"int","logicalType":"date"}}]}]`,
+		value: map[string]any{"sdk.test.Opt": map[string]any{"n": 5, "d": time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)}},
+	}
+	in, _ = encodedRecord(t, fidelitySubject(t)+".mixed", mixed)
+	got = p.Process(ctx, []opencdc.Record{in})
+	is.Equal(len(got), 1)
+	if _, ok := got[0].(ErrorRecord); !ok {
+		t.Fatalf("expected ErrorRecord for a mixed-type nullable record, got %T: %+v", got[0], got[0])
+	}
 }
 
 func TestEquivalentValues(t *testing.T) {
@@ -387,7 +404,7 @@ func TestEquivalentValues(t *testing.T) {
 		{"nested differ", map[string]any{"a": []any{map[string]any{"b": 1}}}, map[string]any{"a": []any{map[string]any{"b": int32(2)}}}, false},
 		{"typed slice vs any slice", []float32{1, 2}, []any{float32(1), float32(2)}, true},
 		{"slice length", []any{1}, []any{1, 2}, false},
-		{"nil vs empty map", nil, map[string]any(nil), true},
+		{"untyped nil vs typed nil map", nil, map[string]any(nil), true},
 		{"nil vs value", nil, 0, false},
 		{"bool vs int", true, 1, false},
 	}
@@ -418,4 +435,167 @@ func TestEncodeLossless_DoesNotModifyInput(t *testing.T) {
 	_, err = encodeLossless(sch, data)
 	is.NoErr(err)
 	is.Equal(map[string]any(data), want)
+}
+
+// captureWarnings redirects the SDK logger into a buffer for the test and
+// returns a function that reports how many schema mismatch warnings were
+// logged for kind ("key" or "payload") and subject:version.
+func captureWarnings(t *testing.T) func(kind string, sch schema.Schema) int {
+	t.Helper()
+	var buf bytes.Buffer
+	old := pprocutils.Logger
+	pprocutils.Logger = zerolog.New(&buf)
+	t.Cleanup(func() { pprocutils.Logger = old })
+	return func(kind string, sch schema.Schema) int {
+		needle := "processed record " + kind + " no longer fits its schema " + sch.Subject + ":" + strconv.Itoa(sch.Version) + ","
+		return strings.Count(buf.String(), needle)
+	}
+}
+
+// fallbackFixture registers a schema {id long, d date} under subject and
+// returns it with the Avro bytes of a value of it.
+func fallbackFixture(t *testing.T, subject string) (schema.Schema, []byte) {
+	t.Helper()
+	sch, err := sdkschema.Create(context.Background(), schema.TypeAvro, subject,
+		[]byte(`{"type":"record","name":"Row","namespace":"sdk.test","fields":[{"name":"id","type":"long"},{"name":"d","type":{"type":"int","logicalType":"date"}}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := sch.Marshal(opencdc.StructuredData{"id": int64(1), "d": time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return sch, raw
+}
+
+// TestSchemaMiddleware_KeyFallback: a processor that adds a field to the key
+// sends the key through the fallback. The key gets a new schema version that
+// holds the new field, and the warning is logged for the key schema.
+func TestSchemaMiddleware_KeyFallback(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	warnings := captureWarnings(t)
+	sch, raw := fallbackFixture(t, fidelitySubject(t))
+
+	p := newSchemaMiddlewareProcessor(t, func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+		r.Key.(opencdc.StructuredData)["added"] = "k"
+		return r, nil
+	})
+	in := opencdc.Record{Metadata: opencdc.Metadata{}, Key: opencdc.RawData(raw)}
+	schema.AttachKeySchemaToRecord(in, sch)
+
+	got := p.Process(ctx, []opencdc.Record{in})
+	is.Equal(len(got), 1)
+	out, ok := got[0].(SingleRecord)
+	if !ok {
+		t.Fatalf("expected SingleRecord, got %T: %+v", got[0], got[0])
+	}
+	version, err := out.Metadata.GetKeySchemaVersion()
+	is.NoErr(err)
+	is.True(version != sch.Version) // added field must not be encoded with the original key schema
+	outSch, err := sdkschema.Get(ctx, sch.Subject, version)
+	is.NoErr(err)
+	var decoded opencdc.StructuredData
+	is.NoErr(outSch.Unmarshal(out.Key.Bytes(), &decoded))
+	is.Equal(decoded["added"], "k")
+	is.Equal(warnings("key", sch), 1)
+	is.Equal(warnings("payload", sch), 0)
+}
+
+// TestSchemaMiddleware_BeforeFitsAfterDoesNot: when only after stops fitting,
+// the whole payload falls back, so before and after share one schema, the one
+// extracted from after. If before cannot be encoded with that schema (after
+// gained a field before lacks), the record fails loudly instead; main behaves
+// the same.
+func TestSchemaMiddleware_BeforeFitsAfterDoesNot(t *testing.T) {
+	testCases := []struct {
+		name    string
+		change  func(opencdc.StructuredData)
+		wantErr string
+	}{
+		{"after value outside its type", func(d opencdc.StructuredData) {
+			d["d"] = time.Date(2026, 1, 1, 12, 30, 0, 0, time.UTC) // time of day in a date
+		}, ""},
+		{"after gained a field", func(d opencdc.StructuredData) { d["added"] = "a" }, "missing required field added"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			ctx := context.Background()
+			warnings := captureWarnings(t)
+			sch, raw := fallbackFixture(t, fidelitySubject(t))
+
+			var wantAfter opencdc.StructuredData
+			p := newSchemaMiddlewareProcessor(t, func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+				after := r.Payload.After.(opencdc.StructuredData)
+				tc.change(after)
+				wantAfter = after.Clone().(opencdc.StructuredData)
+				return r, nil
+			})
+			in := opencdc.Record{
+				Metadata: opencdc.Metadata{},
+				Payload:  opencdc.Change{Before: opencdc.RawData(raw), After: opencdc.RawData(raw)},
+			}
+			schema.AttachPayloadSchemaToRecord(in, sch)
+
+			got := p.Process(ctx, []opencdc.Record{in})
+			is.Equal(len(got), 1)
+			is.Equal(warnings("payload", sch), 1)
+			if tc.wantErr != "" {
+				errRec, ok := got[0].(ErrorRecord)
+				if !ok {
+					t.Fatalf("expected ErrorRecord, got %T: %+v", got[0], got[0])
+				}
+				is.True(strings.Contains(errRec.Error.Error(), tc.wantErr))
+				return
+			}
+			out, ok := got[0].(SingleRecord)
+			if !ok {
+				t.Fatalf("expected SingleRecord, got %T: %+v", got[0], got[0])
+			}
+			after, outSch := decodeAttached(t, opencdc.Record(out), out.Payload.After)
+			is.True(outSch.Version != sch.Version) // after must not be coerced into the date schema
+			if path, ok := equivalentValues(map[string]any(wantAfter), map[string]any(after), ""); !ok {
+				t.Fatalf("after changed at %q: %#v", path, after)
+			}
+			// before is encoded with the same, new schema and keeps its value
+			before, _ := decodeAttached(t, opencdc.Record(out), out.Payload.Before)
+			is.True(before["d"].(time.Time).Equal(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)))
+		})
+	}
+}
+
+// TestSchemaMiddleware_WarnsOncePerSchema: the mismatch warning is logged once
+// per subject and version, not once per middleware, so a second subject that
+// stops fitting still warns.
+func TestSchemaMiddleware_WarnsOncePerSchema(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	warnings := captureWarnings(t)
+	first, rawFirst := fallbackFixture(t, fidelitySubject(t)+".first")
+	second, rawSecond := fallbackFixture(t, fidelitySubject(t)+".second")
+
+	p := newSchemaMiddlewareProcessor(t, func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+		r.Payload.After.(opencdc.StructuredData)["added"] = true
+		return r, nil
+	})
+	rec := func(sch schema.Schema, raw []byte) opencdc.Record {
+		r := opencdc.Record{Metadata: opencdc.Metadata{}, Payload: opencdc.Change{After: opencdc.RawData(raw)}}
+		schema.AttachPayloadSchemaToRecord(r, sch)
+		return r
+	}
+
+	for range 3 {
+		got := p.Process(ctx, []opencdc.Record{rec(first, rawFirst)})
+		_, ok := got[0].(SingleRecord)
+		is.True(ok)
+	}
+	is.Equal(warnings("payload", first), 1)
+	is.Equal(warnings("payload", second), 0)
+
+	got := p.Process(ctx, []opencdc.Record{rec(second, rawSecond)})
+	_, ok := got[0].(SingleRecord)
+	is.True(ok)
+	is.Equal(warnings("payload", second), 1)
+	is.Equal(warnings("payload", first), 1)
 }

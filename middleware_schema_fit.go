@@ -16,11 +16,13 @@ package sdk
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/conduitio/conduit-commons/opencdc"
@@ -46,6 +48,20 @@ var errSchemaMismatch = errors.New("value does not fit schema")
 // data is not modified. The codec may rewrite union values in place while it
 // encodes, so the encoder gets a deep copy.
 func encodeLossless(sch schema.Schema, data opencdc.StructuredData) ([]byte, error) {
+	// Cheap pre-check: a top-level key the record schema does not define, or a
+	// field missing from data, cannot round-trip. This skips the encode and
+	// decode for processors that add a field, which is the common mismatch.
+	if fields, ok := topLevelFields(sch); ok {
+		if len(fields) != len(data) {
+			return nil, fmt.Errorf("%w: has %d top-level fields, schema has %d", errSchemaMismatch, len(data), len(fields))
+		}
+		for k := range data {
+			if _, ok := fields[k]; !ok {
+				return nil, fmt.Errorf("%w: field %q is not in the schema", errSchemaMismatch, k)
+			}
+		}
+	}
+
 	srd, err := sch.Serde()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get serde for schema: %w", err)
@@ -64,6 +80,39 @@ func encodeLossless(sch schema.Schema, data opencdc.StructuredData) ([]byte, err
 		return nil, fmt.Errorf("%w: field %q would not survive encoding", errSchemaMismatch, path)
 	}
 	return encoded, nil
+}
+
+// recordFields caches topLevelFields results by schema fingerprint. A nil
+// value means the schema is not an Avro record. The number of distinct schemas
+// is bounded by what is registered, so the cache is not evicted.
+var recordFields sync.Map // map[uint64]map[string]struct{}
+
+// topLevelFields returns the field names of sch if it is an Avro record
+// schema. ok is false for anything else, and the pre-check is then skipped.
+func topLevelFields(sch schema.Schema) (map[string]struct{}, bool) {
+	if sch.Type != schema.TypeAvro {
+		return nil, false
+	}
+	fp := sch.Fingerprint()
+	if v, ok := recordFields.Load(fp); ok {
+		fields, _ := v.(map[string]struct{})
+		return fields, fields != nil
+	}
+	var rec struct {
+		Type   any `json:"type"`
+		Fields []struct {
+			Name string `json:"name"`
+		} `json:"fields"`
+	}
+	var fields map[string]struct{}
+	if err := json.Unmarshal(sch.Bytes, &rec); err == nil && rec.Type == "record" {
+		fields = make(map[string]struct{}, len(rec.Fields))
+		for _, f := range rec.Fields {
+			fields[f.Name] = struct{}{}
+		}
+	}
+	recordFields.Store(fp, fields)
+	return fields, fields != nil
 }
 
 // deepCopyValue copies the maps and slices of a decoded record value, so that
