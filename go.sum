@@ -4,8 +4,8 @@ buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-202409201642
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20240920164238-5a7b106cbb87.1/go.mod h1:tvtbpgaVXZX4g6Pn+AnzFycuRK3MOz5HJfEGeEllXYM=
 github.com/bufbuild/protocompile v0.14.2-0.20260127163740-a85d2ef77713 h1:owghT7DcDTOr0HlXqpLSTvg8tKWIp8l2b4LOGlVbu0g=
 github.com/bufbuild/protocompile v0.14.2-0.20260127163740-a85d2ef77713/go.mod h1:cxhE8h+14t0Yxq2H9MV/UggzQ1L0gh0t2tJobITWsBE=
-github.com/conduitio/conduit-commons v0.8.0 h1:NLjtS018Kys1oe1wfuu4DTUE4zILhcKgEsbbWPq0X3k=
-github.com/conduitio/conduit-commons v0.8.0/go.mod h1:aeZE6tPtrw0eUw3yIs34WdeebPdDrbFYhsPUkBR+t/g=
+github.com/conduitio/conduit-commons v0.8.2 h1:f88TW4U+5fpbFmCEK+mVnflY7aph6qOyJdN8UBuvVnI=
+github.com/conduitio/conduit-commons v0.8.2/go.mod h1:aeZE6tPtrw0eUw3yIs34WdeebPdDrbFYhsPUkBR+t/g=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=

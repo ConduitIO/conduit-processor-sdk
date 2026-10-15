@@ -147,3 +147,41 @@ func TestSchemaCaches_FingerprintCollision(t *testing.T) {
 		t.Errorf("topLevelFields(s2) = %v, must not have field y", f2)
 	}
 }
+
+// TestSchemaSerde_FingerprintCollision checks the encoder side of the same
+// collision: Schema.Serde() must return each schema's own serde. On
+// conduit-commons v0.8.0 and v0.8.1 its cache is keyed by the 64-bit
+// fingerprint, so s2 got s1's serde and the field z was dropped silently
+// (invariant 6). Fixed in conduit-commons v0.8.2, which this module requires.
+func TestSchemaSerde_FingerprintCollision(t *testing.T) {
+	b1, b2 := collidingAvroSchemas(t)
+	s1 := schema.Schema{Subject: "s1", Version: 1, Type: schema.TypeAvro, Bytes: b1}
+	s2 := schema.Schema{Subject: "s2", Version: 1, Type: schema.TypeAvro, Bytes: b2}
+	if s1.Fingerprint() != s2.Fingerprint() || bytes.Equal(b1, b2) {
+		t.Fatal("fixture does not collide")
+	}
+
+	srd1, err := s1.Serde()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := srd1.Marshal(map[string]any{"x": "keep", "y": "kept"}); err != nil {
+		t.Fatal(err)
+	}
+
+	srd2, err := s2.Serde()
+	if err != nil {
+		t.Fatal(err)
+	}
+	enc, err := srd2.Marshal(map[string]any{"x": "keep", "z": "kept"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out opencdc.StructuredData
+	if err := srd2.Unmarshal(enc, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out["z"] != "kept" {
+		t.Errorf("s2 round trip = %v, want z kept (s2.Serde() returned another schema's serde)", out)
+	}
+}
