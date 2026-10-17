@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/conduitio/conduit-commons/opencdc"
+	configv1 "github.com/conduitio/conduit-commons/proto/config/v1"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
 	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
@@ -28,6 +29,23 @@ import (
 // of processor results live in this file, without the wasm build constraint,
 // so they are tested natively; the rest is in run.go.
 type protoConverter struct{}
+
+// specifyResponse converts a Specification into its protobuf representation.
+// It lives here (without the wasm build constraint) so the stateless declaration
+// round-trips under native tests.
+func (c protoConverter) specifyResponse(in Specification) *processorv1.Specify_Response {
+	params := make(map[string]*configv1.Parameter, len(in.Parameters))
+	in.Parameters.ToProto(params)
+	return &processorv1.Specify_Response{
+		Name:        in.Name,
+		Summary:     in.Summary,
+		Description: in.Description,
+		Version:     in.Version,
+		Author:      in.Author,
+		Parameters:  params,
+		Stateless:   in.Stateless,
+	}
+}
 
 // processedRecords converts the processor's results. A result that cannot be
 // converted (for example a record with an integer a protobuf number cannot

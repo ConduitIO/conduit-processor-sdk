@@ -64,6 +64,33 @@ type Processor interface {
 	mustEmbedUnimplementedProcessor()
 }
 
+// BatchProcessor is an optional interface a processor MAY implement to process
+// many records in one call and report one outcome per input record, in input
+// order. It is the batch surface of the processor contract (design:
+// 20261016-processor-batch-api.md).
+//
+// A processor that implements BatchProcessor lets the engine amortise work
+// across a batch (for example one schema fetch per batch) and opts into a
+// stricter result contract than [Processor.Process]: the returned slice must be
+// the same length as the input and maps 1:1 by index, with an [ErrorRecord] at
+// index i reporting the failure of input record i. A wrong-length result — or a
+// non-nil error — rejects the whole batch without committing it (invariant 3:
+// nothing is dropped, nothing is half-applied).
+//
+// A processor that does NOT implement BatchProcessor runs unchanged: the engine
+// falls back to calling [Processor.Process]. ProcessBatch must be idempotent,
+// as it may be called multiple times with the same records.
+type BatchProcessor interface {
+	Processor
+
+	// ProcessBatch processes records as one batch and returns one outcome per
+	// input record, in input order. The result slice must be the same length as
+	// the input; a wrong-length result is a bug the engine rejects by not
+	// committing the batch. A non-nil error reports a whole-batch failure that
+	// likewise rejects the batch.
+	ProcessBatch(context.Context, []opencdc.Record) ([]ProcessedRecord, error)
+}
+
 // Specification is returned by a processor when Specify is called.
 // It contains information about the configuration parameters for processors
 // and allows them to describe their parameters.
@@ -82,6 +109,12 @@ type Specification struct {
 	Author string `json:"author"`
 	// Parameters describe how to configure the processor.
 	Parameters config.Parameters `json:"parameters"`
+	// Stateless declares that the processor keeps no state between calls, so
+	// the engine may run its stage concurrently and may reorder which instance
+	// handles which record. A processor that declares Stateless but does keep
+	// state is a bug the conformance kit catches; a processor that does not
+	// declare Stateless is treated as stateful and run serially.
+	Stateless bool `json:"stateless,omitempty"`
 }
 
 // ProcessedRecord is a record returned by the processor.
