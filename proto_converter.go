@@ -183,22 +183,6 @@ func (c protoConverter) multiRecord(in MultiRecord, v2 bool) (*processorv1.Proce
 	}, nil
 }
 
-// records converts the host's opencdc.v1 Process request records back into
-// opencdc.Record values.
-func (c protoConverter) records(in []*opencdcv1.Record) ([]opencdc.Record, error) {
-	if in == nil {
-		return nil, nil
-	}
-	out := make([]opencdc.Record, len(in))
-	for i, v := range in {
-		err := out[i].FromProto(v)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return out, nil
-}
-
 // recordsV2 converts the host's opencdc.v2 Process request records back into
 // opencdc.Record values. The v2 shape is lossless, so int64, uint64, bytes and
 // decimal values arrive exactly as the host sent them.
@@ -210,7 +194,7 @@ func (c protoConverter) recordsV2(in []*opencdcv2.Record) ([]opencdc.Record, err
 	for i, v := range in {
 		err := out[i].FromProtoV2(v)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to convert record %d from opencdc.v2: %w", i, err)
 		}
 	}
 	return out, nil
