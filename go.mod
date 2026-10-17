@@ -3,7 +3,7 @@ module github.com/conduitio/conduit-processor-sdk
 go 1.26.9
 
 require (
-	github.com/conduitio/conduit-commons v0.8.2
+	github.com/conduitio/conduit-commons v0.9.0
 	github.com/goccy/go-json v0.11.2
 	github.com/google/go-cmp v0.7.0
 	github.com/iskorotkov/avro/v2 v2.34.0
@@ -24,6 +24,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/petermattis/goid v0.0.0-20250319124200-ccd6737f222a // indirect
+	github.com/twmb/franz-go/pkg/sr v1.8.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 )
