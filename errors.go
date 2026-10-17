@@ -28,4 +28,11 @@ var (
 	// instead of failing it. The record is acked and dropped ([FilterRecord]),
 	// not nacked. Returning any other error yields an [ErrorRecord].
 	ErrFilterRecord = errors.New("filter out this record")
+
+	// ErrNotBatchProcessor is returned by the ProcessBatch method of a
+	// middleware wrapper when the processor it wraps does not implement
+	// [BatchProcessor]. It lets the caller (the engine, or the WASM guest's
+	// command executor) fall back to [Processor.Process] without changing the
+	// behaviour of existing single-record processors.
+	ErrNotBatchProcessor = errors.New("processor does not implement the batch surface")
 )

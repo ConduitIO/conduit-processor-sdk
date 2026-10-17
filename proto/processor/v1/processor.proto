@@ -46,6 +46,11 @@ message Specify {
     // A map that describes parameters available for configuring the
     // processor plugin.
     map<string, config.v1.Parameter> parameters = 6;
+    // Stateless declares that the processor keeps no state between calls, so
+    // the engine may run its stage concurrently and may reorder which instance
+    // handles which record. A processor that does not set this is treated as
+    // stateful and run serially.
+    bool stateless = 7;
   }
 }
 

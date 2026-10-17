@@ -216,6 +216,27 @@ func (p *processorWithSchemaDecode) Process(ctx context.Context, records []openc
 	return p.Processor.Process(ctx, records)
 }
 
+// ProcessBatch implements the [BatchProcessor] surface for the schema-decode
+// middleware. It decodes every record's key and payload, then delegates to the
+// wrapped processor's ProcessBatch when it has one; otherwise it returns
+// [ErrNotBatchProcessor] so the caller falls back to [Processor.Process]. A
+// record that fails to decode rejects the whole batch (the decode step happens
+// before any processing, so no record is half-applied).
+func (p *processorWithSchemaDecode) ProcessBatch(ctx context.Context, records []opencdc.Record) ([]ProcessedRecord, error) {
+	bp, ok := p.Processor.(BatchProcessor)
+	if !ok {
+		return nil, ErrNotBatchProcessor
+	}
+
+	for i := range records {
+		if err := p.decodeRecord(ctx, &records[i]); err != nil {
+			return nil, fmt.Errorf("record %d: %w", i, err)
+		}
+	}
+
+	return bp.ProcessBatch(ctx, records) //nolint:wrapcheck // middleware shouldn't wrap errors
+}
+
 func (p *processorWithSchemaDecode) decodeRecord(ctx context.Context, rec *opencdc.Record) error {
 	if p.keyEnabled {
 		if err := p.decodeKey(ctx, rec); err != nil {
@@ -592,6 +613,60 @@ func (p *processorWithSchemaEncode) Process(ctx context.Context, records []openc
 		recsOut = append(recsOut[:n], ErrorRecord{Error: failErr})
 	}
 	return recsOut
+}
+
+// ProcessBatch implements the [BatchProcessor] surface for the schema-encode
+// middleware. It delegates to the wrapped processor's ProcessBatch when it has
+// one, then encodes the returned records with the schema subject and version
+// each input record carried. A record whose subject/version cannot be read
+// rejects the whole batch before any processing. When the wrapped processor
+// has no batch surface it returns [ErrNotBatchProcessor] so the caller falls
+// back to [Processor.Process].
+func (p *processorWithSchemaEncode) ProcessBatch(ctx context.Context, records []opencdc.Record) ([]ProcessedRecord, error) {
+	bp, ok := p.Processor.(BatchProcessor)
+	if !ok {
+		return nil, ErrNotBatchProcessor
+	}
+	if !p.keyEnabled && !p.payloadEnabled {
+		return bp.ProcessBatch(ctx, records) //nolint:wrapcheck // middleware shouldn't wrap errors
+	}
+
+	keySubjectVersions, payloadSubjectVersions, err := p.subjectVersions(records)
+	if err != nil {
+		return nil, err
+	}
+
+	recsOut, err := bp.ProcessBatch(ctx, records)
+	if err != nil {
+		return nil, err //nolint:wrapcheck // middleware shouldn't wrap errors
+	}
+	if len(recsOut) != len(records) {
+		return nil, fmt.Errorf("processor ProcessBatch returned %d results for %d records", len(recsOut), len(records))
+	}
+
+	for i, processedRec := range recsOut {
+		switch processedRec := processedRec.(type) {
+		case SingleRecord:
+			encodedRecord, encErr := p.encodeRecord(ctx, opencdc.Record(processedRec), keySubjectVersions[i], payloadSubjectVersions[i])
+			if encErr != nil {
+				recsOut[i] = ErrorRecord{Error: encErr}
+				continue
+			}
+			recsOut[i] = SingleRecord(encodedRecord)
+		case MultiRecord:
+			for j, rec := range processedRec {
+				encodedRecord, encErr := p.encodeRecord(ctx, rec, keySubjectVersions[i], payloadSubjectVersions[i])
+				if encErr != nil {
+					recsOut[i] = ErrorRecord{Error: encErr}
+					break
+				}
+				processedRec[j] = encodedRecord
+			}
+		default:
+			continue // skip if not a single or multi record
+		}
+	}
+	return recsOut, nil
 }
 
 // subjectVersions reads the incoming key and payload schema subject and

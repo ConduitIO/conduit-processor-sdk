@@ -23,7 +23,6 @@ import (
 	"os"
 
 	"github.com/conduitio/conduit-commons/opencdc"
-	configv1 "github.com/conduitio/conduit-commons/proto/config/v1"
 	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
 	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
@@ -207,7 +206,11 @@ func (e commandExecutor) executeProcess(ctx context.Context, p Processor, req *p
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert proto opencdc records: %w", err)
 	}
-	processedRecords := p.Process(ctx, records)
+
+	processedRecords, err := ProcessBatchOrProcess(ctx, p, records)
+	if err != nil {
+		return nil, err
+	}
 	// A result that cannot be converted becomes an ErrorRecord at its index,
 	// so the host nacks exactly that input record.
 	protoRecords := e.protoconv.processedRecords(processedRecords)
@@ -231,19 +234,6 @@ func (e commandExecutor) executeTeardown(ctx context.Context, p Processor, _ *pr
 			Teardown: &processorv1.Teardown_Response{},
 		},
 	}, nil
-}
-
-func (c protoConverter) specifyResponse(in Specification) *processorv1.Specify_Response {
-	params := make(map[string]*configv1.Parameter, len(in.Parameters))
-	in.Parameters.ToProto(params)
-	return &processorv1.Specify_Response{
-		Name:        in.Name,
-		Summary:     in.Summary,
-		Description: in.Description,
-		Version:     in.Version,
-		Author:      in.Author,
-		Parameters:  params,
-	}
 }
 
 func (c protoConverter) records(in []*opencdcv1.Record) ([]opencdc.Record, error) {
