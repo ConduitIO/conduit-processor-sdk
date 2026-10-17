@@ -4,6 +4,7 @@ package processor.v1;
 
 import "config/v1/parameter.proto";
 import "opencdc/v1/opencdc.proto";
+import "opencdc/v2/opencdc.proto";
 
 message CommandRequest {
   oneof request {
@@ -51,6 +52,13 @@ message Specify {
     // handles which record. A processor that does not set this is treated as
     // stateful and run serially.
     bool stateless = 7;
+    // StructuredValuesV2 declares that the processor supports opencdc.v2
+    // records, which carry int64, uint64, bytes and decimal values losslessly
+    // (see ADR 20261015-lossless-structured-values-protocol-v3.md). The host
+    // sends the v2 record fields of Process only to a processor that sets this.
+    // An old host leaves it at its proto3 default (false) and never sends a v2
+    // record.
+    bool structured_values_v2 = 8;
   }
 }
 
@@ -69,7 +77,13 @@ message Open {
 
 message Process {
   message Request {
+    // Records carries the opencdc.v1 representation of the input records. The
+    // host sets this for a processor that did not declare structured_values_v2.
     repeated opencdc.v1.Record records = 1;
+    // RecordsV2 carries the opencdc.v2 representation of the input records. The
+    // host sets this — and leaves records unset — only for a processor that
+    // declared structured_values_v2. An old guest never receives this field.
+    repeated opencdc.v2.Record records_v2 = 2;
   }
   message Response {
     repeated ProcessedRecord records = 1;
@@ -81,6 +95,12 @@ message Process {
       FilterRecord filter_record = 2;
       ErrorRecord error_record = 3;
       MultiRecord multi_record = 4;
+      // SingleRecordV2 is the opencdc.v2 representation of a single processed
+      // record, used by a guest that declared structured_values_v2.
+      opencdc.v2.Record single_record_v2 = 5;
+      // MultiRecordV2 is the opencdc.v2 representation of a fan-out result,
+      // used by a guest that declared structured_values_v2.
+      MultiRecordV2 multi_record_v2 = 6;
     }
   }
 
@@ -90,6 +110,9 @@ message Process {
   }
   message MultiRecord {
     repeated opencdc.v1.Record records = 1;
+  }
+  message MultiRecordV2 {
+    repeated opencdc.v2.Record records = 1;
   }
 }
 

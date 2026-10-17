@@ -23,7 +23,6 @@ import (
 	"os"
 
 	"github.com/conduitio/conduit-commons/opencdc"
-	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
 	"github.com/conduitio/conduit-processor-sdk/pprocutils"
 	processorv1 "github.com/conduitio/conduit-processor-sdk/proto/processor/v1"
 	"github.com/conduitio/conduit-processor-sdk/wasm"
@@ -202,7 +201,22 @@ func (e commandExecutor) executeOpen(ctx context.Context, p Processor, _ *proces
 }
 
 func (e commandExecutor) executeProcess(ctx context.Context, p Processor, req *processorv1.Process_Request) (*processorv1.CommandResponse, error) {
-	records, err := e.protoconv.records(req.Records)
+	// The host sends records_v2 only to a guest that declared the capability,
+	// and sends records (v1) otherwise; it never sets both. The shape of the
+	// request therefore fixes the shape of the response: a v2 record in means
+	// v2 records out, so a wide integer never has to pass through the lossy v1
+	// encoder on the way back.
+	v2 := req.GetRecordsV2() != nil
+
+	var (
+		records []opencdc.Record
+		err     error
+	)
+	if v2 {
+		records, err = e.protoconv.recordsV2(req.GetRecordsV2())
+	} else {
+		records, err = e.protoconv.records(req.GetRecords())
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert proto opencdc records: %w", err)
 	}
@@ -213,7 +227,7 @@ func (e commandExecutor) executeProcess(ctx context.Context, p Processor, req *p
 	}
 	// A result that cannot be converted becomes an ErrorRecord at its index,
 	// so the host nacks exactly that input record.
-	protoRecords := e.protoconv.processedRecords(processedRecords)
+	protoRecords := e.protoconv.processedRecords(processedRecords, v2)
 
 	return &processorv1.CommandResponse{
 		Response: &processorv1.CommandResponse_Process{
@@ -234,18 +248,4 @@ func (e commandExecutor) executeTeardown(ctx context.Context, p Processor, _ *pr
 			Teardown: &processorv1.Teardown_Response{},
 		},
 	}, nil
-}
-
-func (c protoConverter) records(in []*opencdcv1.Record) ([]opencdc.Record, error) {
-	if in == nil {
-		return nil, nil
-	}
-	out := make([]opencdc.Record, len(in))
-	for i, v := range in {
-		err := out[i].FromProto(v)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return out, nil
 }
