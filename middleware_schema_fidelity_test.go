@@ -330,13 +330,11 @@ func TestSchemaMiddleware_ChangedValues(t *testing.T) {
 	}
 }
 
-// TestSchemaMiddleware_NullableRecordBranch pins a case the fix cannot reach.
-// The commons Avro serde decodes a ["null", record] field to the plain record
-// map, but only encodes it from the named form {"ns.Name": {...}}, so a
-// decoded value does not re-encode with its own schema. The middleware must
-// then fall back to an extracted schema without losing the values.
-// See the conduit-commons issue linked in the PR; once that is fixed this case
-// belongs in TestSchemaMiddleware_PassthroughKeepsSchema.
+// TestSchemaMiddleware_NullableRecordBranch covers a ["null", record] field.
+// The commons Avro serde decodes it to the plain record map; since
+// conduit-commons v0.12.0 (#322) that form also re-encodes with its own
+// schema, so the record keeps its original schema version. Before v0.12.0 the
+// middleware had to fall back to an extracted schema.
 func TestSchemaMiddleware_NullableRecordBranch(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
@@ -359,21 +357,28 @@ func TestSchemaMiddleware_NullableRecordBranch(t *testing.T) {
 	if path, ok := equivalentValues(want, map[string]any(decoded), ""); !ok {
 		t.Fatalf("value changed at %q: got %#v", path, decoded)
 	}
-	is.True(outSch.Version != sch.Version) // documents the known commons limitation
+	is.Equal(outSch.Version, sch.Version) // commons v0.12.0 re-encodes the plain record form with the original schema
 
-	// A nullable record whose fields mix types cannot be extracted either, so
-	// the fallback fails and the record becomes an error record. main does the
-	// same; the data is not lost, the record fails loudly.
+	// A nullable record whose fields mix types cannot be extracted, so before
+	// commons v0.12.0 the fallback failed and the record became an error
+	// record. It now re-encodes with its original schema and keeps its values.
 	mixed := schemaFidelityCase{
 		name:  "nullable nested record, mixed types",
 		field: `["null",{"type":"record","name":"Opt","fields":[{"name":"n","type":"int"},{"name":"d","type":{"type":"int","logicalType":"date"}}]}]`,
 		value: map[string]any{"sdk.test.Opt": map[string]any{"n": 5, "d": time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)}},
 	}
-	in, _ = encodedRecord(t, fidelitySubject(t)+".mixed", mixed)
+	in, msch := encodedRecord(t, fidelitySubject(t)+".mixed", mixed)
 	got = p.Process(ctx, []opencdc.Record{in})
 	is.Equal(len(got), 1)
-	if _, ok := got[0].(ErrorRecord); !ok {
-		t.Fatalf("expected ErrorRecord for a mixed-type nullable record, got %T: %+v", got[0], got[0])
+	mout, ok := got[0].(SingleRecord)
+	if !ok {
+		t.Fatalf("expected SingleRecord for a mixed-type nullable record, got %T: %+v", got[0], got[0])
+	}
+	mdec, moutSch := decodeAttached(t, opencdc.Record(mout), mout.Payload.After)
+	is.Equal(moutSch.Version, msch.Version)
+	mwant := map[string]any{"id": int64(1), "v": map[string]any{"n": 5, "d": time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)}}
+	if path, ok := equivalentValues(mwant, map[string]any(mdec), ""); !ok {
+		t.Fatalf("value changed at %q: got %#v", path, mdec)
 	}
 }
 
