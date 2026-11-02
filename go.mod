@@ -4,7 +4,7 @@ go 1.26.9
 
 require (
 	github.com/conduitio/conduit-commons v0.12.0
-	github.com/goccy/go-json v0.11.2
+	github.com/goccy/go-json v0.12.0
 	github.com/google/go-cmp v0.7.0
 	github.com/iskorotkov/avro/v2 v2.35.0
 	github.com/matryer/is v1.4.1
