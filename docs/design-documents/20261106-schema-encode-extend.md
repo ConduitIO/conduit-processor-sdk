@@ -110,26 +110,33 @@ fit the carried schema losslessly. Every other path is unchanged:
 
 ### Building the extended schema
 
-For one part (the key) or the structured, non-empty payload parts (`before` and `after`, which share one
-schema):
+For one part (the key) or the structured payload parts (`before` and `after`, which share one schema).
+A structured part with no fields (`{}`) is a structured part like any other; only nil and zero-length raw
+data are absent (see _Empty parts_):
 
 1. The carried schema must be Avro, have no schema references, and be a top-level `record`. Otherwise
    `ErrSchemaExtendUnsupported`.
-2. All structured, non-empty parts must have the same top-level field names. Otherwise
-   `ErrSchemaExtendMismatch` naming the field and the part that lacks it: one schema cannot describe
-   both, and filling the gap with a null or a default would invent data.
+2. All structured parts must have the same top-level field names. Otherwise `ErrSchemaExtendMismatch`
+   naming the field and the part that lacks it: one schema cannot describe both, and filling the gap
+   with a null or a default would invent data. This includes `before` with fields next to `after` as
+   `{}`. Decided by DeVaris for the v0.22 opt-in; revisit before `extend` becomes the default in v0.24.
 3. **Kept fields.** Each carried field whose name is a key of the data is copied from the carried schema
    text as raw JSON (only insignificant whitespace is removed), in the carried order. Top-level schema
    attributes (`name`, `namespace`, `doc`, custom properties) are kept too.
 4. **Removed fields.** Each carried field that is not a key of the data is left out. Removal is the
-   processor's intent (decision by DeVaris); it is not an error.
+   processor's intent (decision by DeVaris); it is not an error. The rule applies to every field: when
+   the data is `{}`, every carried field is removed and the new version is a record schema with zero
+   fields (`"fields": []`) that keeps the carried `name`, `namespace` and other top-level attributes
+   (decision by DeVaris). It is registered as a new version of the carried subject and attached, so the
+   record's schema metadata matches its data instead of naming the carried schema.
 5. **Added fields.** Each key the carried schema lacks gets a type inferred from its value with the
    existing extractor (the value from `after` when it is non-null, else from `before`). The type is made
    nullable: a union that already has `null` gets `null` moved to the first branch, anything else
    becomes `["null", T]`, and the field gets `"default": null`. Added fields are appended in name order,
    so the same added set always produces the same schema text.
-6. If nothing was added or removed, the carried schema is used as it is and nothing is registered (this
-   happens when one part fits and another part is empty).
+6. If nothing was added or removed, the carried schema is used as it is and nothing is registered. The
+   lossless path before the strategy normally catches this case; it is kept so that a value mismatch
+   alone never registers a reformatted copy of the carried schema.
 7. The extended schema must parse. A parse failure (an added record whose inferred name collides with a
    carried named type, or a kept field that refers to a named type defined only in a removed field) is
    `ErrSchemaExtendUnsupported`.
@@ -145,11 +152,18 @@ Steps 2, 3, 5 and 8 carry `// Invariant 6` comments in the code.
 
 ### Empty parts
 
-A part that is nil, zero-length raw data, or structured data with no fields is passed through as it is
-and does not contribute to the schema. If every part of the key or payload is empty, the record keeps
-its data and its metadata unchanged (the same as today's "not structured" path). A part that is empty
-next to a part that is encoded stays structured while the metadata names the new schema; a structured
-part is never decoded again, so no schema is applied to it downstream.
+A part that is nil or zero-length raw data is absent: it is not encoded, does not contribute to the
+schema, and its metadata is left as it came in (decision by DeVaris). For the key, and for a payload
+whose `before` and `after` are both absent, this is the existing "not structured" path, so the record
+keeps its data and all of its metadata. A payload with one absent part and one structured part encodes
+only the structured part; the absent part stays as it is.
+
+Structured data with no fields (`{}`) is not absent: it is a part whose fields were all removed, and gets
+the zero-field schema described in step 4. A zero-field Avro record encodes to zero bytes, so the encoded
+part is `RawData` of length zero. The decode middleware treats a zero-length payload part as absent and
+does not decode it (it does decode a zero-length key), so a later processor sees that payload part as
+raw, empty data while the metadata names the zero-field schema. Both describe the same value: a record
+with no fields.
 
 ### Errors
 
@@ -171,6 +185,8 @@ Conduit maps them to its own stable error codes (see _Conduit_).
 | Processor changed a field's type (`int` to `string`) | `ErrSchemaExtendMismatch` | The carried type is kept; the codec rejects the value |
 | Processor wrote a finer value (`1.234` into `decimal(14,2)`, 01:00 into `date`) | `ErrSchemaExtendMismatch` | The codec truncates silently on released commons; the round trip catches it |
 | Processor removed a top-level field | Field left out of the new version | User intent |
+| Processor removed every top-level field (`{}`) | Zero-field record schema (carried name and namespace) registered as a new version and attached; data encodes to zero bytes | The removal rule applied to every field; the metadata matches the data |
+| Part is nil or zero-length raw data | Passed through; data and metadata unchanged; nothing registered | Absent, not a value |
 | Processor added a top-level field | Nullable field, default null, appended in name order | Backward-compatible extension |
 | Processor added or removed a key inside a nested record | `ErrSchemaExtendMismatch` | Only top-level extension is defined; the nested record type is kept exactly |
 | Null into a non-null carried field | `ErrSchemaExtendMismatch` | Codec error |
@@ -179,7 +195,7 @@ Conduit maps them to its own stable error codes (see _Conduit_).
 | Carried `["null", record]` or `["null", map]` field (conduit-commons#306) | `ErrSchemaExtendMismatch` | The decoded form does not re-encode with that schema. `infer` falls back to extraction here; `extend` fails closed rather than widen. Fixed when #306 is |
 | Arrays and maps | Kept exactly; contents checked by the round trip | |
 | Key and payload | Independent strategies, schemas and subjects | They are separate parts with separate metadata |
-| `before` and `after` with different top-level fields | `ErrSchemaExtendMismatch` naming the field | One schema describes both; filling the gap would invent nulls |
+| `before` and `after` with different top-level fields (including one of them `{}`) | `ErrSchemaExtendMismatch` naming the field; nothing registered | One schema describes both; filling the gap would invent nulls. Decided for the v0.22 opt-in, revisit before the v0.24 default |
 | Added field null in one record and set in the next | Different inferred `T`, so a different schema text and a new version | Same as `infer`; added fields should have a stable type |
 | Added record collides with a carried named type | `ErrSchemaExtendUnsupported` | Fail closed |
 | Kept field refers to a named type defined in a removed field | `ErrSchemaExtendUnsupported` | Fail closed; inlining the definition is not done |
@@ -228,6 +244,18 @@ topic) or set that subject's compatibility deliberately.
 - Registered versions are visible in the schema registry; with `extend` a reshaping processor registers
   one new version per distinct added and removed field set.
 - No new metric in the SDK: the SDK has no metrics surface. Conduit can count the error codes.
+
+## Decided questions
+
+Decided by DeVaris on 2026-11-06:
+
+1. **Every field removed (`{}`).** Register and attach a zero-field record schema, keeping the carried
+   record name and namespace, as a new version of the carried subject (step 4). Conduit's `avro.encode`
+   `fromRecord` does the same for `{}`: it drops every declared field and produces the same schema text,
+   registered under its configured subject.
+2. **`before` and `after` with different top-level fields.** Keep failing with `ErrSchemaExtendMismatch`
+   for the v0.22 opt-in (step 2). Revisit before `extend` becomes the default in v0.24.
+3. **Empty parts (nil, zero-length raw).** Pass through unchanged, metadata untouched (_Empty parts_).
 
 ## Conduit
 

@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"math/big"
 	"strings"
 	"testing"
@@ -250,18 +251,117 @@ func TestSchemaEncodeExtend_RemovedField(t *testing.T) {
 	is.True(!hasNote)
 }
 
+// TestSchemaEncodeExtend_EmptyPartPassesThrough pins that an absent part (nil
+// or zero-length raw data) is not encoded and that the record's metadata is
+// left exactly as it came in, for the payload and for the key.
 func TestSchemaEncodeExtend_EmptyPartPassesThrough(t *testing.T) {
+	bothExtend := func() config.Config {
+		return config.Config{
+			configProcessorSchemaEncodePayloadStrategy: string(SchemaEncodeStrategyExtend),
+			configProcessorSchemaEncodeKeyStrategy:     string(SchemaEncodeStrategyExtend),
+		}
+	}
+	cases := []struct {
+		name  string
+		set   func(r *opencdc.Record)
+		check func(is *is.I, out opencdc.Record)
+	}{
+		{
+			"payload nil",
+			func(r *opencdc.Record) { r.Payload.After = nil },
+			func(is *is.I, out opencdc.Record) { is.Equal(out.Payload.After, nil) },
+		},
+		{
+			"payload zero-length raw",
+			func(r *opencdc.Record) { r.Payload.After = opencdc.RawData{} },
+			func(is *is.I, out opencdc.Record) { is.Equal(out.Payload.After, opencdc.RawData{}) },
+		},
+		{
+			"key nil",
+			func(r *opencdc.Record) { r.Key = nil },
+			func(is *is.I, out opencdc.Record) { is.Equal(out.Key, nil) },
+		},
+		{
+			"key zero-length raw",
+			func(r *opencdc.Record) { r.Key = opencdc.RawData{} },
+			func(is *is.I, out opencdc.Record) { is.Equal(out.Key, opencdc.RawData{}) },
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			p := newExtendProcessor(t, bothExtend(), func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+				tc.set(&r)
+				return r, nil
+			})
+			in := extendFixture(t)
+			wantMeta := maps.Clone(in.Metadata)
+			out := mustSingle(t, processOne(t, p, in))
+			tc.check(is, out)
+			is.Equal(out.Metadata, wantMeta) // metadata changed for an empty part
+			_, err := sdkschema.Get(context.Background(), fidelitySubject(t)+"-value", 2)
+			is.True(errors.Is(err, sdkschema.ErrVersionNotFound)) // a payload version was registered
+			_, err = sdkschema.Get(context.Background(), fidelitySubject(t)+"-key", 2)
+			is.True(errors.Is(err, sdkschema.ErrVersionNotFound)) // a key version was registered
+		})
+	}
+}
+
+// zeroFieldSchema checks that sch is the carried record with every field
+// removed: same name and namespace, zero fields, registered as version 2 of
+// subject.
+func zeroFieldSchema(t *testing.T, sch schema.Schema, subject, name string) {
+	t.Helper()
+	is := is.New(t)
+	var top struct {
+		Type      string            `json:"type"`
+		Name      string            `json:"name"`
+		Namespace string            `json:"namespace"`
+		Fields    []json.RawMessage `json:"fields"`
+	}
+	is.NoErr(json.Unmarshal(sch.Bytes, &top))
+	is.Equal(top.Type, "record")
+	is.Equal(top.Name, name)
+	is.Equal(top.Namespace, "pg.public")
+	is.True(top.Fields != nil) // fields must be [] for the schema to parse
+	is.Equal(len(top.Fields), 0)
+	is.Equal(sch.Subject, subject)
+	is.Equal(sch.Version, 2)
+}
+
+// TestSchemaEncodeExtend_AllFieldsRemoved covers a processor that removes
+// every field of a part, so the structured data is {}. The removal rule
+// applies to every field: the record gets a zero-field record schema, a new
+// version of the carried subject, so its metadata matches the data instead of
+// naming the carried schema.
+func TestSchemaEncodeExtend_AllFieldsRemoved(t *testing.T) {
 	t.Run("payload", func(t *testing.T) {
 		is := is.New(t)
 		p := newExtendProcessor(t, extendPayloadCfg(), func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
 			r.Payload.After = opencdc.StructuredData{}
 			return r, nil
 		})
+		out := mustSingle(t, processOne(t, p, extendFixture(t)))
+		decoded, sch := decodeAttached(t, out, out.Payload.After)
+		zeroFieldSchema(t, sch, fidelitySubject(t)+"-value", "orders")
+		is.Equal(len(decoded), 0)
+		is.Equal(out.Metadata[opencdc.MetadataPayloadSchemaVersion], "2")
+	})
+	t.Run("payload before and after", func(t *testing.T) {
+		is := is.New(t)
+		p := newExtendProcessor(t, extendPayloadCfg(), func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+			r.Payload.Before = opencdc.StructuredData{}
+			r.Payload.After = opencdc.StructuredData{}
+			return r, nil
+		})
 		in := extendFixture(t)
+		in.Operation = opencdc.OperationUpdate
+		in.Payload.Before = opencdc.RawData(bytes.Clone(in.Payload.After.(opencdc.RawData)))
 		out := mustSingle(t, processOne(t, p, in))
-		is.Equal(out.Payload.After, opencdc.StructuredData{}) // empty part was encoded
-		is.Equal(out.Metadata[opencdc.MetadataPayloadSchemaVersion], in.Metadata[opencdc.MetadataPayloadSchemaVersion])
-		is.Equal(out.Metadata[opencdc.MetadataPayloadSchemaSubject], in.Metadata[opencdc.MetadataPayloadSchemaSubject])
+		_, sch := decodeAttached(t, out, out.Payload.After)
+		zeroFieldSchema(t, sch, fidelitySubject(t)+"-value", "orders")
+		_, ok := out.Payload.Before.(opencdc.RawData)
+		is.True(ok) // before was not encoded with the zero-field schema
 	})
 	t.Run("key", func(t *testing.T) {
 		is := is.New(t)
@@ -272,8 +372,20 @@ func TestSchemaEncodeExtend_EmptyPartPassesThrough(t *testing.T) {
 		})
 		in := extendFixture(t)
 		out := mustSingle(t, processOne(t, p, in))
-		is.Equal(out.Key, opencdc.StructuredData{}) // empty key was encoded
-		is.Equal(out.Metadata[opencdc.MetadataKeySchemaVersion], in.Metadata[opencdc.MetadataKeySchemaVersion])
+		subject, err := out.Metadata.GetKeySchemaSubject()
+		is.NoErr(err)
+		v, err := out.Metadata.GetKeySchemaVersion()
+		is.NoErr(err)
+		sch, err := sdkschema.Get(context.Background(), subject, v)
+		is.NoErr(err)
+		zeroFieldSchema(t, sch, fidelitySubject(t)+"-key", "orders_key")
+		raw, ok := out.Key.(opencdc.RawData)
+		is.True(ok) // key was not encoded with the zero-field schema
+		var decoded opencdc.StructuredData
+		is.NoErr(sch.Unmarshal(raw.Bytes(), &decoded))
+		is.Equal(len(decoded), 0)
+		// the payload is unchanged and keeps its carried schema
+		is.Equal(out.Metadata[opencdc.MetadataPayloadSchemaVersion], in.Metadata[opencdc.MetadataPayloadSchemaVersion])
 	})
 }
 
@@ -371,10 +483,34 @@ func TestSchemaEncodeExtend_BeforeAndAfter(t *testing.T) {
 		types, _, _ := schemaFields(t, sch)
 		is.Equal(types["id"], `"int"`)
 	})
-	t.Run("only after changed", func(t *testing.T) {
-		p := newExtendProcessor(t, extendPayloadCfg(), setField("__op", "u"))
-		mustErrorIs(t, processOne(t, p, withBefore(t)), ErrSchemaExtendMismatch)
-	})
+	// Decided for the v0.22 opt-in (revisit before extend becomes the default
+	// in v0.24): before and after with different top-level fields fail the
+	// record, and nothing is registered. One schema describes both parts, and
+	// filling the gap with a null or a default would invent data.
+	differ := []struct {
+		name string
+		f    func(context.Context, opencdc.Record) (opencdc.Record, error)
+	}{
+		{"only after changed", setField("__op", "u")},
+		{"after has every field removed", func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+			r.Payload.After = opencdc.StructuredData{}
+			return r, nil
+		}},
+		{"before and after removed different fields", func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+			delete(r.Payload.Before.(opencdc.StructuredData), "note")
+			delete(r.Payload.After.(opencdc.StructuredData), "day")
+			return r, nil
+		}},
+	}
+	for _, tc := range differ {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			p := newExtendProcessor(t, extendPayloadCfg(), tc.f)
+			mustErrorIs(t, processOne(t, p, withBefore(t)), ErrSchemaExtendMismatch)
+			_, err := sdkschema.Get(context.Background(), fidelitySubject(t)+"-value", 2)
+			is.True(errors.Is(err, sdkschema.ErrVersionNotFound)) // a schema was registered for a failing record
+		})
+	}
 }
 
 func TestSchemaEncodeExtend_Key(t *testing.T) {

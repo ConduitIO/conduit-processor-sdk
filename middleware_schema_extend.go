@@ -86,8 +86,9 @@ type extendResult struct {
 // extendSchema builds the schema described in [SchemaEncodeStrategyExtend]
 // from carried for parts, and encodes every part with it. It returns
 // ErrSchemaExtendMismatch or ErrSchemaExtendUnsupported (wrapped) if that is
-// not possible without changing data. parts must not be empty and must not
-// hold empty data; the caller passes empty parts through unencoded.
+// not possible without changing data. parts must not be empty. A part with no
+// fields ({}) is valid: if every part has none, every carried field is removed
+// and the extended schema is a record with zero fields.
 func extendSchema(carried schema.Schema, parts []extendPart) (extendResult, error) {
 	where := fmt.Sprintf("schema %s:%d", carried.Subject, carried.Version)
 	top, rawFields, err := parseRecordSchema(carried)
@@ -286,20 +287,4 @@ func nullableType(typ json.RawMessage) (json.RawMessage, error) {
 		return nil, fmt.Errorf("failed to build a nullable type: %w", ErrSchemaExtendUnsupported)
 	}
 	return out, nil
-}
-
-// isEmptyPart reports whether a key or payload part holds nothing to encode:
-// nil, zero-length raw data, or structured data without fields. With
-// [SchemaEncodeStrategyExtend] such a part is passed through unencoded.
-func isEmptyPart(data opencdc.Data) bool {
-	switch d := data.(type) {
-	case nil:
-		return true
-	case opencdc.RawData:
-		return len(d) == 0
-	case opencdc.StructuredData:
-		return len(d) == 0
-	default:
-		return false
-	}
 }

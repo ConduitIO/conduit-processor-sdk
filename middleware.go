@@ -513,7 +513,8 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 //     built from the carried schema instead: fields still present keep their
 //     exact carried definition, added top-level fields get an inferred
 //     nullable type with a null default, removed top-level fields are left
-//     out, and empty parts are passed through unencoded. A value that does
+//     out (all of them for {}, which gets a zero-field record schema), and
+//     nil or zero-length raw parts are passed through unchanged. A value that does
 //     not fit its carried type fails the record with [ErrSchemaExtendMismatch]
 //     and nothing is registered. See docs/design-documents/20261106-schema-encode-extend.md.
 //
@@ -1040,13 +1041,12 @@ func encodePayloadLossless(sch schema.Schema, payload opencdc.Change) (opencdc.C
 }
 
 // extendKey encodes a key that no longer fits its carried schema with the
-// carried schema extended to fit it (see [SchemaEncodeStrategyExtend]). An
-// empty key is passed through unencoded, with its metadata unchanged.
+// carried schema extended to fit it (see [SchemaEncodeStrategyExtend]). A key
+// whose fields were all removed ({}) gets a record schema with zero fields, so
+// the metadata names a schema that matches the data. A nil or zero-length raw
+// key never reaches this point: encodeKey passes it through unchanged.
 func (p *processorWithSchemaEncode) extendKey(ctx context.Context, rec opencdc.Record, carried schema.Schema) (opencdc.Record, error) {
 	key, _ := rec.Key.(opencdc.StructuredData) // checked by encodeKey
-	if isEmptyPart(key) {
-		return rec, nil
-	}
 	sch, encoded, err := extendAndRegister(ctx, carried, []extendPart{{name: partKey, data: key}})
 	if err != nil {
 		return opencdc.Record{}, fmt.Errorf("failed to encode key: %w", err)
@@ -1058,18 +1058,20 @@ func (p *processorWithSchemaEncode) extendKey(ctx context.Context, rec opencdc.R
 
 // extendPayload encodes a payload that no longer fits its carried schema with
 // the carried schema extended to fit it (see [SchemaEncodeStrategyExtend]).
-// Empty parts are passed through unencoded; if both are empty the payload and
-// its metadata are unchanged.
+// Only structured parts are encoded: a nil or zero-length raw before or after
+// is absent and passed through unchanged. A structured part whose fields were
+// all removed ({}) is a value, not an absent part; if every structured part is
+// {}, the new version is a record schema with zero fields.
 func (p *processorWithSchemaEncode) extendPayload(ctx context.Context, rec opencdc.Record, carried schema.Schema) (opencdc.Record, error) {
 	var parts []extendPart
-	if before, ok := rec.Payload.Before.(opencdc.StructuredData); ok && !isEmptyPart(before) {
+	if before, ok := rec.Payload.Before.(opencdc.StructuredData); ok {
 		parts = append(parts, extendPart{name: partPayloadBefore, data: before})
 	}
-	if after, ok := rec.Payload.After.(opencdc.StructuredData); ok && !isEmptyPart(after) {
+	if after, ok := rec.Payload.After.(opencdc.StructuredData); ok {
 		parts = append(parts, extendPart{name: partPayloadAfter, data: after})
 	}
 	if len(parts) == 0 {
-		return rec, nil
+		return rec, nil // not reached: encodePayload checks for a structured part
 	}
 
 	sch, encoded, err := extendAndRegister(ctx, carried, parts)
