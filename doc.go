@@ -128,7 +128,10 @@
 // decoded form (conduit-commons#306). Data that does not fit (an added field, a
 // value outside the type, or that exception) gets a schema extracted from its
 // values; see [ProcessorWithSchemaEncode] for what that loses, including time
-// precision finer than a microsecond.
+// precision finer than a microsecond. With [SchemaEncodeStrategyExtend] the
+// middleware extends the carried schema instead of extracting one, so every
+// field still present keeps its carried type, and a value that does not fit
+// that type fails the record instead of widening it.
 //
 // # Neighboring packages
 //

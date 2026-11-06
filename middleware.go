@@ -387,8 +387,10 @@ func (p *processorWithSchemaDecode) decode(ctx context.Context, data opencdc.Dat
 // -- ProcessorWithSchemaEncode ----------------------------------------------
 
 const (
-	configProcessorSchemaEncodePayloadEnabled = "sdk.schema.encode.payload.enabled"
-	configProcessorSchemaEncodeKeyEnabled     = "sdk.schema.encode.key.enabled"
+	configProcessorSchemaEncodePayloadEnabled  = "sdk.schema.encode.payload.enabled"
+	configProcessorSchemaEncodeKeyEnabled      = "sdk.schema.encode.key.enabled"
+	configProcessorSchemaEncodePayloadStrategy = "sdk.schema.encode.payload.strategy"
+	configProcessorSchemaEncodeKeyStrategy     = "sdk.schema.encode.key.strategy"
 )
 
 // ProcessorWithSchemaEncodeConfig is the configuration for the
@@ -403,6 +405,16 @@ type ProcessorWithSchemaEncodeConfig struct {
 	// Whether to encode the record key using its corresponding schema from the schema registry.
 	// If unset, defaults to true.
 	KeyEnabled *bool
+	// How to build a new payload schema when the processed payload no longer
+	// fits the schema the record carried. If unset, defaults to
+	// [SchemaEncodeStrategyInfer]. Users can override it with
+	// sdk.schema.encode.payload.strategy.
+	PayloadStrategy SchemaEncodeStrategy
+	// How to build a new key schema when the processed key no longer fits the
+	// schema the record carried. If unset, defaults to
+	// [SchemaEncodeStrategyInfer]. Users can override it with
+	// sdk.schema.encode.key.strategy.
+	KeyStrategy SchemaEncodeStrategy
 }
 
 // Apply sets the default configuration for the ProcessorWithSchemaEncode middleware.
@@ -420,6 +432,27 @@ func (c ProcessorWithSchemaEncodeConfig) SchemaKeyEnabledParameterName() string 
 	return configProcessorSchemaEncodeKeyEnabled
 }
 
+// SchemaPayloadStrategyParameterName returns the name of the parameter that
+// selects the payload [SchemaEncodeStrategy].
+func (c ProcessorWithSchemaEncodeConfig) SchemaPayloadStrategyParameterName() string {
+	return configProcessorSchemaEncodePayloadStrategy
+}
+
+// SchemaKeyStrategyParameterName returns the name of the parameter that
+// selects the key [SchemaEncodeStrategy].
+func (c ProcessorWithSchemaEncodeConfig) SchemaKeyStrategyParameterName() string {
+	return configProcessorSchemaEncodeKeyStrategy
+}
+
+// schemaEncodeStrategies are the accepted values of the strategy parameters.
+var schemaEncodeStrategies = []string{string(SchemaEncodeStrategyInfer), string(SchemaEncodeStrategyExtend)}
+
+const schemaEncodeStrategyDescription = "How to build a new %s schema when the processed %s no longer fits the schema " +
+	"the record carried. \"infer\" extracts a schema from the values (Avro int becomes long, date becomes " +
+	"timestamp-micros, decimals become decimal(31,10)). \"extend\" keeps the carried type of every field " +
+	"still present, adds new top-level fields as nullable with a null default, leaves out removed " +
+	"top-level fields, and fails the record if a value does not fit its carried type."
+
 func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 	return config.Parameters{
 		configProcessorSchemaEncodePayloadEnabled: {
@@ -431,6 +464,18 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 			Default:     strconv.FormatBool(*c.KeyEnabled),
 			Type:        config.ParameterTypeBool,
 			Description: "Whether to encode the record key using its corresponding schema from the schema registry.",
+		},
+		configProcessorSchemaEncodePayloadStrategy: {
+			Default:     string(c.PayloadStrategy),
+			Type:        config.ParameterTypeString,
+			Description: fmt.Sprintf(schemaEncodeStrategyDescription, "payload", "payload"),
+			Validations: []config.Validation{config.ValidationInclusion{List: schemaEncodeStrategies}},
+		},
+		configProcessorSchemaEncodeKeyStrategy: {
+			Default:     string(c.KeyStrategy),
+			Type:        config.ParameterTypeString,
+			Description: fmt.Sprintf(schemaEncodeStrategyDescription, "key", "key"),
+			Validations: []config.Validation{config.ValidationInclusion{List: schemaEncodeStrategies}},
 		},
 	}
 }
@@ -462,6 +507,21 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 //     time-micros, so time precision finer than a microsecond is truncated
 //     without an error. Processors that change the shape of their data and care
 //     about exact types should attach the intended schema themselves.
+//
+//     With [SchemaEncodeStrategyExtend] (sdk.schema.encode.payload.strategy or
+//     sdk.schema.encode.key.strategy set to "extend"), the new version is
+//     built from the carried schema instead: fields still present keep their
+//     exact carried definition, added top-level fields get an inferred
+//     nullable type with a null default, removed top-level fields are left
+//     out, and empty parts are passed through unencoded. A value that does
+//     not fit its carried type fails the record with [ErrSchemaExtendMismatch]
+//     and nothing is registered. See docs/design-documents/20261106-schema-encode-extend.md.
+//
+// It adds four parameters to the processor config:
+//   - `sdk.schema.encode.key.enabled` and `sdk.schema.encode.payload.enabled` -
+//     whether to encode the key and the payload.
+//   - `sdk.schema.encode.key.strategy` and `sdk.schema.encode.payload.strategy` -
+//     the [SchemaEncodeStrategy], "infer" (default) or "extend".
 type ProcessorWithSchemaEncode struct {
 	Config ProcessorWithSchemaEncodeConfig
 }
@@ -475,6 +535,12 @@ func (p *ProcessorWithSchemaEncode) Wrap(impl Processor) Processor {
 	if p.Config.PayloadEnabled == nil {
 		p.Config.PayloadEnabled = lang.Ptr(true)
 	}
+	if p.Config.KeyStrategy == "" {
+		p.Config.KeyStrategy = SchemaEncodeStrategyInfer
+	}
+	if p.Config.PayloadStrategy == "" {
+		p.Config.PayloadStrategy = SchemaEncodeStrategyInfer
+	}
 
 	return &processorWithSchemaEncode{
 		Processor: impl,
@@ -487,8 +553,10 @@ type processorWithSchemaEncode struct {
 	Processor
 	defaults ProcessorWithSchemaEncodeConfig
 
-	keyEnabled     bool
-	payloadEnabled bool
+	keyEnabled      bool
+	payloadEnabled  bool
+	keyStrategy     SchemaEncodeStrategy
+	payloadStrategy SchemaEncodeStrategy
 
 	payloadWarnOnce sync.Once
 	keyWarnOnce     sync.Once
@@ -547,11 +615,39 @@ func (p *processorWithSchemaEncode) Configure(ctx context.Context, config config
 		delete(config, configProcessorSchemaEncodePayloadEnabled)
 	}
 
+	keyStrategy, err := parseSchemaEncodeStrategy(config, configProcessorSchemaEncodeKeyStrategy, p.defaults.KeyStrategy)
+	if err != nil {
+		return err
+	}
+	payloadStrategy, err := parseSchemaEncodeStrategy(config, configProcessorSchemaEncodePayloadStrategy, p.defaults.PayloadStrategy)
+	if err != nil {
+		return err
+	}
+
 	p.keyEnabled = encodeKey
 	p.payloadEnabled = encodePayload
+	p.keyStrategy = keyStrategy
+	p.payloadStrategy = payloadStrategy
 
 	//nolint:wrapcheck // middleware shouldn't wrap errors
 	return p.Processor.Configure(ctx, config)
+}
+
+// parseSchemaEncodeStrategy reads the strategy parameter key from config,
+// removes it, and returns it, or def if it is not set. Both a configured value
+// and the processor's default are validated.
+func parseSchemaEncodeStrategy(config config.Config, key string, def SchemaEncodeStrategy) (SchemaEncodeStrategy, error) {
+	val := string(def)
+	if v, ok := config[key]; ok {
+		val = v
+		delete(config, key)
+	}
+	switch s := SchemaEncodeStrategy(val); s {
+	case SchemaEncodeStrategyInfer, SchemaEncodeStrategyExtend:
+		return s, nil
+	default:
+		return "", fmt.Errorf("invalid %s: %q is not one of %v", key, val, schemaEncodeStrategies)
+	}
 }
 
 type subjectVersion struct {
@@ -727,6 +823,7 @@ func (p *processorWithSchemaEncode) payloadSubjectVersion(rec opencdc.Record) (s
 	return subjectVersion{subject: subject, version: version}, nil
 }
 
+//nolint:funlen // maybe refactor in the future, like encodePayload
 func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec opencdc.Record, incomingSubjectVersion subjectVersion) (opencdc.Record, error) {
 	if !p.keyEnabled {
 		return rec, nil // key schema encoding is disabled
@@ -772,6 +869,10 @@ func (p *processorWithSchemaEncode) encodeKey(ctx context.Context, rec opencdc.R
 			return rec, nil
 		case !errors.Is(err, errSchemaMismatch):
 			return opencdc.Record{}, fmt.Errorf("failed to encode key: %w", err)
+		}
+
+		if p.keyStrategy == SchemaEncodeStrategyExtend {
+			return p.extendKey(ctx, rec, oldSchema)
 		}
 
 		// The processor changed the key so that it no longer fits the schema
@@ -865,6 +966,10 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec openc
 			return opencdc.Record{}, err // already wrapped
 		}
 
+		if p.payloadStrategy == SchemaEncodeStrategyExtend {
+			return p.extendPayload(ctx, rec, oldSchema)
+		}
+
 		// The processor changed the payload so that it no longer fits the
 		// schema (for example it added a field). Extract a new schema from the
 		// values and register it as a new version of the subject.
@@ -932,6 +1037,78 @@ func encodePayloadLossless(sch schema.Schema, payload opencdc.Change) (opencdc.C
 		payload.After = opencdc.RawData(encoded)
 	}
 	return payload, nil
+}
+
+// extendKey encodes a key that no longer fits its carried schema with the
+// carried schema extended to fit it (see [SchemaEncodeStrategyExtend]). An
+// empty key is passed through unencoded, with its metadata unchanged.
+func (p *processorWithSchemaEncode) extendKey(ctx context.Context, rec opencdc.Record, carried schema.Schema) (opencdc.Record, error) {
+	key, _ := rec.Key.(opencdc.StructuredData) // checked by encodeKey
+	if isEmptyPart(key) {
+		return rec, nil
+	}
+	sch, encoded, err := extendAndRegister(ctx, carried, []extendPart{{name: partKey, data: key}})
+	if err != nil {
+		return opencdc.Record{}, fmt.Errorf("failed to encode key: %w", err)
+	}
+	rec.Key = opencdc.RawData(encoded[0])
+	schema.AttachKeySchemaToRecord(rec, sch)
+	return rec, nil
+}
+
+// extendPayload encodes a payload that no longer fits its carried schema with
+// the carried schema extended to fit it (see [SchemaEncodeStrategyExtend]).
+// Empty parts are passed through unencoded; if both are empty the payload and
+// its metadata are unchanged.
+func (p *processorWithSchemaEncode) extendPayload(ctx context.Context, rec opencdc.Record, carried schema.Schema) (opencdc.Record, error) {
+	var parts []extendPart
+	if before, ok := rec.Payload.Before.(opencdc.StructuredData); ok && !isEmptyPart(before) {
+		parts = append(parts, extendPart{name: partPayloadBefore, data: before})
+	}
+	if after, ok := rec.Payload.After.(opencdc.StructuredData); ok && !isEmptyPart(after) {
+		parts = append(parts, extendPart{name: partPayloadAfter, data: after})
+	}
+	if len(parts) == 0 {
+		return rec, nil
+	}
+
+	sch, encoded, err := extendAndRegister(ctx, carried, parts)
+	if err != nil {
+		return opencdc.Record{}, fmt.Errorf("failed to encode payload: %w", err)
+	}
+	for i, part := range parts {
+		if part.name == partPayloadBefore {
+			rec.Payload.Before = opencdc.RawData(encoded[i])
+		} else {
+			rec.Payload.After = opencdc.RawData(encoded[i])
+		}
+	}
+	schema.AttachPayloadSchemaToRecord(rec, sch)
+	return rec, nil
+}
+
+const (
+	partKey           = "key"
+	partPayloadBefore = "payload.before"
+	partPayloadAfter  = "payload.after"
+)
+
+// extendAndRegister builds the extended schema for parts and registers it as
+// a new version of the carried subject, unless the carried schema fits as it
+// is. Nothing is registered unless every part encodes losslessly with it.
+func extendAndRegister(ctx context.Context, carried schema.Schema, parts []extendPart) (schema.Schema, [][]byte, error) {
+	res, err := extendSchema(carried, parts)
+	if err != nil {
+		return schema.Schema{}, nil, err
+	}
+	if res.bytes == nil {
+		return carried, res.encoded, nil
+	}
+	sch, err := sdkschema.Create(ctx, schema.TypeAvro, carried.Subject, res.bytes)
+	if err != nil {
+		return schema.Schema{}, nil, fmt.Errorf("failed to register extended schema for subject %s: %w", carried.Subject, err)
+	}
+	return sch, res.encoded, nil
 }
 
 func (p *processorWithSchemaEncode) schemaForType(ctx context.Context, schemaType schema.Type, subject string, data any) (schema.Schema, error) {
