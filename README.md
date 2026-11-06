@@ -64,6 +64,32 @@ The produced `example-processor.wasm` file can be used as a processor in
 Conduit. Copy it to the `processors` directory of your Conduit instance and
 configure it in the `processors` section of the pipeline configuration file.
 
+## Schema encoding
+
+Before `Process`, the SDK decodes a record's key and payload with the schema the
+record carries. After `Process`, it encodes them again. Data that still fits the
+carried schema is encoded with it. When a processor reshapes the data (for
+example, it adds a field), the SDK has to register a new schema version under the
+carried subject. Two parameters, present on every processor, choose how:
+
+| Parameter | Values | Default |
+| --- | --- | --- |
+| `sdk.schema.encode.payload.strategy` | `infer`, `extend` | `infer` |
+| `sdk.schema.encode.key.strategy` | `infer`, `extend` | `infer` |
+
+- `infer` extracts a schema from the values. Avro `int` becomes `long`, `date`
+  becomes `timestamp-micros`, decimals become `decimal(31,10)`, and enums and named
+  types are lost.
+- `extend` keeps the carried definition of every field still present, adds new
+  top-level fields as nullable with a null default, leaves out removed top-level
+  fields, and passes empty parts through unencoded. A value that does not fit its
+  carried type fails the record (`ErrSchemaExtendMismatch`), and a carried schema
+  that cannot be extended fails it with `ErrSchemaExtendUnsupported`.
+
+`extend` is opt-in in v0.22. In v0.23 `infer` warns when it widens a carried
+schema, and in v0.24 `extend` becomes the default. See
+[the design document](docs/design-documents/20261106-schema-encode-extend.md).
+
 ## FAQ
 
 ### Why do I need to specify `GOARCH` and `GOOS`?
