@@ -17,6 +17,7 @@ package sdk
 import (
 	"context"
 	"errors"
+	"maps"
 	"strings"
 	"testing"
 
@@ -154,10 +155,11 @@ func TestSchemaMiddleware_InferFieldOnlyInBefore(t *testing.T) {
 	is.True(strings.Contains(errRec.Error.Error(), `"big"`))
 }
 
-// TestSchemaMiddleware_InferNullFieldOnlyInAfter: a processor that adds a nil
-// field to after only. Its inferred type is nullable, so the encoder would
-// write before with that field as null, adding a field before never had. The
-// record fails instead (invariant 6).
+// TestSchemaMiddleware_InferNullFieldOnlyInAfter is a guard: a processor that
+// adds a nil field to after only. Writing before with that field as null would
+// add a field before never had. The codec rejects it ("missing required
+// field", inferred fields have no default), and the record must keep failing
+// (invariant 6).
 func TestSchemaMiddleware_InferNullFieldOnlyInAfter(t *testing.T) {
 	is := is.New(t)
 	row := opencdc.StructuredData{"id": int32(1), "qty": int32(7), "note": "n1", "big": "x"}
@@ -175,4 +177,114 @@ func TestSchemaMiddleware_InferNullFieldOnlyInAfter(t *testing.T) {
 	}
 	is.True(strings.Contains(errRec.Error.Error(), "before payload"))
 	is.True(strings.Contains(errRec.Error.Error(), "added"))
+}
+
+// TestSchemaMiddleware_InferDeleteKeepsBefore: a delete with a full before
+// image (Postgres REPLICA IDENTITY FULL) has no after. A processor that
+// excludes .Payload.After.x through a reference resolver (field.exclude) used
+// to turn the nil after into {}, so the payload no longer fit and before was
+// re-encoded with a schema inferred from {}: before was wiped and an empty
+// after invented. Before must keep its exact bytes and after stay nil. The
+// same holds for .Payload.Before.x on a create, which has no before.
+func TestSchemaMiddleware_InferDeleteKeepsBefore(t *testing.T) {
+	row := opencdc.StructuredData{"id": int32(1), "qty": int32(7), "note": "n1", "big": "x"}
+	testCases := []struct {
+		name   string
+		ref    string
+		before bool // the record has a before (delete) or an after (create)
+	}{
+		{"delete, exclude after field", ".Payload.After.big", true},
+		{"create, exclude before field", ".Payload.Before.big", false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			in := nullableRowRecord(t, fidelitySubject(t), row, row)
+			if tc.before {
+				in.Operation, in.Payload.After = opencdc.OperationDelete, nil
+			} else {
+				in.Operation, in.Payload.Before = opencdc.OperationCreate, nil
+			}
+			wantPayload := in.Payload
+			wantMeta := maps.Clone(in.Metadata)
+
+			resolver, err := NewReferenceResolver(tc.ref)
+			is.NoErr(err)
+			p := newSchemaMiddlewareProcessor(t, func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+				ref, err := resolver.Resolve(&r)
+				if err != nil {
+					return r, err
+				}
+				return r, ref.Delete()
+			})
+
+			got := p.Process(context.Background(), []opencdc.Record{in})
+			is.Equal(len(got), 1)
+			out, ok := got[0].(SingleRecord)
+			if !ok {
+				t.Fatalf("expected SingleRecord, got %T: %+v", got[0], got[0])
+			}
+			is.Equal(out.Payload, wantPayload) // exact bytes, nil side still nil
+			is.Equal(out.Metadata, wantMeta)   // carried schema, no new version
+		})
+	}
+}
+
+// TestSchemaMiddleware_InferStringFlipKeepsSchemaText: a string column going
+// from a value to NULL already encoded before nullable fields were inferred
+// from both parts, because the extractor's guess for a nil, ["null","string"],
+// fits the string. Such a shape must keep the exact schema text extracted
+// from after, so upgrading the SDK registers no new, equivalent version.
+func TestSchemaMiddleware_InferStringFlipKeepsSchemaText(t *testing.T) {
+	is := is.New(t)
+	before := opencdc.StructuredData{"id": int32(1), "qty": int32(7), "note": "n1", "big": "x"}
+	after := opencdc.StructuredData{"id": int32(1), "qty": int32(7), "note": nil, "big": "x"}
+	in := nullableRowRecord(t, fidelitySubject(t), before, after)
+	var processedAfter opencdc.StructuredData // after as the processor returned it, decoded types included
+	p := newSchemaMiddlewareProcessor(t, func(ctx context.Context, r opencdc.Record) (opencdc.Record, error) {
+		r, err := removeField("big", true, true)(ctx, r)
+		processedAfter = r.Payload.After.Clone().(opencdc.StructuredData)
+		return r, err
+	})
+
+	got := p.Process(context.Background(), []opencdc.Record{in})
+	is.Equal(len(got), 1)
+	out, ok := got[0].(SingleRecord)
+	if !ok {
+		t.Fatalf("expected SingleRecord, got %T: %+v", got[0], got[0])
+	}
+	_, sch := decodeAttached(t, opencdc.Record(out), out.Payload.After)
+
+	// the text the extractor gives for after alone, which is what main registered
+	want, err := schema.KnownSerdeFactories[schema.TypeAvro].SerdeForType(processedAfter)
+	is.NoErr(err)
+	is.Equal(string(sch.Bytes), want.String())
+}
+
+// TestSchemaMiddleware_InferNestedFieldOnlyInBefore: a nested record field
+// that before has and after lacks is not in the schema inferred from after.
+// The Avro encoder would drop it from before; the record fails instead, and
+// the error names the unregistered schema without a made-up version.
+func TestSchemaMiddleware_InferNestedFieldOnlyInBefore(t *testing.T) {
+	is := is.New(t)
+	row := opencdc.StructuredData{"id": int32(1), "qty": int32(7), "note": "n1", "big": "x"}
+	in := nullableRowRecord(t, fidelitySubject(t), row, row)
+	p := newSchemaMiddlewareProcessor(t, func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+		r.Payload.Before.(opencdc.StructuredData)["n"] = opencdc.StructuredData{"a": int32(1), "b": int32(2)}
+		r.Payload.After.(opencdc.StructuredData)["n"] = opencdc.StructuredData{"a": int32(1)}
+		return r, nil
+	})
+
+	got := p.Process(context.Background(), []opencdc.Record{in})
+	is.Equal(len(got), 1)
+	errRec, ok := got[0].(ErrorRecord)
+	if !ok {
+		t.Fatalf("expected ErrorRecord, got %T: %+v", got[0], got[0])
+	}
+	msg := errRec.Error.Error()
+	is.True(errors.Is(errRec.Error, ErrFieldNotInSchema))
+	is.True(strings.Contains(msg, "before payload"))
+	is.True(strings.Contains(msg, `"n.b"`))
+	is.True(strings.Contains(msg, "not registered"))
+	is.True(!strings.Contains(msg, ":0"))
 }

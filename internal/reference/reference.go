@@ -143,8 +143,10 @@ func cleanInput(input string) string {
 }
 
 // Resolve resolves the reference to a field in the record. If the reference
-// cannot be resolved an error is returned. If the reference is valid but the
-// field does not exist in the record, the field will be created.
+// cannot be resolved an error is returned. Resolving does not change the
+// record. If the field or its parents (a nil key or payload part, or a nil
+// nested field) do not exist, Get returns nil and Delete does nothing, and
+// Set or Rename create them as empty structured data first.
 // The returned reference can be used to set the value of the field.
 func (rr Resolver) Resolve(rec *opencdc.Record) (Reference, error) {
 	var ref Reference = recordReference{rec: rec}
@@ -389,20 +391,7 @@ func (r keyReference) Rename(string) (Reference, error) {
 }
 
 func (r keyReference) walk(field string) (Reference, error) {
-	switch r.rec.Key.(type) {
-	case opencdc.StructuredData:
-		// all good
-	case nil:
-		// create new structured data
-		r.rec.Key = opencdc.StructuredData{}
-	default:
-		return nil, fmt.Errorf(".Key does not contain structured data: %w", ErrNotResolvable)
-	}
-	return dataFieldReference{
-		data:  r.rec.Key.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
-		field: field,
-		path:  refKey,
-	}, nil
+	return structuredFieldReference(&r.rec.Key, refKey, field)
 }
 
 type payloadReference struct {
@@ -479,20 +468,7 @@ func (r payloadBeforeReference) Rename(string) (Reference, error) {
 }
 
 func (r payloadBeforeReference) walk(field string) (Reference, error) {
-	switch r.rec.Payload.Before.(type) {
-	case opencdc.StructuredData:
-		// all good
-	case nil:
-		// create new structured data
-		r.rec.Payload.Before = opencdc.StructuredData{}
-	default:
-		return nil, fmt.Errorf(".Payload.Before does not contain structured data: %w", ErrNotResolvable)
-	}
-	return dataFieldReference{
-		data:  r.rec.Payload.Before.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
-		field: field,
-		path:  refPayloadBefore,
-	}, nil
+	return structuredFieldReference(&r.rec.Payload.Before, refPayloadBefore, field)
 }
 
 type payloadAfterReference struct {
@@ -531,19 +507,129 @@ func (r payloadAfterReference) Rename(string) (Reference, error) {
 }
 
 func (r payloadAfterReference) walk(field string) (Reference, error) {
-	switch r.rec.Payload.After.(type) {
-	case opencdc.StructuredData:
-		// all good
-	case nil:
-		// create new structured data
-		r.rec.Payload.After = opencdc.StructuredData{}
-	default:
-		return nil, fmt.Errorf(".Payload.After does not contain structured data: %w", ErrNotResolvable)
+	return structuredFieldReference(&r.rec.Payload.After, refPayloadAfter, field)
+}
+
+// structuredFieldReference returns a reference to field in *data, the key or
+// a payload part of a record, found at path. If *data is nil (or a nil
+// StructuredData), the reference is pending: resolving it does not change the
+// record, and *data is created as an empty StructuredData only when the field
+// is set or renamed.
+//
+// Invariant 6: a nil key, before or after means the record has none (a
+// delete has no after, a create no before). Resolving a field in it to read
+// or delete it must not turn it into {}, a value the record never had.
+func structuredFieldReference(data *opencdc.Data, path, field string) (Reference, error) {
+	notStructured := func() error {
+		switch (*data).(type) {
+		case opencdc.StructuredData, nil:
+			return nil
+		default:
+			return fmt.Errorf("%s does not contain structured data: %w", path, ErrNotResolvable)
+		}
 	}
-	return dataFieldReference{
-		data:  r.rec.Payload.After.(opencdc.StructuredData), //nolint:forcetypeassert // we know it's the right type
+	// existing returns *data if it is non-nil structured data, otherwise nil.
+	existing := func() opencdc.StructuredData {
+		d, _ := (*data).(opencdc.StructuredData)
+		return d
+	}
+	if err := notStructured(); err != nil {
+		return nil, err
+	}
+	if d := existing(); d != nil {
+		return dataFieldReference{data: d, field: field, path: path}, nil
+	}
+	return pendingFieldReference{
+		find: func() map[string]any {
+			return existing()
+		},
+		create: func() (map[string]any, error) {
+			if err := notStructured(); err != nil {
+				return nil, err
+			}
+			if d := existing(); d != nil {
+				return d, nil
+			}
+			d := opencdc.StructuredData{}
+			*data = d
+			return d, nil
+		},
 		field: field,
-		path:  refPayloadAfter,
+		path:  path,
+	}, nil
+}
+
+// pendingFieldReference refers to a field whose parent does not exist yet:
+// a nil key or payload part, or a nil nested field. Get and Delete never
+// change the record: while the parent does not exist, Get returns nil and
+// Delete does nothing. Set and Rename first create the missing parents as
+// empty structured data, then act like dataFieldReference.
+type pendingFieldReference struct {
+	// find returns the parent map if it exists now, or nil.
+	find func() map[string]any
+	// create returns the parent map, creating it and its missing parents.
+	create func() (map[string]any, error)
+	field  string
+	path   string
+}
+
+func (r pendingFieldReference) Get() any {
+	if parent := r.find(); parent != nil {
+		return parent[r.field]
+	}
+	return nil
+}
+
+func (r pendingFieldReference) Set(val any) error {
+	ref, err := r.materialize()
+	if err != nil {
+		return err
+	}
+	return ref.Set(val)
+}
+
+func (r pendingFieldReference) Delete() error {
+	if parent := r.find(); parent != nil {
+		delete(parent, r.field)
+	}
+	return nil
+}
+
+func (r pendingFieldReference) Rename(name string) (Reference, error) {
+	ref, err := r.materialize()
+	if err != nil {
+		return nil, err
+	}
+	return ref.Rename(name)
+}
+
+func (r pendingFieldReference) materialize() (dataFieldReference, error) {
+	data, err := r.create()
+	if err != nil {
+		return dataFieldReference{}, err
+	}
+	return dataFieldReference{data: data, field: r.field, path: r.path}, nil
+}
+
+func (r pendingFieldReference) walk(field string) (Reference, error) {
+	return pendingFieldReference{
+		find: func() map[string]any {
+			parent := r.find()
+			if parent == nil {
+				return nil
+			}
+			child, _ := parent[r.field].(map[string]any)
+			return child
+		},
+		create: func() (map[string]any, error) {
+			ref, err := r.materialize()
+			if err != nil {
+				return nil, err
+			}
+			return ref.child()
+		},
+		field: field,
+		path:  r.path + "." + r.field,
 	}, nil
 }
 
@@ -582,11 +668,20 @@ func (r dataFieldReference) Rename(name string) (Reference, error) {
 }
 
 func (r dataFieldReference) walk(field string) (Reference, error) {
-	if r.data[r.field] == nil {
-		// create new structured data for field, so we can set the field
-		r.data[r.field] = make(map[string]any)
+	if v := r.data[r.field]; v == nil || isNilMap(v) {
+		// Invariant 6: a nested field that does not exist (or is nil) is
+		// created only if the reference is set or renamed, not on a read or
+		// a delete (see pendingFieldReference).
+		return pendingFieldReference{
+			find: func() map[string]any {
+				child, _ := r.data[r.field].(map[string]any)
+				return child
+			},
+			create: r.child,
+			field:  field,
+			path:   r.path + "." + r.field,
+		}, nil
 	}
-
 	data, ok := r.data[r.field].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("%s.%s does not contain structured data: %w", r.path, r.field, ErrNotResolvable)
@@ -596,4 +691,24 @@ func (r dataFieldReference) walk(field string) (Reference, error) {
 		field: field,
 		path:  r.path + "." + r.field,
 	}, nil
+}
+
+// child returns the map stored in the referenced field, creating an empty one
+// if the field does not exist or is nil.
+func (r dataFieldReference) child() (map[string]any, error) {
+	if v := r.data[r.field]; v == nil || isNilMap(v) {
+		r.data[r.field] = make(map[string]any)
+	}
+	data, ok := r.data[r.field].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("%s.%s does not contain structured data: %w", r.path, r.field, ErrNotResolvable)
+	}
+	return data, nil
+}
+
+// isNilMap reports whether v is a nil map[string]any, which holds no fields
+// and cannot be written to.
+func isNilMap(v any) bool {
+	m, ok := v.(map[string]any)
+	return ok && m == nil
 }

@@ -30,83 +30,150 @@ import (
 // schema inferred from the values (see [SchemaEncodeStrategyInfer]), registers
 // that schema as a new version of subject and attaches it.
 //
-// Before and after share one schema, so it is inferred from both: see
-// inferPayloadSchema. Nothing is registered unless every structured part
-// encodes with the inferred schema without losing a field.
+// Before and after share one schema. It is the schema extracted from after (or
+// from before if after is absent), as it always was, if both parts survive an
+// encode and decode with it unchanged; that keeps the schema text, and so the
+// registered version, of every shape that already encoded. Otherwise it is
+// inferred from both parts (see inferPayloadSchema), which is what lets a
+// nullable column change between a value and NULL. Nothing is registered
+// unless both parts encode, and a field one part would lose fails the record.
 func (p *processorWithSchemaEncode) inferPayload(ctx context.Context, rec opencdc.Record, schemaType schema.Type, subject string) (opencdc.Record, error) {
-	before, beforeOK := rec.Payload.Before.(opencdc.StructuredData)
-	after, afterOK := rec.Payload.After.(opencdc.StructuredData)
+	// A nil StructuredData part holds no data, like a nil part: it is not
+	// encoded and left as it is.
+	before, _ := rec.Payload.Before.(opencdc.StructuredData)
+	after, _ := rec.Payload.After.(opencdc.StructuredData)
 
-	b, err := inferPayloadSchema(schemaType, before, after)
-	if err != nil {
-		return opencdc.Record{}, fmt.Errorf("failed to extract schema for payload: %w", err)
+	// Invariant 6: a field the processor removed from after but left in
+	// before would be dropped from before by any schema inferred from after.
+	// This does not depend on the schema, so it is checked first.
+	if before == nil && after == nil {
+		return rec, nil // nothing to encode: both parts are nil StructuredData
 	}
-	inferred := schema.Schema{Subject: subject, Type: schemaType, Bytes: b}
-
-	if err := checkInferredPayloadFields(inferred, rec.Payload); err != nil {
+	if err := checkBeforeFieldsInAfter(rec.Payload); err != nil {
 		return opencdc.Record{}, err // already wrapped
 	}
 
-	var encBefore, encAfter []byte
-	if beforeOK {
-		if encBefore, err = p.encodeWithSchema(inferred, before); err != nil {
-			return opencdc.Record{}, fmt.Errorf("failed to encode before payload: %w", err)
-		}
-		// Invariant 6: a field only after has is written into before as null
-		// when its inferred type is nullable, a field before never had. (With
-		// a non-null type the encoder above already failed.)
-		if afterOK {
-			for _, k := range slices.Sorted(maps.Keys(after)) {
-				if _, ok := before[k]; !ok {
-					return opencdc.Record{}, fmt.Errorf("failed to encode before payload: field %q is in payload.after but not in payload.before, "+
-						"and one inferred schema describes both, so it would be added to payload.before: %w", k, errSchemaMismatch)
-				}
-			}
-		}
-	}
-	if afterOK {
-		if encAfter, err = p.encodeWithSchema(inferred, after); err != nil {
-			return opencdc.Record{}, fmt.Errorf("failed to encode after payload: %w", err)
-		}
+	b, encBefore, encAfter, err := p.inferAndEncodePayload(schemaType, subject, rec.Payload)
+	if err != nil {
+		return opencdc.Record{}, err // already wrapped
 	}
 
 	sch, err := sdkschema.Create(ctx, schemaType, subject, b)
 	if err != nil {
 		return opencdc.Record{}, fmt.Errorf("failed to extract schema for payload: failed to create schema: %w", err)
 	}
-	if beforeOK {
+	if before != nil {
 		rec.Payload.Before = opencdc.RawData(encBefore)
 	}
-	if afterOK {
+	if after != nil {
 		rec.Payload.After = opencdc.RawData(encAfter)
 	}
 	schema.AttachPayloadSchemaToRecord(rec, sch)
 	return rec, nil
 }
 
-// checkInferredPayloadFields returns an error if encoding the structured
-// parts of payload with inferred, a schema inferred by inferPayloadSchema,
-// would drop a field from a part. The schema's top-level fields are those of
-// after (or of before if after is absent), so only before can lose one.
-func checkInferredPayloadFields(inferred schema.Schema, payload opencdc.Change) error {
-	before, beforeOK := payload.Before.(opencdc.StructuredData)
-	after, afterOK := payload.After.(opencdc.StructuredData)
-	if beforeOK && afterOK {
-		// Invariant 6: the Avro encoder ignores a map key the record schema
-		// does not define. A field the processor removed from after but left
-		// in before (field.exclude on .Payload.After.x) is not in the schema,
-		// so before would lose it without an error. Fail the record instead.
-		for _, k := range slices.Sorted(maps.Keys(before)) { // sorted: the same record always reports the same field
-			if _, ok := after[k]; !ok {
-				return fmt.Errorf("failed to encode before payload: field %q is in payload.before but not in payload.after, "+
-					"and one inferred schema describes both, so it would be dropped from payload.before; "+
-					"remove it from both parts or from neither: %w", k, ErrFieldNotInSchema)
-			}
+// inferAndEncodePayload returns the text of the schema inferPayload uses and
+// the structured parts of payload encoded with it (nil for a part that is not
+// structured). See inferPayload for which schema that is.
+func (p *processorWithSchemaEncode) inferAndEncodePayload(schemaType schema.Type, subject string, payload opencdc.Change) ([]byte, []byte, []byte, error) {
+	before, _ := payload.Before.(opencdc.StructuredData)
+	after, _ := payload.After.(opencdc.StructuredData)
+	primary := after
+	if primary == nil {
+		primary = before
+	}
+
+	// The schema extracted from after alone, as before nullable fields were
+	// inferred from both parts. Used only if both parts round-trip with it
+	// exactly: a successful encode is not enough, since the codec writes an
+	// empty map into a ["null","string"] field as null.
+	b, err := extractSchema(schemaType, primary)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to extract schema for payload: %w", err)
+	}
+	if encBefore, encAfter, ok := encodePayloadPartsLossless(schema.Schema{Subject: subject, Type: schemaType, Bytes: b}, before, after); ok {
+		return b, encBefore, encAfter, nil
+	}
+
+	inferred, err := inferPayloadSchema(schemaType, before, after)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to extract schema for payload: %w", err)
+	}
+	sch := schema.Schema{Subject: subject, Type: schemaType, Bytes: inferred}
+	if err := checkPayloadNoDroppedFields(sch, payload); err != nil {
+		return nil, nil, nil, err // already wrapped
+	}
+	// Not a lossless encode: the infer strategy accepts what extraction loses
+	// (int widened to long, times truncated to microseconds), as documented.
+	var encBefore, encAfter []byte
+	if before != nil {
+		if encBefore, err = p.encodeWithSchema(sch, before); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to encode before payload: %w", err)
 		}
 	}
-	// Nested fields: the walk reports a map key below the top level that the
-	// schema does not define.
-	return checkPayloadNoDroppedFields(inferred, payload)
+	if after != nil {
+		if encAfter, err = p.encodeWithSchema(sch, after); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to encode after payload: %w", err)
+		}
+	}
+	return inferred, encBefore, encAfter, nil
+}
+
+// encodePayloadPartsLossless encodes the non-nil parts with sch, and reports
+// whether every one of them comes back unchanged (see encodeLossless).
+func encodePayloadPartsLossless(sch schema.Schema, before, after opencdc.StructuredData) ([]byte, []byte, bool) {
+	var encBefore, encAfter []byte
+	var err error
+	if before != nil {
+		if encBefore, err = encodeLossless(sch, before); err != nil {
+			return nil, nil, false
+		}
+	}
+	if after != nil {
+		if encAfter, err = encodeLossless(sch, after); err != nil {
+			return nil, nil, false
+		}
+	}
+	return encBefore, encAfter, true
+}
+
+// extractSchema returns the text of the schema the extractor infers for data.
+func extractSchema(schemaType schema.Type, data opencdc.StructuredData) ([]byte, error) {
+	factory, ok := schema.KnownSerdeFactories[schemaType]
+	if !ok {
+		return nil, fmt.Errorf("no schema extractor for schema type %v", schemaType)
+	}
+	srd, err := factory.SerdeForType(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create schema for value: %w", err)
+	}
+	return []byte(srd.String()), nil
+}
+
+// checkBeforeFieldsInAfter returns an error wrapping ErrFieldNotInSchema if
+// payload has a structured before and after and before has a top-level field
+// after lacks.
+//
+// Invariant 6: the Avro encoder ignores a map key the record schema does not
+// define. The inferred schema has after's top-level fields, so a field the
+// processor removed from after but left in before (field.exclude on
+// .Payload.After.x) would be dropped from before without an error. The walk in
+// checkNoDroppedFields reports it too; this check names both parts, and runs
+// before a schema is extracted. Nested fields are left to the walk.
+func checkBeforeFieldsInAfter(payload opencdc.Change) error {
+	before, beforeOK := payload.Before.(opencdc.StructuredData)
+	after, afterOK := payload.After.(opencdc.StructuredData)
+	if !beforeOK || !afterOK || before == nil || after == nil {
+		return nil
+	}
+	for _, k := range slices.Sorted(maps.Keys(before)) { // sorted: the same record always reports the same field
+		if _, ok := after[k]; !ok {
+			return fmt.Errorf("failed to encode before payload: field %q is in payload.before but not in payload.after, "+
+				"and one inferred schema describes both, so it would be dropped from payload.before; "+
+				"remove it from both parts or from neither: %w", k, ErrFieldNotInSchema)
+		}
+	}
+	return nil
 }
 
 // inferPayloadSchema returns the text of a schema inferred from the structured
@@ -155,15 +222,10 @@ func inferPayloadSchema(schemaType schema.Type, before, after opencdc.Structured
 		}
 	}
 
-	factory, ok := schema.KnownSerdeFactories[schemaType]
-	if !ok {
-		return nil, fmt.Errorf("no schema extractor for schema type %v", schemaType)
-	}
-	srd, err := factory.SerdeForType(witness)
+	b, err := extractSchema(schemaType, witness)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create schema for value: %w", err)
+		return nil, err
 	}
-	b := []byte(srd.String())
 	if len(nullable) == 0 || schemaType != schema.TypeAvro {
 		return b, nil
 	}

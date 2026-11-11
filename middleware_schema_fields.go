@@ -96,15 +96,25 @@ func checkNoDroppedFields(sch schema.Schema, data any) error {
 		// A private cache keeps named types of unrelated schemas apart.
 		s, err := avro.ParseBytesWithCache(sch.Bytes, "", &avro.SchemaCache{}) //nolint:forbidigo // fresh cache owned by this one schema; parsed only to walk field names, never to encode
 		if err != nil {
-			return fmt.Errorf("failed to parse schema %s:%d: %w", sch.Subject, sch.Version, err)
+			return fmt.Errorf("failed to parse %s: %w", schemaLabel(sch), err)
 		}
 		cached, _ = parsedAvroSchemas.LoadOrStore(key, newFieldWalker(s))
 	}
 	w := cached.(*fieldWalker) //nolint:forcetypeassert // only *fieldWalker is stored
 	if path, dropped := w.find(w.root, reflect.ValueOf(data), ""); dropped {
-		return fmt.Errorf("field %q, schema %s:%d: %w", path, sch.Subject, sch.Version, ErrFieldNotInSchema)
+		return fmt.Errorf("field %q, %s: %w", path, schemaLabel(sch), ErrFieldNotInSchema)
 	}
 	return nil
+}
+
+// schemaLabel names sch in an error. A schema the middleware inferred is
+// checked before it is registered, so it has no version yet; "subject:0"
+// would read as a real version.
+func schemaLabel(sch schema.Schema) string {
+	if sch.Version == 0 {
+		return fmt.Sprintf("schema inferred for subject %s (not registered)", sch.Subject)
+	}
+	return fmt.Sprintf("schema %s:%d", sch.Subject, sch.Version)
 }
 
 // checkPayloadNoDroppedFields runs checkNoDroppedFields on the structured

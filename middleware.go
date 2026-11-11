@@ -505,13 +505,14 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 //     named types, widens int to long, and stores times as timestamp-micros or
 //     time-micros, so time precision finer than a microsecond is truncated
 //     without an error. Processors that change the shape of their data and care
-//     about exact types should attach the intended schema themselves. One
-//     payload schema is extracted from before and after together: a top-level
-//     field that is NULL in one and set in the other is typed from the set
-//     value and made nullable. Before and after must have the same top-level
-//     fields; a field only one of them has (for example one removed from after
-//     only) fails the record instead of being dropped from, or added as null
-//     to, the other.
+//     about exact types should attach the intended schema themselves. Before
+//     and after share one payload schema. It is the one extracted from after
+//     if both parts survive it unchanged; otherwise a top-level field that is
+//     NULL in one part and set in the other is typed from the set value and
+//     made nullable. A field before has and after lacks, at any depth (for
+//     example one removed by field.exclude on .Payload.After.x of an update
+//     with a full before image), fails the record instead of being dropped
+//     from before. A field only after has fails it too.
 //
 //     With [SchemaEncodeStrategyExtend] (sdk.schema.encode.payload.strategy or
 //     sdk.schema.encode.key.strategy set to "extend"), the new version is
