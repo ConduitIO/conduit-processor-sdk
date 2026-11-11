@@ -1061,8 +1061,25 @@ func (p *processorWithSchemaEncode) extendKey(ctx context.Context, rec opencdc.R
 // Only structured parts are encoded: a nil or zero-length raw before or after
 // is absent and passed through unchanged. A structured part whose fields were
 // all removed ({}) is a value, not an absent part; if every structured part is
-// {}, the new version is a record schema with zero fields.
+// {}, the new version is a record schema with zero fields. A before or after
+// that is still non-empty raw data fails the record with
+// [ErrSchemaExtendMismatch], because its bytes were written with another schema.
 func (p *processorWithSchemaEncode) extendPayload(ctx context.Context, rec opencdc.Record, carried schema.Schema) (opencdc.Record, error) {
+	// Invariant 6: the extended schema is attached to the whole payload, so
+	// every part must be encoded with it. Raw bytes left by the processor were
+	// written with the carried schema (or another one) and would decode wrongly,
+	// or into shifted values without an error, with the new version. Fail
+	// before anything is registered.
+	for _, part := range []struct {
+		name string
+		data opencdc.Data
+	}{{partPayloadBefore, rec.Payload.Before}, {partPayloadAfter, rec.Payload.After}} {
+		if raw, ok := part.data.(opencdc.RawData); ok && len(raw) > 0 {
+			return opencdc.Record{}, fmt.Errorf("failed to encode payload: schema %s:%d: %s is raw data and cannot be re-encoded with the extended schema: %w",
+				carried.Subject, carried.Version, part.name, ErrSchemaExtendMismatch)
+		}
+	}
+
 	var parts []extendPart
 	if before, ok := rec.Payload.Before.(opencdc.StructuredData); ok {
 		parts = append(parts, extendPart{name: partPayloadBefore, data: before})

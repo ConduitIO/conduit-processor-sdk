@@ -53,8 +53,11 @@ var (
 	// does not fit the extended schema exactly: a value of a different type
 	// than its carried field, a null in a non-null field, a value finer than
 	// its logical type (a decimal scale, a time precision), a key added to or
-	// removed from a nested record, or payload before and after with different
-	// top-level fields. The error names the field path, never the value.
+	// removed from a nested record, payload before and after with different
+	// top-level fields, or one payload part structured while the other is
+	// still non-empty raw data (its bytes cannot be checked against, or
+	// re-encoded with, the extended schema). The error names the part and the
+	// field path, never the value.
 	ErrSchemaExtendMismatch = errors.New("value does not fit the carried schema")
 
 	// ErrSchemaExtendUnsupported is returned (wrapped) in an [ErrorRecord] by

@@ -513,6 +513,58 @@ func TestSchemaEncodeExtend_BeforeAndAfter(t *testing.T) {
 	}
 }
 
+// TestSchemaEncodeExtend_RawPartFailsClosed is the regression test for a
+// payload part the processor left as non-empty raw bytes next to a reshaped
+// structured part. The raw bytes were written with the carried schema, so
+// attaching the extended version would make them decode wrongly (or, for a
+// removed leading field, into shifted values without an error). The record
+// fails instead, and nothing is registered.
+func TestSchemaEncodeExtend_RawPartFailsClosed(t *testing.T) {
+	cases := []struct {
+		name    string
+		rawPart string
+		f       func(raw opencdc.RawData) func(context.Context, opencdc.Record) (opencdc.Record, error)
+	}{
+		{"raw before, after with a removed field", partPayloadBefore, func(raw opencdc.RawData) func(context.Context, opencdc.Record) (opencdc.Record, error) {
+			return func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+				r.Payload.Before = raw
+				delete(r.Payload.After.(opencdc.StructuredData), "id")
+				return r, nil
+			}
+		}},
+		{"raw before, after with an added field", partPayloadBefore, func(raw opencdc.RawData) func(context.Context, opencdc.Record) (opencdc.Record, error) {
+			return func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+				r.Payload.Before = raw
+				r.Payload.After.(opencdc.StructuredData)["__op"] = "u"
+				return r, nil
+			}
+		}},
+		{"raw after, before with an added field", partPayloadAfter, func(raw opencdc.RawData) func(context.Context, opencdc.Record) (opencdc.Record, error) {
+			return func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+				r.Payload.Before.(opencdc.StructuredData)["__op"] = "u"
+				r.Payload.After = raw
+				return r, nil
+			}
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			in := extendFixture(t)
+			in.Operation = opencdc.OperationUpdate
+			raw := opencdc.RawData(bytes.Clone(in.Payload.After.(opencdc.RawData)))
+			in.Payload.Before = opencdc.RawData(bytes.Clone(raw))
+			p := newExtendProcessor(t, extendPayloadCfg(), tc.f(raw))
+
+			pr := processOne(t, p, in)
+			mustErrorIs(t, pr, ErrSchemaExtendMismatch)
+			is.True(strings.Contains(pr.(ErrorRecord).Error.Error(), tc.rawPart)) // error names the raw part
+			_, err := sdkschema.Get(context.Background(), fidelitySubject(t)+"-value", 2)
+			is.True(errors.Is(err, sdkschema.ErrVersionNotFound)) // a schema was registered for a failing record
+		})
+	}
+}
+
 func TestSchemaEncodeExtend_Key(t *testing.T) {
 	is := is.New(t)
 	cfg := config.Config{configProcessorSchemaEncodeKeyStrategy: string(SchemaEncodeStrategyExtend)}

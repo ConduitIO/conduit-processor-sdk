@@ -165,11 +165,21 @@ does not decode it (it does decode a zero-length key), so a later processor sees
 raw, empty data while the metadata names the zero-field schema. Both describe the same value: a record
 with no fields.
 
+A part that is still **non-empty raw data** next to a structured part is neither absent nor encodable. Its
+bytes were written with the carried schema (or some other one) and the processor did not decode them, so
+they cannot be checked against the extended schema or re-encoded with it. Attaching the new version to
+the payload would make those bytes decode wrongly: with an error (`unknown union type`) at best, and into
+shifted, wrong values without an error when a removed leading field had the same type as the next one.
+`extend` fails the record with `ErrSchemaExtendMismatch`, naming the raw part, before anything is
+registered. This happens when payload decode is off while encode is on and the processor structures only
+one part, or when a processor copies raw bytes into `before`. The `infer` path has the same gap and is
+not changed here (tracked as a follow-up).
+
 ### Errors
 
 | Error | When |
 | --- | --- |
-| `ErrSchemaExtendMismatch` | A value does not fit the extended schema exactly (step 8), or the parts disagree on top-level fields (step 2). |
+| `ErrSchemaExtendMismatch` | A value does not fit the extended schema exactly (step 8), the parts disagree on top-level fields (step 2), or one payload part is still non-empty raw data (_Empty parts_). |
 | `ErrSchemaExtendUnsupported` | The carried schema is not an Avro record, has references, or the extended schema does not parse. |
 
 Both are exported sentinels, wrapped in the `ErrorRecord` with the part (`key`, `payload.before`,
@@ -187,6 +197,7 @@ Conduit maps them to its own stable error codes (see _Conduit_).
 | Processor removed a top-level field | Field left out of the new version | User intent |
 | Processor removed every top-level field (`{}`) | Zero-field record schema (carried name and namespace) registered as a new version and attached; data encodes to zero bytes | The removal rule applied to every field; the metadata matches the data |
 | Part is nil or zero-length raw data | Passed through; data and metadata unchanged; nothing registered | Absent, not a value |
+| One payload part structured, the other still non-empty raw data | `ErrSchemaExtendMismatch` naming the raw part; nothing registered | The raw bytes were written with another schema and cannot be re-encoded; attaching the new version would make them decode wrongly or into shifted values (invariant 6) |
 | Processor added a top-level field | Nullable field, default null, appended in name order | Backward-compatible extension |
 | Processor added or removed a key inside a nested record | `ErrSchemaExtendMismatch` | Only top-level extension is defined; the nested record type is kept exactly |
 | Null into a non-null carried field | `ErrSchemaExtendMismatch` | Codec error |
