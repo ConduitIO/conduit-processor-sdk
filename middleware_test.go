@@ -402,7 +402,7 @@ func TestProcessorWithSchemaEncode_Parameters(t *testing.T) {
 	got, err := s.Specification()
 	is.NoErr(err)
 	is.Equal(got.Parameters["foo"], want.Parameters["foo"])
-	is.Equal(len(got.Parameters), 3) // expected middleware to inject 2 parameters
+	is.Equal(len(got.Parameters), 5) // expected middleware to inject 4 parameters
 }
 
 func TestProcessorWithSchemaEncode_Configure(t *testing.T) {
