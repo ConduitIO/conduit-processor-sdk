@@ -505,7 +505,13 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 //     named types, widens int to long, and stores times as timestamp-micros or
 //     time-micros, so time precision finer than a microsecond is truncated
 //     without an error. Processors that change the shape of their data and care
-//     about exact types should attach the intended schema themselves.
+//     about exact types should attach the intended schema themselves. One
+//     payload schema is extracted from before and after together: a top-level
+//     field that is NULL in one and set in the other is typed from the set
+//     value and made nullable. Before and after must have the same top-level
+//     fields; a field only one of them has (for example one removed from after
+//     only) fails the record instead of being dropped from, or added as null
+//     to, the other.
 //
 //     With [SchemaEncodeStrategyExtend] (sdk.schema.encode.payload.strategy or
 //     sdk.schema.encode.key.strategy set to "extend"), the new version is
@@ -977,17 +983,12 @@ func (p *processorWithSchemaEncode) encodePayload(ctx context.Context, rec openc
 		// The processor changed the payload so that it no longer fits the
 		// schema (for example it added a field). Extract a new schema from the
 		// values and register it as a new version of the subject.
+		// Invariant 6: before and after share the new schema, so it is
+		// inferred from both. A schema inferred from after alone cannot
+		// encode a before whose nullable field is set where after's is NULL
+		// (or the reverse), and would drop a field only before still has.
 		p.warnSchemaMismatch(ctx, "payload", oldSchema, err)
-		val := rec.Payload.After
-		if _, ok := val.(opencdc.StructuredData); !ok {
-			// use before as a fallback
-			val = rec.Payload.Before
-		}
-
-		newSchema, err = p.schemaForType(ctx, oldSchema.Type, outgoingSubjectVersion.subject, val)
-		if err != nil {
-			return opencdc.Record{}, fmt.Errorf("failed to extract schema for payload: %w", err)
-		}
+		return p.inferPayload(ctx, rec, oldSchema.Type, outgoingSubjectVersion.subject)
 	default:
 		// payload schema subject or version changed, fetch the schema and encode the data
 		newSchema, err = sdkschema.Get(ctx, outgoingSubjectVersion.subject, outgoingSubjectVersion.version)
