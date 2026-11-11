@@ -511,6 +511,119 @@ func TestSchemaEncodeExtend_BeforeAndAfter(t *testing.T) {
 			is.True(errors.Is(err, sdkschema.ErrVersionNotFound)) // a schema was registered for a failing record
 		})
 	}
+	// The sameKeys guard gives the message an operator needs: which field and
+	// which two parts. Without it the round trip still fails, but only with a
+	// field count.
+	t.Run("error names the field and both parts", func(t *testing.T) {
+		is := is.New(t)
+		p := newExtendProcessor(t, extendPayloadCfg(), differ[2].f) // before lacks note, after lacks day
+		pr := processOne(t, p, withBefore(t))
+		mustErrorIs(t, pr, ErrSchemaExtendMismatch)
+		is.True(strings.Contains(pr.(ErrorRecord).Error.Error(),
+			`field "day" is not in both payload.before and payload.after`)) // message does not name the field and parts
+	})
+	// addedValue infers an added field's type from after first. With an empty
+	// map in before and a map of longs in after, inferring from after gives a
+	// map of long, which holds both; inferring from before gives a map of
+	// string, and after would not fit.
+	t.Run("added field type is inferred from after", func(t *testing.T) {
+		is := is.New(t)
+		p := newExtendProcessor(t, extendPayloadCfg(), func(_ context.Context, r opencdc.Record) (opencdc.Record, error) {
+			r.Payload.Before.(opencdc.StructuredData)["__n"] = map[string]any{}
+			r.Payload.After.(opencdc.StructuredData)["__n"] = map[string]any{"a": int64(1)}
+			return r, nil
+		})
+		out := mustSingle(t, processOne(t, p, withBefore(t)))
+		before, sch := decodeAttached(t, out, out.Payload.Before)
+		after, _ := decodeAttached(t, out, out.Payload.After)
+		types, _, _ := schemaFields(t, sch)
+		is.True(strings.Contains(types["__n"], `"long"`)) // type was not inferred from after
+		is.Equal(len(before["__n"].(map[string]any)), 0)
+		is.Equal(after["__n"], map[string]any{"a": int64(1)})
+	})
+}
+
+// TestSchemaEncodeExtend_AddedTimeFinerThanMicros pins that an added
+// time.Time with nanoseconds (time.Now() on Linux) fails the record: the
+// inferred type is timestamp-micros, and the round trip refuses to truncate.
+// The error names the added field. infer truncates the value silently.
+func TestSchemaEncodeExtend_AddedTimeFinerThanMicros(t *testing.T) {
+	ts := time.Date(2026, 11, 10, 12, 0, 0, 123456789, time.UTC)
+	t.Run("nanoseconds fail", func(t *testing.T) {
+		is := is.New(t)
+		p := newExtendProcessor(t, extendPayloadCfg(), setField("__ts", ts))
+		pr := processOne(t, p, extendFixture(t))
+		mustErrorIs(t, pr, ErrSchemaExtendMismatch)
+		is.True(strings.Contains(pr.(ErrorRecord).Error.Error(), `"__ts"`)) // error does not name the added field
+		_, err := sdkschema.Get(context.Background(), fidelitySubject(t)+"-value", 2)
+		is.True(errors.Is(err, sdkschema.ErrVersionNotFound)) // a schema was registered for a failing record
+	})
+	t.Run("microseconds fit", func(t *testing.T) {
+		is := is.New(t)
+		p := newExtendProcessor(t, extendPayloadCfg(), setField("__ts", ts.Truncate(time.Microsecond)))
+		out := mustSingle(t, processOne(t, p, extendFixture(t)))
+		decoded, _ := decodeAttached(t, out, out.Payload.After)
+		got, ok := decoded["__ts"].(time.Time)
+		is.True(ok)
+		is.True(got.Equal(ts.Truncate(time.Microsecond)))
+	})
+}
+
+// TestSchemaEncodeExtend_NullableRecordAndMap pins that carried
+// ["null", record] and ["null", map] fields work with extend on the pinned
+// conduit-commons (conduit-commons#306 is fixed since v0.12.0): an unchanged
+// record keeps its schema version, and a record with an added field keeps
+// both carried definitions exactly.
+func TestSchemaEncodeExtend_NullableRecordAndMap(t *testing.T) {
+	const text = `{"type":"record","name":"t","namespace":"pg.public","fields":[` +
+		`{"name":"id","type":"int"},` +
+		`{"name":"in","type":["null",{"type":"record","name":"In","fields":[{"name":"a","type":"int"},{"name":"b","type":"string"}]}],"default":null},` +
+		`{"name":"m","type":["null",{"type":"map","values":"long"}],"default":null}]}`
+	fixture := func(t *testing.T) opencdc.Record {
+		t.Helper()
+		sch, err := sdkschema.Create(context.Background(), schema.TypeAvro, fidelitySubject(t)+"-value", []byte(text))
+		if err != nil {
+			t.Fatalf("create schema: %v", err)
+		}
+		after, err := sch.Marshal(opencdc.StructuredData{
+			"id": int32(1),
+			"in": map[string]any{"a": int32(2), "b": "x"},
+			"m":  map[string]any{"k": int64(3)},
+		})
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		rec := opencdc.Record{Operation: opencdc.OperationCreate, Metadata: opencdc.Metadata{}, Payload: opencdc.Change{After: opencdc.RawData(after)}}
+		schema.AttachPayloadSchemaToRecord(rec, sch)
+		return rec
+	}
+	t.Run("unchanged keeps the carried version", func(t *testing.T) {
+		is := is.New(t)
+		p := newExtendProcessor(t, extendPayloadCfg(), func(_ context.Context, r opencdc.Record) (opencdc.Record, error) { return r, nil })
+		in := fixture(t)
+		want := in.Clone()
+		out := mustSingle(t, processOne(t, p, in))
+		is.Equal(out.Metadata[opencdc.MetadataPayloadSchemaVersion], "1")
+		is.Equal(out.Payload.After, want.Payload.After) // bytes changed
+	})
+	t.Run("added field keeps the carried definitions", func(t *testing.T) {
+		is := is.New(t)
+		p := newExtendProcessor(t, extendPayloadCfg(), setField("__op", "c"))
+		out := mustSingle(t, processOne(t, p, fixture(t)))
+		decoded, sch := decodeAttached(t, out, out.Payload.After)
+		_, carriedDefs, _ := schemaFields(t, schema.Schema{Bytes: []byte(text)})
+		_, defs, order := schemaFields(t, sch)
+		is.Equal(order, []string{"id", "in", "m", "__op"})
+		for _, name := range []string{"id", "in", "m"} {
+			is.Equal(defs[name], carriedDefs[name]) // carried field definition changed
+		}
+		is.Equal(sch.Version, 2)
+		is.Equal(decoded["__op"], "c")
+		want := map[string]any{"id": int32(1), "in": map[string]any{"a": int32(2), "b": "x"}, "m": map[string]any{"k": int64(3)}, "__op": "c"}
+		if path, ok := equivalentValues(want, map[string]any(decoded), ""); !ok {
+			t.Fatalf("decoded value differs at %q: %v", path, decoded)
+		}
+	})
 }
 
 // TestSchemaEncodeExtend_RawPartFailsClosed is the regression test for a
