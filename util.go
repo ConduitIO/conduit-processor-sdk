@@ -43,8 +43,12 @@ type Reference reference.Reference
 type ReferenceResolver reference.Resolver
 
 // Resolve resolves the reference to a field in the record. If the reference
-// cannot be resolved an error is returned. If the reference is valid but the
-// field does not exist in the record, the field will be created.
+// cannot be resolved an error is returned. Resolving does not change the
+// record. If the field or its parents (a nil key or payload part, or a nil
+// nested field) do not exist, Get returns nil and Delete does nothing, and
+// Set or Rename create them as empty structured data first. So deleting
+// .Payload.After.x from a delete record, which has no after, leaves the after
+// nil instead of turning it into {}.
 // The returned reference can be used to set the value of the field.
 func (r ReferenceResolver) Resolve(rec *opencdc.Record) (Reference, error) {
 	ref, err := reference.Resolver(r).Resolve(rec)

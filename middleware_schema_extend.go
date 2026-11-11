@@ -36,8 +36,10 @@ type SchemaEncodeStrategy string
 const (
 	// SchemaEncodeStrategyInfer extracts a schema from the Go values and
 	// registers it as a new version of the carried subject. Extraction does
-	// not keep Avro logical types, enums, named types or int vs long. This is
-	// the default.
+	// not keep Avro logical types, enums, named types or int vs long. A
+	// payload schema fits both before and after, so a field that is NULL in
+	// one and set in the other is nullable; a field before has and after
+	// lacks fails the record. This is the default.
 	SchemaEncodeStrategyInfer SchemaEncodeStrategy = "infer"
 	// SchemaEncodeStrategyExtend builds the new version from the carried
 	// schema: fields still present keep their exact carried definition, added

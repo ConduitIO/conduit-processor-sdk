@@ -79,7 +79,12 @@ carried subject. Two parameters, present on every processor, choose how:
 
 - `infer` extracts a schema from the values. Avro `int` becomes `long`, `date`
   becomes `timestamp-micros`, decimals become `decimal(31,10)`, and enums and named
-  types are lost.
+  types are lost. `before` and `after` share one schema, inferred so that it
+  fits both: an update where a nullable column goes from a value to `NULL` (or
+  back) encodes both sides. A field that `before` has and `after` lacks, at any
+  depth, fails the record instead of disappearing from `before`. This happens
+  with `field.exclude` on `.Payload.After.x` for an update with a full before
+  image. Remove the field from both parts.
 - `extend` keeps the carried definition of every field still present, adds new
   top-level fields as nullable with a null default, and leaves out removed
   top-level fields. A nil or zero-length raw part is passed through unencoded,
