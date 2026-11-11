@@ -81,10 +81,28 @@ carried subject. Two parameters, present on every processor, choose how:
   becomes `timestamp-micros`, decimals become `decimal(31,10)`, and enums and named
   types are lost.
 - `extend` keeps the carried definition of every field still present, adds new
-  top-level fields as nullable with a null default, leaves out removed top-level
-  fields, and passes empty parts through unencoded. A value that does not fit its
-  carried type fails the record (`ErrSchemaExtendMismatch`), and a carried schema
-  that cannot be extended fails it with `ErrSchemaExtendUnsupported`.
+  top-level fields as nullable with a null default, and leaves out removed
+  top-level fields. A nil or zero-length raw part is passed through unencoded,
+  with its metadata unchanged. A part whose fields were all removed (`{}`) gets a
+  record schema with zero fields, registered as a new version of the carried
+  subject; it encodes to zero bytes, so downstream it is an empty value that
+  still carries a schema ID. A value that does not fit its carried type fails the
+  record (`ErrSchemaExtendMismatch`), and a carried schema that cannot be extended
+  fails it with `ErrSchemaExtendUnsupported`.
+
+`extend` fails closed in some cases where `infer` succeeds by widening or
+truncating:
+
+- `before` and `after` with different top-level fields.
+- An added `time.Time` finer than a microsecond (for example `time.Now()` on
+  Linux): the added field is inferred as `timestamp-micros`, which cannot hold
+  nanoseconds. Truncate the value in the processor
+  (`t.Truncate(time.Microsecond)`) or attach a schema.
+- A kept field whose carried type changed, or a key added to or removed from a
+  nested record.
+- A kept field that refers to a named type defined only in a removed field.
+- One payload part structured and the other still non-empty raw bytes, which
+  cannot be re-encoded with the extended schema.
 
 `extend` is opt-in in v0.22. In v0.23 `infer` warns when it widens a carried
 schema, and in v0.24 `extend` becomes the default. See

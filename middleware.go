@@ -493,11 +493,10 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 //   - Unchanged: the schema the record came in with is used, as long as the
 //     data still fits it exactly, meaning decoding the encoded bytes gives back
 //     the same values (no dropped fields, no truncated times or numbers). Data a
-//     processor returns unchanged fits, so it keeps its exact bytes and schema,
-//     with one exception: a field typed ["null", record] or ["null", map] does
-//     not re-encode from its decoded form (conduit-commons#306), so such a
-//     record takes the fallback below, and if that nullable record mixes field
-//     types the extraction fails and the record becomes an error record.
+//     processor returns unchanged fits, so it keeps its exact bytes and schema.
+//     This includes fields typed ["null", record] or ["null", map], which
+//     re-encode from their decoded form since conduit-commons v0.12.0
+//     (conduit-commons#306).
 //
 //     If the data no longer fits, for example because the processor added a
 //     field, a schema is extracted from the values, registered as a new version
@@ -514,9 +513,13 @@ func (c ProcessorWithSchemaEncodeConfig) parameters() config.Parameters {
 //     exact carried definition, added top-level fields get an inferred
 //     nullable type with a null default, removed top-level fields are left
 //     out (all of them for {}, which gets a zero-field record schema), and
-//     nil or zero-length raw parts are passed through unchanged. A value that does
-//     not fit its carried type fails the record with [ErrSchemaExtendMismatch]
-//     and nothing is registered. See docs/design-documents/20261106-schema-encode-extend.md.
+//     nil or zero-length raw parts are passed through unchanged. A {} part
+//     encodes to zero bytes and still carries the zero-field schema's ID. A
+//     value that does not fit its carried type fails the record with
+//     [ErrSchemaExtendMismatch] and nothing is registered; so does an added
+//     time.Time finer than a microsecond (it is inferred as timestamp-micros),
+//     and a payload part that is still non-empty raw data next to a structured
+//     one. See docs/design-documents/20261106-schema-encode-extend.md.
 //
 // It adds four parameters to the processor config:
 //   - `sdk.schema.encode.key.enabled` and `sdk.schema.encode.payload.enabled` -

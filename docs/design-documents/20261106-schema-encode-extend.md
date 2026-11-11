@@ -121,8 +121,12 @@ data are absent (see _Empty parts_):
    with a null or a default would invent data. This includes `before` with fields next to `after` as
    `{}`. Decided by DeVaris for the v0.22 opt-in; revisit before `extend` becomes the default in v0.24.
 3. **Kept fields.** Each carried field whose name is a key of the data is copied from the carried schema
-   text as raw JSON (only insignificant whitespace is removed), in the carried order. Top-level schema
-   attributes (`name`, `namespace`, `doc`, custom properties) are kept too.
+   text as raw JSON, in the carried order. Top-level schema attributes (`name`, `namespace`, `doc`,
+   custom properties) are kept too. The schema is re-marshaled with `encoding/json`, so the text is
+   semantically identical but not byte-identical: insignificant whitespace is removed, the top-level
+   object's keys are sorted, and `<`, `>` and `&` inside strings are escaped as `\u003c`, `\u003e` and
+   `\u0026`. No name, type or default changes; a registry that compares the raw text sees a different
+   string, as it does for any re-registered schema.
 4. **Removed fields.** Each carried field that is not a key of the data is left out. Removal is the
    processor's intent (decision by DeVaris); it is not an error. The rule applies to every field: when
    the data is `{}`, every carried field is removed and the new version is a record schema with zero
@@ -163,7 +167,8 @@ the zero-field schema described in step 4. A zero-field Avro record encodes to z
 part is `RawData` of length zero. The decode middleware treats a zero-length payload part as absent and
 does not decode it (it does decode a zero-length key), so a later processor sees that payload part as
 raw, empty data while the metadata names the zero-field schema. Both describe the same value: a record
-with no fields.
+with no fields. Downstream of the pipeline (a Kafka destination, `avro.encode`) the part is an empty
+value that still carries a schema ID; that is the intended wire shape for a record with no fields.
 
 A part that is still **non-empty raw data** next to a structured part is neither absent nor encodable. Its
 bytes were written with the carried schema (or some other one) and the processor did not decode them, so
@@ -199,11 +204,12 @@ Conduit maps them to its own stable error codes (see _Conduit_).
 | Part is nil or zero-length raw data | Passed through; data and metadata unchanged; nothing registered | Absent, not a value |
 | One payload part structured, the other still non-empty raw data | `ErrSchemaExtendMismatch` naming the raw part; nothing registered | The raw bytes were written with another schema and cannot be re-encoded; attaching the new version would make them decode wrongly or into shifted values (invariant 6) |
 | Processor added a top-level field | Nullable field, default null, appended in name order | Backward-compatible extension |
+| Added field is a `time.Time` finer than a microsecond (`time.Now()` on Linux) | `ErrSchemaExtendMismatch`; the field path names the added field; nothing registered | The inferred type is `timestamp-micros`, which cannot hold nanoseconds; the round trip refuses to truncate. `infer` truncates silently. Truncate the value in the processor, or attach a schema |
 | Processor added or removed a key inside a nested record | `ErrSchemaExtendMismatch` | Only top-level extension is defined; the nested record type is kept exactly |
 | Null into a non-null carried field | `ErrSchemaExtendMismatch` | Codec error |
 | Value into a carried `["null", T]` field | Encoded as `T` | Fits |
 | Multi-branch union fields | Encoded when the decoded value round-trips, else mismatch | Branch resolution is the codec's; the round trip proves it |
-| Carried `["null", record]` or `["null", map]` field (conduit-commons#306) | `ErrSchemaExtendMismatch` | The decoded form does not re-encode with that schema. `infer` falls back to extraction here; `extend` fails closed rather than widen. Fixed when #306 is |
+| Carried `["null", record]` or `["null", map]` field | Kept exactly; encoded when the value round-trips | Re-encodes from its decoded form since conduit-commons v0.12.0 (conduit-commons#306, fixed); pinned by `TestSchemaEncodeExtend_NullableRecordAndMap` |
 | Arrays and maps | Kept exactly; contents checked by the round trip | |
 | Key and payload | Independent strategies, schemas and subjects | They are separate parts with separate metadata |
 | `before` and `after` with different top-level fields (including one of them `{}`) | `ErrSchemaExtendMismatch` naming the field; nothing registered | One schema describes both; filling the gap would invent nulls. Decided for the v0.22 opt-in, revisit before the v0.24 default |
